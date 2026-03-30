@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//home/trx50/Documents/arthurwang_DB/**)"
+    ],
+    "additionalDirectories": [
+      "/home/trx50/Documents/arthurwang_DB/人生",
+      "/home/trx50/Documents/arthurwang_DB/AI Research"
+    ]
+  }
+}
