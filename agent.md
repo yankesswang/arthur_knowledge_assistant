@@ -1,191 +1,26 @@
-# Claude Code Guidelines — Obsidian 投資筆記專案
+# Arthur Knowledge Assistant — Agent 入口
 
-## 投資筆記整理標準
-
-每次整理投資筆記（podcast、文章、訪談），必須遵循以下格式。以 `Dylan Patel：AI算力擴展的三大瓶頸深度解析.md` 和 `Bob Brackett：伊朗冲击下的天然气、LNG与供应链重构.md` 為範例。
+> 本檔案為轉發器。所有規範以 `CLAUDE.md` 為主，本檔案不重複任何規則。
 
 ---
 
-### 1. Frontmatter（必填欄位）
+## 接到任務時，依序執行：
 
-```yaml
----
-title: 中文標題
-date: YYYY-MM-DD（發布日期）
-source: 節目/媒體名稱
-speaker: 嘉賓姓名（職稱）
-sector: 投資板塊（中文）
-tags:
-  - 核心主題1
-  - 核心主題2
-stocks:
-  - TICKER1
-  - TICKER2
-url: 原始連結
----
-```
+1. **讀取 `CLAUDE.md`** — 取得全域規範與 instruction 索引
+2. **判斷任務類型** — 對照 CLAUDE.md 的 Instruction 索引表
+3. **讀取對應 instruction 檔案** — 路徑在 `instructions/` 資料夾下
+4. **執行任務**
 
 ---
 
-### 2. TL;DR（必須放在標題後的第一個區塊）
+## Instruction 索引（完整版見 CLAUDE.md）
 
-用 `[!abstract]` callout 寫「一句話總結」：
-
-- 格式：`> [!abstract] 一句話總結`
-- 內容：**核心投資觀點** + **最重要的判斷邏輯** + **關鍵數字或時間點**
-- 目標：讓人在 3 秒內知道「這篇值不值得深讀」
-
----
-
-### 3. 嘉賓背景（必寫）
-
-說明：
-- 此人是誰、在哪裡工作、覆蓋什麼
-- 為什麼他的觀點值得聽
-- **潛在偏差**（structural bias）——他的客戶是誰？他有什麼利益在裡面？
-
----
-
-### 4. 正文結構
-
-- 用中文數字編號主要章節（一、二、三...）
-- 每個章節必須有**投資含義**，不只是知識整理
-- 使用以下工具讓內容清晰：
-
-| 工具 | 用途 |
-|------|------|
-| `[!quote]` callout | 嘉賓的關鍵原話 |
-| `[!tip]` callout | 投資含義、選股邏輯 |
-| `[!warning]` callout | 風險、反向指標 |
-| `[!info]` callout | 背景知識、市場結構 |
-| `[!note]` callout | 重要細節、補充說明 |
-| `[!danger]` callout | 極端風險、關鍵衝突 |
-| Code block | 時間軸演進、計算流程、因果鏈 |
-| Table | 數據比較、情景分析、多標的對照 |
-
----
-
-### 5. 投資框架（必寫，放在結尾前）
-
-分三個時間維度：
-- **短期**（事件驅動）：什麼觸發因素、跟踪什麼指標
-- **中期**（結構性）：哪些標的受益，為什麼
-- **長期**（主題性）：大趨勢、資本支出周期
-
-加上：
-- **核心風險** `[!warning]`：嘉賓可能錯在哪裡、市場已定價什麼
-
----
-
-### 6. 關鍵數據速查表（必寫，放在最後）
-
-整理文章中所有出現的關鍵數字，格式：
-
-```markdown
-## 附：關鍵數據速查
-
-| 指標 | 數值 |
-|------|------|
-| ... | ... |
-```
-
----
-
-### 7. Substack 格式清理（處理原始文件時）
-
-從 Substack 匯入的文件，需要清除以下雜訊後再整理：
-
-- 作者連結：`[](https://substack.com/@xxx)` + `[作者名](https://substack.com/@xxx)`
-- 日期行（如 `Mar 18, 2026`）
-- `∙ Paid` 或 `∙\xa0Paid`（包含不可見 non-breaking space）
-- 封面圖片：`[![](substackcdn.com/...))](substackcdn.com/...)`
-- 文章內內嵌圖片（相同 CDN 格式）
-
-### 7a. 圖片處理規則（必讀）
-
-整理筆記時，**有內容的圖片必須保留**，放在對應章節的適當位置。判斷標準如下：
-
-#### 保留的圖片（有資訊內容）
-- K 線圖、技術分析圖、走勢圖
-- 季節性勝率表、月份報酬圖
-- 產業鏈結構圖、供應鏈示意圖
-- 財報數字截圖、營收佔比圖
-- 任何有數字、標籤、分析資訊的圖表
-
-#### 刪除的圖片（純裝飾）
-- 文章封面橫幅（無數字、無標籤）
-- 品牌 Logo、插圖
-- 無標題、無數字的純美觀圖片
-
-#### 圖片保留格式
-
-**情況 A：圖片已是本地附件**（`![[Pasted image xxx.png]]` 格式）
-→ 直接保留，放在對應章節下
-
-**情況 B：圖片是 Substack CDN 外部連結**（`![](https://substackcdn.com/...)`）
-→ 保留 CDN 連結，格式改為標準 Markdown 圖片語法，並加上說明文字：
-
-```markdown
-![季節性勝率回測（2016–2026）](https://substackcdn.com/image/fetch/...)
-> *圖：INTU 過去 10 年每月平均報酬率與勝率*
-```
-
-→ 備註：Substack CDN 連結可能需要登入才能顯示；如需永久保存，請手動截圖貼入 Obsidian（自動存為本地附件）
-
-#### 圖片放置位置原則
-- 技術面走勢圖 → 放在「技術面」章節內，緊接在相關分析文字之後
-- 季節性圖表 → 放在「季節性策略」章節內
-- 財報 / 營收結構圖 → 放在對應財報分析段落下
-- 產業鏈 / 結構圖 → 放在產業結構說明段落下
----
-
-### 8. 語言規範
-
-- **所有輸出一律使用繁體中文**，無論原始資料是簡體中文、英文或其他語言
-- 股票代碼：全大寫英文（NVDA、LNG、TSM）
-- 數字與英文：保留原始術語（EUV、HBM、bcf/day、mcf）
-- 不翻譯人名、公司名（Bob Brackett、Bernstein Research）
-
----
-
-### 9. Vault 位置
-
-- 主 Vault：`/home/trx50/Documents/arthurwang_DB/`
-- 投資筆記目錄：`/home/trx50/Documents/arthurwang_DB/投資/`
-- Obsidian CLI 若無法使用，直接用檔案系統操作
-
----
-
-### 10. 品質標準
-
-一篇頂級投資筆記應該做到：
-1. **3 秒可判讀**：TL;DR 讓人立刻知道核心觀點
-2. **有觀點、有數字**：不只整理事實，要提煉投資邏輯
-3. **有批判性**：明確說嘉賓可能的偏差或錯誤假設
-4. **可操作**：具體到哪個 ticker、什麼觸發條件
-5. **有速查表**：所有關鍵數字集中在最後，不需要重讀全文
-
-
----
-
-### 11. 論文筆記相關指令
-
-當使用者的指令涉及以下任何論文整理任務時，**必須先讀取 `PAPER_NOTE_CLAUDE.md`**，再開始執行：
-
-- 整理 arXiv 論文、研究論文、技術報告
-- 任何涉及「論文筆記」、「paper note」、「整理論文」、「論文摘要」的指令
-
-讀取路徑：`/home/trx50/Project/arthur_knowledge_assistant/PAPER_NOTE_CLAUDE.md`
-
----
-
-### 12. 寫作相關指令
-
-當使用者的指令涉及以下任何寫作任務時，**必須先讀取 `WRITER_CLAUDE.md`**，再開始執行：
-
-- 撰寫 LinkedIn 文章或貼文
-- 撰寫社群媒體內容（英文或繁體中文）
-- 將論文、研究、趨勢轉化為貼文
-- 任何涉及「寫作」、「草稿」、「發文」、「post」、「write」、「draft」的指令
-
-讀取路徑：`/home/trx50/Project/arthur_knowledge_assistant/WRITER_CLAUDE.md`
+| 任務類型 | 讀取路徑 |
+|----------|---------|
+| 投資筆記整理 | `instructions/note-investment.md` |
+| 月度整理 | `instructions/monthly-digest.md` |
+| 學術論文筆記 | `instructions/note-paper.md` |
+| AI 課程 / 講座筆記 | `instructions/note-ai-lecture.md` |
+| LinkedIn / 短文寫作 | `instructions/write-linkedin.md` |
+| Substack / 長文寫作 | `instructions/write-substack.md` |
+| 內容創作工作流 | `instructions/write-workflow.md` |

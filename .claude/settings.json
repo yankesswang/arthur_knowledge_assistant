@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Read(//home/trx50/Documents/arthurwang_DB/**)"
+      "Read(//home/trx50/Documents/arthurwang_DB/**)",
+      "Bash(mv \"/home/trx50/Documents/arthurwang_DB/投資/AI半導體/KP週末筆記#36：Nvidia收編Marvell、Intel Fab34反攻、Google量子破密（2026-04）.md\" \"/home/trx50/Documents/arthurwang_DB/Finance Digest/FOMO SOC/\")",
+      "Bash(mv \"/home/trx50/Documents/arthurwang_DB/投資/AI半導體/KP週末筆記#35：記憶體超級週期出現裂縫？ARM自研CPU殺入資料中心（2026-03）.md\" \"/home/trx50/Documents/arthurwang_DB/Finance Digest/FOMO SOC/\")"
     ],
     "additionalDirectories": [
       "/home/trx50/Documents/arthurwang_DB/人生",

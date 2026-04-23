@@ -1,289 +1,74 @@
-# Claude Code Guidelines — Obsidian 投資筆記專案
+# Claude Code Guidelines — Arthur Knowledge Assistant
 
-## 投資筆記整理標準
+## 專案概覽
 
-每次整理投資筆記（podcast、文章、訪談），必須遵循以下格式。以 `Dylan Patel：AI算力擴展的三大瓶頸深度解析.md` 和 `Bob Brackett：伊朗冲击下的天然气、LNG与供应链重构.md` 為範例。
-
----
-
-### 1. Frontmatter（必填欄位）
-
-```yaml
----
-title: 中文標題
-date: YYYY-MM-DD（發布日期）
-source: 節目/媒體名稱
-speaker: 嘉賓姓名（職稱）
-sector: 投資板塊（中文）
-tags:
-  - 核心主題1
-  - 核心主題2
-stocks:
-  - TICKER1
-  - TICKER2
-url: 原始連結
----
-```
+Arthur 的 Obsidian 知識管理 + 投資筆記 + 內容創作 AI 助理。
+詳細 instruction 存放在 `instructions/`。接到任務時，**先判斷類型，再讀取對應檔案，再執行**。
 
 ---
 
-### 2. TL;DR（必須放在標題後的第一個區塊）
+## Instruction 索引
 
-用 `[!abstract]` callout 寫「一句話總結」：
-
-- 格式：`> [!abstract] 一句話總結`
-- 內容：**核心投資觀點** + **最重要的判斷邏輯** + **關鍵數字或時間點**
-- 目標：讓人在 3 秒內知道「這篇值不值得深讀」
-
----
-
-### 3. 嘉賓背景（必寫）
-
-說明：
-- 此人是誰、在哪裡工作、覆蓋什麼
-- 為什麼他的觀點值得聽
-- **潛在偏差**（structural bias）——他的客戶是誰？他有什麼利益在裡面？
+| 任務類型 | 觸發關鍵字 | 讀取路徑 |
+|----------|-----------|---------|
+| 投資筆記整理 | 投資筆記、podcast、訪談、財報、嘉賓 | `instructions/note-investment.md` |
+| 月度整理（Finance Digest） | 月度整理、月底整理、月度總攬、幫我整理X月、FOMO SOC 整理 | `instructions/monthly-digest.md` |
+| arXiv / 學術論文筆記 | 論文筆記、paper note、整理論文、論文摘要 | `instructions/note-paper.md` |
+| AI 課程 / 講座筆記 | 技術筆記、課程筆記、整理筆記、tech note、LLM 評估、Agentic Framework | `instructions/note-ai-lecture.md` |
+| LinkedIn / 短文寫作 | 寫貼文、LinkedIn、draft、short post、社群 | `instructions/write-social.md` |
+| Substack / 長文寫作 | substack、長文、技術文章、按我的風格寫 | `instructions/write-longform.md` |
+| 內容創作工作流 | 出個 Brief、找連結、每週連結、捕捉觀察 | `instructions/write-workflow.md` |
 
 ---
 
-### 4. 正文結構
+## 全域規範（所有任務共用，各 instruction 不重複）
 
-- 用中文數字編號主要章節（一、二、三...）
-- 每個章節必須有**投資含義**，不只是知識整理
-- 使用以下工具讓內容清晰：
+### 語言
 
-#### 4a. 深度標準（必讀，防止內容過度壓縮）
+- **所有輸出一律使用繁體中文**，無論原始資料語言
+- 股票代碼、技術術語（LLM、KV cache、RLHF）、人名、公司名保留英文原文
+- 數字帶單位（%、倍數、bytes、秒）
 
-整理原始文章時，**不能只保留結論，必須保留論證過程**：
+### 圖片判斷規則
 
-- **每個投資觀點的「為什麼」必須完整呈現**：原文有因果推論、邏輯鏈、類比說明的，整理後都要保留，不能只寫結論句
-- **對比分析必須完整重現**：原文中的「舊模式 vs. 新模式」、「A 公司 vs. B 公司」、「情境 A vs. 情境 B」等對比，不得壓縮成一句話
-- **每一個論點的支撐論據都要納入**：包括具體例子、數字佐證、產業機制說明
-- **風險分析要有層次**：不只列出風險點，要說明傳導機制（為什麼這個風險會發生、如何影響股價）
-- **讀完原文後逐段核對**：確認每個段落的核心論點都已出現在整理版本中
-- **篇幅基準**：整理後的內容密度應與原文相當，不應大幅短於原文。若原文論述充分、分析深入，整理版本的篇幅應能涵蓋原文所有主要論點
+**保留**（有資訊內容）：K 線圖、技術分析圖、季節性勝率表、產業鏈結構圖、財報截圖、任何有數字/標籤的圖
 
+**刪除**（純裝飾）：文章封面橫幅、品牌 Logo、無數字的插圖
 
+**圖片放置**：緊接在對應段落文字之後，不集中堆在文末
 
-| 工具 | 用途 |
-|------|------|
-| `[!quote]` callout | 嘉賓的關鍵原話 |
-| `[!tip]` callout | 投資含義、選股邏輯 |
-| `[!warning]` callout | 風險、反向指標 |
-| `[!info]` callout | 背景知識、市場結構 |
-| `[!note]` callout | 重要細節、補充說明 |
-| `[!danger]` callout | 極端風險、關鍵衝突 |
-| Code block | 時間軸演進、計算流程、因果鏈 |
-| Table | 數據比較、情景分析、多標的對照 |
+**本地附件格式**：`![[Pasted image xxx.png]]` → 直接保留
 
----
+### 關鍵數據速查表格式
 
-### 5. 投資框架（必寫，放在結尾前）
-
-分三個時間維度：
-- **短期**（事件驅動）：什麼觸發因素、跟踪什麼指標
-- **中期**（結構性）：哪些標的受益，為什麼
-- **長期**（主題性）：大趨勢、資本支出周期
-
-加上：
-- **核心風險** `[!warning]`：嘉賓可能錯在哪裡、市場已定價什麼
-
----
-
-### 6. 關鍵數據速查表（必寫，放在最後）
-
-整理文章中所有出現的關鍵數字，格式：
+每篇筆記最後必須有速查表（有數字型內容時）：
 
 ```markdown
 ## 附：關鍵數據速查
 
-| 指標 | 數值 |
-|------|------|
-| ... | ... |
+| 指標 | 數值 | 備註 |
+|------|------|------|
+| ... | ... | ... |
 ```
 
----
-
-### 7. Substack 格式清理（處理原始文件時）
-
-從 Substack 匯入的文件，需要清除以下雜訊後再整理：
-
-- 作者連結：`[](https://substack.com/@xxx)` + `[作者名](https://substack.com/@xxx)`
-- 日期行（如 `Mar 18, 2026`）
-- `∙ Paid` 或 `∙\xa0Paid`（包含不可見 non-breaking space）
-- 封面圖片：`[![](substackcdn.com/...))](substackcdn.com/...)`
-- 文章內內嵌圖片（相同 CDN 格式）
-
-### 7a. 圖片處理規則（必讀）
-
-整理筆記時，**有內容的圖片必須保留**，放在對應章節的適當位置。判斷標準如下：
-
-#### 保留的圖片（有資訊內容）
-- K 線圖、技術分析圖、走勢圖
-- 季節性勝率表、月份報酬圖
-- 產業鏈結構圖、供應鏈示意圖
-- 財報數字截圖、營收佔比圖
-- 任何有數字、標籤、分析資訊的圖表
-
-#### 刪除的圖片（純裝飾）
-- 文章封面橫幅（無數字、無標籤）
-- 品牌 Logo、插圖
-- 無標題、無數字的純美觀圖片
-
-#### 圖片保留格式
-
-**情況 A：圖片已是本地附件**（`![[Pasted image xxx.png]]` 格式）
-→ 直接保留，放在對應章節下
-
-**情況 B：圖片是 Substack CDN 外部連結**（`![](https://substackcdn.com/...)`）
-→ 保留 CDN 連結，格式改為標準 Markdown 圖片語法，並加上說明文字：
-
-```markdown
-![季節性勝率回測（2016–2026）](https://substackcdn.com/image/fetch/...)
-> *圖：INTU 過去 10 年每月平均報酬率與勝率*
-```
-
-→ 備註：Substack CDN 連結可能需要登入才能顯示；如需永久保存，請手動截圖貼入 Obsidian（自動存為本地附件）
-
-#### 圖片放置位置原則
-- 技術面走勢圖 → 放在「技術面」章節內，緊接在相關分析文字之後
-- 季節性圖表 → 放在「季節性策略」章節內
-- 財報 / 營收結構圖 → 放在對應財報分析段落下
-- 產業鏈 / 結構圖 → 放在產業結構說明段落下
----
-
-### 8. 語言規範
-
-- **所有輸出一律使用繁體中文**，無論原始資料是簡體中文、英文或其他語言
-- 股票代碼：全大寫英文（NVDA、LNG、TSM）
-- 數字與英文：保留原始術語（EUV、HBM、bcf/day、mcf）
-- 不翻譯人名、公司名（Bob Brackett、Bernstein Research）
-
----
-
-### 9. Vault 位置
+### Vault 位置
 
 - 主 Vault：`/home/trx50/Documents/arthurwang_DB/`
-- 投資筆記目錄：`/home/trx50/Documents/arthurwang_DB/投資/`
-- Obsidian CLI 若無法使用，直接用檔案系統操作
+- 投資筆記：`/home/trx50/Documents/arthurwang_DB/投資/`
+- 文章輸出：`/home/trx50/Documents/arthurwang_DB/Arthur_Blog/Posts/`
+- 所有路徑使用 Linux 格式（`/home/trx50/...`），不使用舊 macOS 路徑
 
 ---
 
-### 10. 品質標準
+## Instructions 資料夾結構
 
-一篇頂級投資筆記應該做到：
-1. **3 秒可判讀**：TL;DR 讓人立刻知道核心觀點
-2. **有觀點、有數字**：不只整理事實，要提煉投資邏輯
-3. **有批判性**：明確說嘉賓可能的偏差或錯誤假設
-4. **可操作**：具體到哪個 ticker、什麼觸發條件
-5. **有速查表**：所有關鍵數字集中在最後，不需要重讀全文
-
-
----
-
-### 11. 論文筆記相關指令
-
-當使用者的指令涉及以下任何論文整理任務時，**必須先讀取 `PAPER_NOTE_CLAUDE.md`**，再開始執行：
-
-- 整理 arXiv 論文、研究論文、技術報告
-- 任何涉及「論文筆記」、「paper note」、「整理論文」、「論文摘要」的指令
-
-讀取路徑：`/home/trx50/Project/arthur_knowledge_assistant/PAPER_NOTE_CLAUDE.md`
-
----
-
-### 11b. AI 技術筆記相關指令
-
-當使用者的指令涉及以下任何 AI 技術筆記整理任務時，**必須先讀取 `AI_TECH_NOTE_CLAUDE.md`**，再開始執行：
-
-- 整理課程筆記、技術講座、AI 演講
-- 整理論文但包含大量背景說明（混合型）
-- 任何涉及「技術筆記」、「課程筆記」、「整理筆記」、「tech note」的指令
-- 涉及 LLM 評估、Agentic Framework、AI 技術方法的整理任務
-
-讀取路徑：`/home/trx50/Project/arthur_knowledge_assistant/AI_TECH_NOTE_CLAUDE.md`
-
----
-
-### 12. 寫作相關指令
-
-當使用者的指令涉及以下任何寫作任務時，**必須先讀取 `WRITER_CLAUDE.md`**，再開始執行：
-
-- 撰寫 LinkedIn 文章或貼文
-- 撰寫社群媒體內容（英文或繁體中文）
-- 將論文、研究、趨勢轉化為貼文
-- 任何涉及「寫作」、「草稿」、「發文」、「post」、「write」、「draft」的指令
-
-讀取路徑：`/home/trx50/Project/arthur_knowledge_assistant/WRITER_CLAUDE.md`
-
----
-
-### 13. Substack 文章生成指令
-
-當使用者的指令涉及以下任何 Substack 文章生成任務時，**必須先讀取 `SUBSTACK_STYLE.md`**，再開始執行：
-
-- 撰寫 Substack 長文（英文技術文章）
-- 撰寫中文長篇 AI/科技反思文章
-- 任何涉及「substack」、「長文」、「技術文章」、「按我的風格寫」的指令
-- 提供原始素材（論文、研究、新聞），要求生成完整文章
-
-讀取路徑：`/Users/yankesswang/Desktop/Projects/arthur_knowledge_assistant/SUBSTACK_STYLE.md`
-
-生成文章時，必須在 prompt 中指定：
-- 【文章類型】A（英文長文）/ B（英文短文）/ C（中文長文）
-- 【原始素材】貼入內容
-- 【核心論點】（選填）
-- 【目標讀者】（選填）
-
----
-
-### 14b. Agent/LLM 內容創作指令
-
-當使用者的指令涉及以下任何內容創作任務時，**必須先讀取 `CONTENT_SYSTEM.md`**，再開始執行：
-
-- 寫 LinkedIn 貼文、推文串、技術文章（Agent / LLM / Claude Code 主題）
-- 整理 Vault 筆記並生成 Content Brief
-- 任何涉及「幫我寫貼文」、「出個 Brief」、「找連結」、「每週連結」的指令
-- 使用者提供筆記/觀察，要求轉化為內容
-
-讀取路徑：`/home/trx50/Project/arthur_knowledge_assistant/CONTENT_SYSTEM.md`
-
----
-
-### 14. 投資資料夾筆記整理後必須更新投資操作建議總表
-
-每次整理 `/Users/yankesswang/Documents/arthurwang_DB/投資/` 任何子目錄下的投資筆記後，**必須同步將該篇的核心投資觀點與操作建議更新至**：
-
-`/Users/yankesswang/Documents/arthurwang_DB/投資/投資操作建議總表.md`
-
-#### 更新內容格式
-
-每篇整理完的筆記，需在總表新增一個個股操作區塊，包含：
-
-1. **操作建議表格**（必填）：
-   - 現價 / 推薦時股價
-   - 進場區間或觀察點
-   - 目標價（第一目標、第二目標）
-   - 停損參考
-   - 關鍵催化劑時間點
-
-2. **操作邏輯** `[!tip]`（必填）：
-   - 用 2–3 句話說明「為什麼現在買」、「什麼邏輯」
-
-3. **核心風險** `[!warning]`（必填）：
-   - 嘉賓可能錯在哪裡、何時應停損或重新評估
-
-4. **來源 wikilink**（必填）：
-   - `📖 參考來源：[[筆記標題]]`
-
-#### 更新位置
-
-- 如果有明確的操作優先級（⭐⭐⭐ 立即操作 / ⭐⭐ 中期布局 / ⭐ 觀察），加入「七、操作優先級總覽」表格
-- 個股詳細描述區塊放在對應板塊區（AI半導體 / 太空 / 能源等）下方
-- 標題格式：`#### TICKER（公司名）— 一句話定位`
-
-#### 注意事項
-
-- 若總表已有該 ticker，更新數字和時間點（不要重複新增區塊）
-- 更新日期需同步修改總表 frontmatter 的 `date` 欄位和「操作優先級總覽」標題的更新日期
-- 所有數字（股價、目標價）需與筆記原文一致，不得自行推斷
+```
+instructions/
+├── note-investment.md    # 投資筆記（podcast/訪談/財報整理 + 操作建議總表更新）
+├── monthly-digest.md     # 月度整理（Finance Digest/FOMO SOC 月度格式化 + 月度總攬生成）
+├── note-paper.md         # 學術論文筆記（arXiv 為主，先直覺後背景）
+├── note-ai-lecture.md    # AI 課程/講座筆記（課程型 A + 論文混合型 B/C）
+├── write-linkedin.md     # LinkedIn/短文寫作（聲音、人設、貼文公式）
+├── write-substack.md     # Substack 長文（英文技術文 + 中文敘事文）
+└── write-workflow.md     # 內容創作工作流（每日捕捉、週連結、Content Brief）
+```
