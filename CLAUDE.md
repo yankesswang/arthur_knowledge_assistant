@@ -46,12 +46,54 @@ Arthur 的 Obsidian 知識管理 + 投資筆記 + 內容創作 AI 助理。
 
 ### 筆記完成後更新待閱讀清單
 
-每次完成任何類型的筆記整理後，**必須**執行以下步驟：
+清單路徑：`/Users/yankesswang/Documents/arthurwang_DB/待閱讀清單.md`
 
-1. 打開 `/Users/yankesswang/Documents/arthurwang_DB/待閱讀清單.md`
-2. 找到對應標題的條目（wikilink 格式 `[[標題]]`）
-3. 將該條目的 `- [ ]` 改為 `- [x]`，標記為已讀
-4. 若清單中找不到對應條目，**跳過**，不新增
+#### 閱讀清單結構（時間分層）
+
+```
+## 🆕 本週新增（YYYY/MM/DD – MM/DD）
+### AI Agent 工程
+### LLM 技術 / 論文
+### Claude Code / 開發工具
+### 產業與策略
+### 創業
+### 投資
+### 量化交易
+### 知識創作
+
+## 📅 [月份]中上旬（YYYY/MM/DD – MM/DD）
+（同上子分區）
+
+## ✅ 已讀
+（同上子分區）
+```
+
+#### 操作 A：新增筆記到清單（整理新筆記後執行）
+
+1. 打開待閱讀清單
+2. 在 `🆕 本週新增` 區塊下，找到對應的**主題子分區**（AI Agent 工程 / LLM 技術 / 投資…）
+3. 在子分區頂端新增一行：`- [ ] [[筆記標題]]`
+4. 若清單中已有相同條目，**跳過**，不重複新增
+5. 若對應子分區不存在，在 `🆕 本週新增` 下新建一個 `### 子分區名稱`
+
+**主題子分區對應規則**：
+
+| 筆記類型 | 對應子分區 |
+|---------|-----------|
+| Agent 工程、記憶架構、Harness | AI Agent 工程 |
+| LLM 技術、論文、推論引擎、量化壓縮 | LLM 技術 / 論文 |
+| Claude Code、Skill、MCP、開發工具 | Claude Code / 開發工具 |
+| 產業趨勢、策略分析、商業模式 | 產業與策略 |
+| 創業、自動化服務、工作流 | 創業 |
+| 個股分析、財報、宏觀策略 | 投資 |
+| Polymarket、量化策略、交易框架 | 量化交易 |
+| 寫作、X 帳號、內容創作 | 知識創作 |
+
+#### 操作 B：標記已讀（筆記整理完成後執行）
+
+1. 在清單中找到對應條目
+2. 將 `- [ ]` 改為 `- [x]`（原地修改即可，不需移動位置）
+3. 若清單中找不到對應條目，**跳過**，不新增
 
 ### 關鍵數據速查表格式
 
@@ -67,10 +109,11 @@ Arthur 的 Obsidian 知識管理 + 投資筆記 + 內容創作 AI 助理。
 
 ### Vault 位置
 
-- 主 Vault：`/home/trx50/Documents/arthurwang_DB/`
-- 投資筆記：`/home/trx50/Documents/arthurwang_DB/投資/`
-- 文章輸出：`/home/trx50/Documents/arthurwang_DB/Arthur_Blog/Posts/`
-- 所有路徑使用 Linux 格式（`/home/trx50/...`），不使用舊 macOS 路徑
+- 主 Vault：`/Users/yankesswang/Documents/arthurwang_DB/`
+- 投資筆記：`/Users/yankesswang/Documents/arthurwang_DB/投資/`
+- AI Knowledge：`/Users/yankesswang/Documents/arthurwang_DB/AI Knowledge/`
+- 文章輸出：`/Users/yankesswang/Documents/arthurwang_DB/Arthur_Blog/Posts/`
+- 待閱讀清單：`/Users/yankesswang/Documents/arthurwang_DB/待閱讀清單.md`
 
 ---
 
