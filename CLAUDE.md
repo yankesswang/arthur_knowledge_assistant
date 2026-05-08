@@ -44,6 +44,11 @@ Arthur 的 Obsidian 知識管理 + 投資筆記 + 內容創作 AI 助理。
 
 **本地附件格式**：`![[Pasted image xxx.png]]` → 直接保留
 
+**外部 URL 圖片**（來自 Clippings、X/Twitter、網頁）：
+- 格式為 `![Image](https://...)` → **必須保留在筆記中**，不得刪除
+- 判斷依據相同：有資訊內容的保留，純裝飾的刪除
+- 整理筆記時若重寫段落內容，**必須回頭確認對應圖片是否遺漏**，並補回到正確段落後
+
 ### 筆記完成後更新待閱讀清單
 
 清單路徑：`/Users/yankesswang/Documents/arthurwang_DB/待閱讀清單.md`
