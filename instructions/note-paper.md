@@ -254,7 +254,9 @@ MTL (Insight)    → 平均 0.560  (+3.7%)  ← 最抽象，效果最好
 
 ## 15. 儲存路徑
 
-筆記存放於：`/Users/yankesswang/Documents/arthurwang_DB/AI Knowledge/論文筆記/<子資料夾>/`
+依執行環境選擇路徑：
+- **Linux（這台）**：`/home/trx50/Documents/arthurwang_DB/AI Knowledge/論文筆記/<子資料夾>/`
+- **Mac（另一台）**：`/Users/yankesswang/Documents/arthurwang_DB/AI Knowledge/論文筆記/<子資料夾>/`
 
 根據論文的 `sector` 與核心內容，選擇對應子資料夾：
 

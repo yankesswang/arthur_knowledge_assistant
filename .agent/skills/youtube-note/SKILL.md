@@ -441,38 +441,48 @@ PYEOF
 
 ---
 
-### Step 6 — Download video once (480p for readable screenshots)
+### Step 6 — Get stream URLs (no video download)
 
 ```bash
 python3 << 'PYEOF'
-import subprocess, os, sys
+import subprocess, json, os, sys
 
-work_dir   = os.environ["WORK_DIR"]
-yt_url     = os.environ["YT_URL"]
-video_path = f"{work_dir}/video.mp4"
+work_dir = os.environ["WORK_DIR"]
+yt_url   = os.environ["YT_URL"]
 
-if os.path.exists(video_path) and os.path.getsize(video_path) > 100_000:
-    print(f"Video cached: {os.path.getsize(video_path)//1024//1024}MB")
-    sys.exit(0)
+with open(f"{work_dir}/info.json") as f:
+    info = json.load(f)
+sections = json.load(open(f"{work_dir}/analysis.json")).get("sections", [])
 
-print("Downloading video (up to 480p, video-only)...")
-result = subprocess.run([
-    "yt-dlp",
-    "-f", "bestvideo[height<=480][ext=mp4]/best[height<=480][ext=mp4]/best[height<=480]/worst[ext=mp4]/worst",
-    "--no-playlist", "-o", video_path, yt_url
-], capture_output=True, text=True, timeout=600)
+print(f"Getting stream URLs for {len(sections)} sections (no download)...")
 
-if os.path.exists(video_path) and os.path.getsize(video_path) > 10_000:
-    print(f"Downloaded: {os.path.getsize(video_path)//1024//1024}MB")
+# Get one stream URL per unique timestamp bucket (±30s window)
+# yt-dlp -g returns direct HTTP URL(s); we pick the video-only 480p stream
+result = subprocess.run(
+    ["yt-dlp", "-g", "-f",
+     "bestvideo[height<=480][ext=mp4]/bestvideo[height<=480]/best[height<=480]/worst",
+     "--no-playlist", yt_url],
+    capture_output=True, text=True, timeout=60
+)
+
+stream_urls = [u.strip() for u in result.stdout.strip().splitlines() if u.strip()]
+# First line is video stream; second (if any) is audio — we only need video
+stream_url = stream_urls[0] if stream_urls else ""
+
+if not stream_url:
+    print(f"WARNING: Could not get stream URL: {result.stderr[:120]}", file=sys.stderr)
+    open(f"{work_dir}/stream_failed", "w").close()
 else:
-    print(f"Download failed: {result.stderr[:200]}", file=sys.stderr)
-    open(f"{work_dir}/video_failed", "w").close()
+    print(f"Stream URL obtained ({len(stream_url)} chars)")
+
+with open(f"{work_dir}/stream_url.txt", "w") as f:
+    f.write(stream_url)
 PYEOF
 ```
 
 ---
 
-### Step 7 — Extract screenshots (3 candidates per section, pick best by image score)
+### Step 7 — Extract screenshots via stream seek (3 candidates per section, pick best by image score)
 
 ```bash
 python3 << 'PYEOF'
@@ -482,14 +492,18 @@ from PIL import Image, ImageStat
 work_dir   = os.environ["WORK_DIR"]
 video_id   = os.environ["VIDEO_ID"]
 vault_root = "/Users/yankesswang/Documents/arthurwang_DB"
-video_path = f"{work_dir}/video.mp4"
 
 with open(f"{work_dir}/analysis.json") as f: data = json.load(f)
 with open(f"{work_dir}/info.json")     as f: info = json.load(f)
+stream_url = open(f"{work_dir}/stream_url.txt").read().strip()
 
 sections     = data.get("sections", [])
 duration_sec = info["duration_sec"]
 screenshots  = []
+stream_ok    = bool(stream_url) and not os.path.exists(f"{work_dir}/stream_failed")
+
+shots_dir = f"{work_dir}/shots"
+os.makedirs(shots_dir, exist_ok=True)
 
 def ts_to_seconds(ts):
     parts = ts.strip().split(":")
@@ -504,16 +518,18 @@ def secs_to_hhmmss(s):
     return f"{h:02d}:{m:02d}:{s2:02d}"
 
 def image_score(path):
-    """Pixel std-dev as proxy for visual information density.
-    High std = rich content (slides, diagrams). Low std = uniform background."""
     try:
         img = Image.open(path).convert('L').resize((100, 100))
         return ImageStat.Stat(img).stddev[0]
     except: return 0
 
-video_ok  = os.path.exists(video_path) and not os.path.exists(f"{work_dir}/video_failed")
-shots_dir = f"{work_dir}/shots"
-os.makedirs(shots_dir, exist_ok=True)
+def seek_screenshot(source, seek_sec, out_path):
+    """Seek to seek_sec in source (file or HTTP URL) and grab one frame."""
+    subprocess.run([
+        "ffmpeg", "-ss", str(seek_sec), "-i", source,
+        "-vframes", "1", "-q:v", "3", "-f", "image2", out_path,
+        "-y", "-loglevel", "quiet"
+    ], capture_output=True, timeout=30)
 
 for i, section in enumerate(sections):
     ts         = section.get("screenshot_at") or section.get("start_time", "00:00")
@@ -523,8 +539,8 @@ for i, section in enumerate(sections):
 
     print(f"  [{i+1:02d}/{len(sections)}] {ts}", end="", flush=True)
 
-    if not video_ok:
-        # Fallback: per-section clip download
+    if not stream_ok:
+        # Fallback: yt-dlp --download-sections to grab a short clip then extract frame
         s_str = secs_to_hhmmss(max(0, center_sec - 1))
         e_str = secs_to_hhmmss(center_sec + 5)
         clip  = f"{shots_dir}/clip_{i+1:02d}.mp4"
@@ -534,11 +550,7 @@ for i, section in enumerate(sections):
             "-o", clip, "--no-playlist", os.environ["YT_URL"]
         ], capture_output=True, text=True, timeout=120)
         if os.path.exists(clip) and os.path.getsize(clip) > 1000:
-            subprocess.run([
-                "ffmpeg", "-i", clip, "-vf", "thumbnail=10",
-                "-vframes", "1", "-q:v", "3", "-f", "image2", shot_path,
-                "-y", "-loglevel", "quiet"
-            ], capture_output=True, timeout=30)
+            seek_screenshot(clip, 1, shot_path)
             os.remove(clip)
         if os.path.exists(shot_path):
             print(f" ✓ fallback ({os.path.getsize(shot_path)//1024}KB)", flush=True)
@@ -547,16 +559,12 @@ for i, section in enumerate(sections):
             print(" SKIP", flush=True)
         continue
 
-    # Extract 3 candidates at center-5s, center, center+5s
+    # 3 candidates at center-5s, center, center+5s — seek directly in stream URL
     candidates = []
     for off in [-5, 0, 5]:
         sec  = max(0, min(center_sec + off, duration_sec - 1))
         cand = f"{shots_dir}/cand_{i+1:02d}_off{off:+d}.jpg"
-        subprocess.run([
-            "ffmpeg", "-ss", str(sec), "-i", video_path,
-            "-vf", "thumbnail=5", "-vframes", "1",
-            "-q:v", "3", "-f", "image2", cand, "-y", "-loglevel", "quiet"
-        ], capture_output=True, timeout=30)
+        seek_screenshot(stream_url, sec, cand)
         if os.path.exists(cand) and os.path.getsize(cand) > 500:
             candidates.append((image_score(cand), cand))
 
@@ -749,11 +757,11 @@ PYEOF
 | LLM returns truncated JSON | `smart_repair()` finds last complete section, closes brackets |
 | LLM response has emoji prefix | Strip non-`{` chars before parsing |
 | Timestamp out of range | Validation rejects; fallback to section start_time |
-| Video download fails | Per-section `--download-sections` fallback (slower) |
+| Stream URL unavailable | Per-section `--download-sections` fallback (downloads short clip) |
 | Long video (>12K chars) | Chunked: each partial capped 1500 chars → balanced merge |
-| Same video re-run | `video.mp4` cached; note filename has `video_id` → no overwrite |
+| Same video re-run | note filename has `video_id` → no overwrite |
 | YAML special chars | All frontmatter values wrapped with `json.dumps()` |
-| PIL not installed | Caught in Step 1 dependency check before any download |
+| PIL not installed | Caught in Step 1 dependency check before any network call |
 
 ---
 
@@ -769,9 +777,9 @@ URL (v=, youtu.be, shorts, embed, live)
  ├─ Step 4: LLM (Gemini → ChatGPT fallback)
  │           chapters-aware · chunked (partial 1500c) → merge
  ├─ Step 5: strip emoji → smart_repair → validate → analysis.json
- ├─ Step 6: yt-dlp 480p video-only → video.mp4
- ├─ Step 7: ffmpeg 3 candidates (±5s) → image std-dev → best
- │           fallback: per-section clip if video dl failed
+ ├─ Step 6: yt-dlp -g → stream_url.txt (no download, just HTTP URL)
+ ├─ Step 7: ffmpeg -ss <sec> -i <stream_url> → 3 candidates (±5s) → image std-dev → best
+ │           fallback: --download-sections short clip if stream URL fails
  ├─ Step 8: note with [MM:SS](yt-link) · ![[shot]] · json.dumps YAML
  │           filename = title[:70] + video_id (no overwrite)
  └─ Step 9: manifest.json + report
