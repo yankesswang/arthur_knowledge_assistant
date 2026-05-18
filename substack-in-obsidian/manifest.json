@@ -1,0 +1,9 @@
+{
+	"id": "substack-in-obsidian",
+	"name": "Substack in Obsidian",
+	"version": "1.0.0",
+	"minAppVersion": "1.6.0",
+	"description": "Preview Markdown notes in a Substack-style sidebar and upload to Substack draft box.",
+	"author": "Arthur",
+	"isDesktopOnly": true
+}
