@@ -1,0 +1,33 @@
+{
+	"name": "x-article-in-obsidian",
+	"version": "1.0.15",
+	"description": "Obsidian plugin for previewing the current Markdown note in an X Article-style sidebar.",
+	"main": "main.js",
+	"type": "module",
+	"scripts": {
+		"dev": "node esbuild.config.mjs",
+		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"x:script": "node scripts/generate-x-article-script.mjs",
+		"x:open": "playwright-cli open https://x.com --browser=chrome --headed --persistent",
+		"x:run": "playwright-cli run-code --filename=x.run.js",
+		"version": "node version-bump.mjs && git add manifest.json versions.json",
+		"lint": "eslint ."
+	},
+	"keywords": [],
+	"license": "MIT",
+	"devDependencies": {
+		"@eslint/js": "9.30.1",
+		"@playwright/cli": "^0.1.11",
+		"@types/node": "^16.11.6",
+		"esbuild": "0.25.5",
+		"eslint-plugin-obsidianmd": "0.1.9",
+		"globals": "14.0.0",
+		"jiti": "2.6.1",
+		"tslib": "2.4.0",
+		"typescript": "^5.8.3",
+		"typescript-eslint": "8.35.1"
+	},
+	"dependencies": {
+		"obsidian": "latest"
+	}
+}

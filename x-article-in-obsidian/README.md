@@ -1,0 +1,221 @@
+# 📰 X Article in Obsidian
+
+[![Obsidian](https://img.shields.io/badge/Obsidian-Plugin-7C3AED?style=flat-square)](#) [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square)](#) [![Version](https://img.shields.io/badge/version-1.0.8-111827?style=flat-square)](#) [![License](https://img.shields.io/badge/license-MIT-16A34A?style=flat-square)](#)
+
+把当前 Markdown 笔记实时渲染成接近 X Article 的阅读侧栏，让你一边写，一边看最终阅读效果。
+
+> 主开发仓库已经迁移到 [x-article-workspace](https://github.com/Icy-Cat/x-article-workspace)。
+> 这个仓库继续保留 Obsidian 插件视角的发布与文档；共享逻辑、VS Code 宿主和 Claude skill 现在统一在 workspace 中维护。
+
+<p>
+  <a href="./README_EN.md">English</a>
+</p>
+
+## 功能简介
+
+- 📝 自动跟随当前正在编辑或查看的笔记
+- 🔄 实时显示最终的 X Article 样式
+- 🧷 独立的 X / Twitter 链接支持富预览
+- 📚 支持通过 frontmatter 设置标题与封面图
+- 🚀 支持通过 Playwright MCP 上传到 X Article 草稿箱，确认无误后再由你手动发布
+
+## 适合场景
+
+- 写 X 长文
+- 在 Obsidian 里完成写作和排版预览
+- 边改边看文章封面、标题、摘要和正文节奏
+
+## 安装
+
+### 方式一：从 Release 安装
+
+1. 打开 [GitHub Releases 页面](https://github.com/Icy-Cat/x-article-in-obsidian/releases/latest)
+2. 下载最新发布版本中的压缩包并解压，解压后的文件夹中会有 `main.js`、`manifest.json`、`styles.css` 三个文件。
+3. 打开 Obsidian 设置 → 第三方插件 → 已安装插件右侧的打开插件文件夹按钮，在打开的文件夹中新建文件夹，命名为 `x-article-in-obsidian`
+4. 把文件复制新建的文件夹中
+
+5. 回到 Obsidian，在已安装插件列表右侧点击刷新，找到 `X Article in Obsidian` 并启用插件
+
+
+### 方式二：从源码构建
+
+```bash
+npm install
+npm run build
+```
+
+将以下文件放到：
+
+```text
+<Vault>/.obsidian/plugins/x-article-in-obsidian/
+├── main.js
+├── manifest.json
+└── styles.css
+```
+
+然后重载 Obsidian，并在 **设置 → 第三方插件** 中启用。
+
+## 如何使用
+
+### 预览文章
+
+启用插件后，可以通过下面任一方式打开预览：
+
+- 左侧功能区的报纸图标
+- 按 `Ctrl+P`（Windows/Linux）或 `Cmd+P`（macOS）打开命令面板，搜索并运行 **打开预览**
+
+预览面板会跟随当前 Markdown 笔记，并支持：
+
+- 自动刷新
+- 滚动同步
+- 独立 X 链接富预览
+- 代码块样式和复制按钮
+- frontmatter 中 `formatter.title` / `formatter.cover` 优先控制头图标题与封面；旧的顶层 `title` / `cover` 仍然兼容
+- 通过预览窗口的 **添加 formatter** 按钮，为当前 Markdown 自动补充 `formatter.title` 和 `formatter.cover` 字段，方便你在笔记属性里自行填写
+
+首次安装后，插件还会弹出一个快速上手引导。你也可以随时通过命令面板中的 **打开快速使用指南** 再次查看。
+
+如果需要设置 frontmatter，可在笔记开头输入：
+
+```md
+---
+formatter:
+  title: 文章标题
+  cover: ![[cover.png]]
+---
+```
+
+### 配置项
+
+在 **设置 → X Article in Obsidian** 中，当前可配置：
+
+#### 通用
+
+- `语言`：可选择跟随系统、English 或简体中文
+
+#### 草稿箱上传
+
+- `Playwright Token`：手动填写 `PLAYWRIGHT_MCP_EXTENSION_TOKEN`
+- `自动检测`：扫描本机可用 token 并写入插件设置，避免重复扫描
+- `安装扩展`：打开 Playwright MCP Bridge 的 Chrome Web Store 安装页
+- `Node.js`：打开 Node.js 官网下载页，浏览器上传草稿前需先安装本地 Node.js 环境
+
+#### 预览
+
+- `自动刷新`：切换笔记或编辑当前笔记时，自动刷新右侧预览
+- `隐藏 Frontmatter`：在预览中隐藏 YAML Frontmatter
+- `文件名补标题`：当笔记开头没有一级标题时，自动用文件名补一个标题
+- `显示草稿提示`：在正文上方显示一条仅本地可见的草稿提示
+
+### 上传到 X 草稿箱
+
+插件会把当前 Markdown 笔记填入 X Article 编辑器并保存为草稿，不会点击最终发布。你可以在 X 网页里检查标题、正文、封面和嵌入内容，确认无误后再手动发布。
+
+首次上传前，需要先完成本地环境准备：
+
+1. 安装 Playwright MCP Bridge 扩展
+2. 本机安装 Node.js，并确保 `node`、`npm`、`npx` 在命令行中可用
+3. 在设置中点击 **安装扩展** 跳转安装页面
+4. 如有需要，在设置中填写或自动检测 `Playwright token`
+5. 确保本机已经可用 Playwright MCP
+
+插件当前支持三种上传方式，推荐优先使用预览窗口里的 **上传到草稿箱**。
+
+#### 方式一：从预览窗口上传到草稿箱（推荐）
+
+1. 打开一篇 Markdown 笔记
+2. 通过左侧功能区的报纸图标，或按 `Ctrl+P`（Windows/Linux）或 `Cmd+P`（macOS）打开命令面板，搜索并运行 **打开预览**，打开 X Article 预览窗口
+3. 确认预览内容无误
+4. 点击预览窗口右上角的 **上传到草稿箱**
+5. 在浏览器中检查 X Article 草稿，确认无误后手动发布
+
+#### 方式二：通过命令面板上传到草稿箱
+
+1. 打开一篇 Markdown 笔记
+2. 按 `Ctrl+P`（Windows/Linux）或 `Cmd+P`（macOS）打开命令面板，搜索并运行 **通过浏览器上传到草稿箱**
+3. 在浏览器中检查 X Article 草稿，确认无误后手动发布
+
+#### 方式三：复制草稿上传脚本
+
+1. 打开一篇 Markdown 笔记
+2. 按 `Ctrl+P`（Windows/Linux）或 `Cmd+P`（macOS）打开命令面板，搜索并运行 **复制 X 草稿上传脚本**
+3. 在浏览器中打开 X Article 编辑器
+4. 将脚本粘贴到开发者控制台执行
+5. 在 X 网页里检查草稿内容，确认无误后手动发布
+
+如果本地已保存 token，插件会优先使用，避免每次重新扫描浏览器配置。
+
+如果出现 `spawn npx ENOENT`、`MCP process closed` 或类似启动失败提示，通常表示本机没有可用的 Node.js 环境，或者 `npx` 不在 PATH 中。先安装 Node.js，再重新打开 Obsidian。
+
+如果笔记 frontmatter 中提供了 `formatter.title` 和 `formatter.cover`：
+
+- 预览页会优先使用它们作为头图标题和封面
+- 浏览器上传草稿时会优先填写 `formatter.title`
+- `formatter.cover` 会在上传流程最后添加，方便你在网页里手动调整封面裁切区域
+- `formatter.title` 和 `formatter.cover` 可通过预览窗口的 **添加 formatter** 按钮自动创建；插件只补缺失字段，不会覆盖你已经填写的内容
+- 为兼容旧笔记，顶层 `title` 和 `cover` 仍可继续使用
+
+## 发布开发
+
+这个仓库现在用于 Obsidian 插件版本的发布与分发。
+日常功能开发、共享发布逻辑、VS Code 宿主和 Claude skill 维护，请优先在 [x-article-workspace](https://github.com/Icy-Cat/x-article-workspace) 中进行。
+
+这里保留了 Obsidian 插件视角的 GitHub Actions 自动构建和发布流程。
+
+最新发布版本：<https://github.com/Icy-Cat/x-article-in-obsidian/releases/latest>
+
+如果要发布这个 Obsidian 插件的新版本：
+
+```bash
+npm version patch
+git push
+git push --tags
+```
+
+发布流程会自动：
+
+- 校验 `manifest.json` 中的版本号
+- 构建 `main.js`
+- 打包可分发 zip
+- 上传 `main.js`、`manifest.json`、`styles.css` 和 zip 到 GitHub Release
+
+`versions.json` 会在执行 `npm version` 时自动同步更新。
+
+## 常用示例
+
+使用 frontmatter 控制标题和封面：
+
+```md
+---
+formatter:
+  title: 我的 X 长文标题
+  cover: ![[cover.png]]
+---
+```
+
+在笔记中插入独立 X 链接：
+
+```md
+# 我的草稿
+
+https://x.com/xxxxx/status/123123
+
+这段正文会继续按文章内容正常渲染。
+```
+
+## 效果截图
+
+![预览效果](./docs/screenshot-1.png)
+![侧栏界面](./docs/screenshot-2.png)
+
+## 技术信息
+
+- 语言：TypeScript
+- 运行环境：Obsidian Plugin API
+- 构建工具：esbuild
+- 包管理器：npm
+- 协议：MIT
+
+## Star
+
+如果这个项目对你有帮助，欢迎 star。
