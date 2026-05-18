@@ -144,6 +144,8 @@ Arthur 的 Obsidian 知識管理 + 投資筆記 + 內容創作 AI 助理。
 - AI Knowledge：`/Users/yankesswang/Documents/arthurwang_DB/AI Knowledge/`
 - 文章輸出：`/Users/yankesswang/Documents/arthurwang_DB/Arthur_Blog/Posts/`
 - 待閱讀清單：`/Users/yankesswang/Documents/arthurwang_DB/待閱讀清單.md`
+- 操作建議總表（一般）：`/Users/yankesswang/Documents/arthurwang_DB/投資/投資操作建議總表.md`
+- 操作建議總表（mimi）：`/Users/yankesswang/Documents/arthurwang_DB/投資/mimi操作建議總表.md`
 
 ---
 
