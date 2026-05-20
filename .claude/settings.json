@@ -1,13 +1,23 @@
 {
   "permissions": {
     "allow": [
-      "Read(//home/trx50/Documents/arthurwang_DB/**)",
-      "Bash(mv \"/home/trx50/Documents/arthurwang_DB/投資/AI半導體/KP週末筆記#36：Nvidia收編Marvell、Intel Fab34反攻、Google量子破密（2026-04）.md\" \"/home/trx50/Documents/arthurwang_DB/Finance Digest/FOMO SOC/\")",
-      "Bash(mv \"/home/trx50/Documents/arthurwang_DB/投資/AI半導體/KP週末筆記#35：記憶體超級週期出現裂縫？ARM自研CPU殺入資料中心（2026-03）.md\" \"/home/trx50/Documents/arthurwang_DB/Finance Digest/FOMO SOC/\")"
+      "Read(/Users/yankesswang/Documents/arthurwang_DB/**)",
+      "Write(/Users/yankesswang/Documents/arthurwang_DB/**)",
+      "Read(/tmp/transcript_note/**)",
+      "Write(/tmp/transcript_note/**)",
+      "Read(/Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/.agent/skills/transcript-note/**)",
+      "Write(/Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/.agent/skills/transcript-note/data/**)",
+      "Bash(bash /Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/.agent/skills/transcript-note/scripts/setup.sh *)",
+      "Bash(bash /Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/.agent/skills/transcript-note/scripts/finalize.sh *)",
+      "Bash(bash /Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/.agent/skills/transcript-note/scripts/mark_processed.sh *)",
+      "Bash(bash /Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/.agent/skills/transcript-note/scripts/check_channels.sh)",
+      "Bash(yt-dlp *)",
+      "Bash(python3 /Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/.agent/skills/transcript-note/scripts/*.py)",
+      "Bash(python3 -c *)",
+      "Bash(cat /Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/.agent/skills/transcript-note/data/queue.txt)"
     ],
     "additionalDirectories": [
-      "/home/trx50/Documents/arthurwang_DB/人生",
-      "/home/trx50/Documents/arthurwang_DB/AI Research"
+      "/Users/yankesswang/Documents/arthurwang_DB"
     ]
   }
 }

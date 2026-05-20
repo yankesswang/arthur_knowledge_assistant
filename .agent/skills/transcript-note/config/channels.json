@@ -1,0 +1,10 @@
+{
+  "channels": [
+    {
+      "handle": "@ILTB_Podcast",
+      "name": "Invest Like The Best",
+      "limit": 5,
+      "enabled": true
+    }
+  ]
+}
