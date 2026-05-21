@@ -111,6 +111,27 @@ else:
               "| （影片無具體數字） | — | — |"]
 lines.append("")
 
+# --- 同頻道影片 ---
+import glob
+channel_name = info.get("channel", "")
+related = []
+for md_path in glob.glob(os.path.join(note_dir, "**/*.md"), recursive=True):
+    if os.path.basename(md_path) == "_INDEX.md":
+        continue
+    try:
+        with open(md_path, "r", encoding="utf-8") as mf:
+            head = mf.read(1500)
+        if channel_name and channel_name in head:
+            related.append(os.path.splitext(os.path.basename(md_path))[0])
+    except Exception:
+        pass
+
+if related:
+    lines += ["## 同頻道影片", ""]
+    for r in sorted(related):
+        lines.append(f"- [[{r}]]")
+    lines.append("")
+
 note_content = "\n".join(lines)
 
 safe_title = re.sub(r'[/\\:*?"<>|]', ' ', title_zh).strip()

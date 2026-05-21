@@ -20,7 +20,8 @@ PYEOF
 )
 if [ -z "$VIDEO_ID" ]; then echo "ERROR: Cannot extract video ID from URL"; exit 1; fi
 
-WORK_DIR="/tmp/transcript_note/$VIDEO_ID"
+SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+WORK_DIR="$SKILL_DIR/data/transcripts/$VIDEO_ID"
 NOTE_DIR="/Users/yankesswang/Documents/arthurwang_DB/AI Knowledge/影片筆記"
 mkdir -p "$WORK_DIR" "$NOTE_DIR"
 echo "VIDEO_ID=$VIDEO_ID"

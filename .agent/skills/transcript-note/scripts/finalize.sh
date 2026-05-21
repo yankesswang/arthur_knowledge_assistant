@@ -5,8 +5,8 @@ set -e
 VIDEO_ID="$1"
 if [ -z "$VIDEO_ID" ]; then echo "Usage: finalize.sh <video_id>"; exit 1; fi
 
-WORK_DIR="/tmp/transcript_note/$VIDEO_ID"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+WORK_DIR="$SCRIPT_DIR/../data/transcripts/$VIDEO_ID"
 
 if [ ! -f "$WORK_DIR/analysis.json" ]; then
   echo "ERROR: $WORK_DIR/analysis.json not found. Claude analysis must run first."; exit 1

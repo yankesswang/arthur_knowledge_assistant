@@ -26,7 +26,7 @@ description: YouTube CC subtitle URL → yt-dlp transcript → Claude analysis �
 ## Vault Paths
 
 - **Notes**: `/Users/yankesswang/Documents/arthurwang_DB/AI Knowledge/影片筆記/`
-- **Temp work**: `/tmp/transcript_note/<VIDEO_ID>/`
+- **Transcripts**: `<SKILL_DIR>/data/transcripts/<VIDEO_ID>/`（永久存放，不用 /tmp）
 - **Reading list**: `/Users/yankesswang/Documents/arthurwang_DB/待閱讀清單.md`
 
 ## Scripts
@@ -46,7 +46,13 @@ config/
 
 data/
 ├── queue.txt              # 待處理影片 URL（一行一條）
-└── processed_ids.txt      # 已處理的 video ID（防止重複）
+├── processed_ids.txt      # 已處理的 video ID（防止重複）
+└── transcripts/           # 每支影片的永久原始資料
+    └── <VIDEO_ID>/
+        ├── condensed.txt  # 壓縮逐字稿
+        ├── info.json      # 標題、頻道、章節
+        ├── analysis.json  # Claude 分析結果
+        └── meta.json      # yt-dlp 原始 metadata
 ```
 
 ---
@@ -84,14 +90,14 @@ bash "$SKILL_DIR/scripts/setup.sh" "<user-provided URL>"
 ```
 
 輸出：
-- `/tmp/transcript_note/<VIDEO_ID>/condensed.txt` — 壓縮後逐字稿
-- `/tmp/transcript_note/<VIDEO_ID>/info.json` — 標題、頻道、時長、章節
+- `<SKILL_DIR>/data/transcripts/<VIDEO_ID>/condensed.txt` — 壓縮後逐字稿
+- `<SKILL_DIR>/data/transcripts/<VIDEO_ID>/info.json` — 標題、頻道、時長、章節
 
 ---
 
 ### Action 2 — Claude 分析（自我分析，不呼叫外部工具）
 
-讀取 `condensed.txt` 和 `info.json`，依照以下格式分析，將結果**直接用 Write 工具**寫入 `/tmp/transcript_note/<VIDEO_ID>/analysis.json`。
+讀取 `condensed.txt` 和 `info.json`，依照以下格式分析，將結果**直接用 Write 工具**寫入 `<SKILL_DIR>/data/transcripts/<VIDEO_ID>/analysis.json`。
 
 ```json
 {

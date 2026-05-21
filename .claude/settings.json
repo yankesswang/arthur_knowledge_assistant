@@ -3,8 +3,7 @@
     "allow": [
       "Read(/Users/yankesswang/Documents/arthurwang_DB/**)",
       "Write(/Users/yankesswang/Documents/arthurwang_DB/**)",
-      "Read(/tmp/transcript_note/**)",
-      "Write(/tmp/transcript_note/**)",
+      "Read(/Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/.agent/skills/transcript-note/data/transcripts/**)",
       "Read(/Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/.agent/skills/transcript-note/**)",
       "Write(/Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/.agent/skills/transcript-note/data/**)",
       "Bash(bash /Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/.agent/skills/transcript-note/scripts/setup.sh *)",
