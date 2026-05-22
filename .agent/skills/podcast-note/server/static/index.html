@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Podcast Notes</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+:root {
+  --bg:#0f1117; --surface:#1a1d27; --surface2:#22253a; --border:#2e3145;
+  --accent:#7c6af7; --accent-dim:#2e2860; --text:#e2e4f0; --text-dim:#8b8fa8;
+  --text-muted:#555870; --green:#4ade80; --yellow:#fbbf24; --red:#f87171;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:100vh;display:flex;overflow:hidden}
+
+/* Sidebar */
+#sidebar{width:300px;min-width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+#sidebar-header{padding:16px 14px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
+#sidebar-header h1{font-size:14px;font-weight:700}
+#sidebar-header p{font-size:11px;color:var(--text-muted);margin-top:2px}
+#search-wrap{padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
+#search{width:100%;padding:7px 10px;border-radius:6px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:13px;outline:none}
+#search:focus{border-color:var(--accent)}
+#search::placeholder{color:var(--text-muted)}
+#pod-tabs{display:flex;gap:4px;padding:8px 12px;overflow-x:auto;border-bottom:1px solid var(--border);flex-shrink:0;scrollbar-width:none}
+#pod-tabs::-webkit-scrollbar{display:none}
+.pod-tab{padding:3px 9px;border-radius:20px;font-size:11px;cursor:pointer;white-space:nowrap;border:1px solid var(--border);background:transparent;color:var(--text-dim);transition:all .15s}
+.pod-tab:hover{background:var(--surface2);color:var(--text)}
+.pod-tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+#ep-list{flex:1;overflow-y:auto;padding:4px 0}
+#ep-list::-webkit-scrollbar{width:3px}
+#ep-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.ep-item{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;border-left:3px solid transparent;transition:background .1s}
+.ep-item:hover{background:var(--surface2)}
+.ep-item.active{background:var(--surface2);border-left-color:var(--accent)}
+.ep-item.no-note{opacity:.5}
+.ep-art{width:34px;height:34px;border-radius:5px;object-fit:cover;flex-shrink:0;background:var(--surface2)}
+.ep-info{flex:1;min-width:0}
+.ep-title{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ep-meta{font-size:10px;color:var(--text-dim);margin-top:2px;display:flex;gap:5px;align-items:center}
+.badge{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700}
+.badge-note{background:#1a3a25;color:var(--green)}
+.badge-nonote{background:#2a2520;color:var(--yellow)}
+.read-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.read-dot.done{background:var(--text-muted)}
+
+/* Main */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#topbar{height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
+#tb-title{font-size:13px;font-weight:600}
+#tb-meta{font-size:10px;color:var(--text-dim);margin-top:1px}
+#view-btns{display:flex;gap:3px}
+.vbtn{padding:4px 10px;border-radius:5px;font-size:11px;background:transparent;border:1px solid var(--border);color:var(--text-dim);cursor:pointer;transition:all .15s}
+.vbtn:hover{background:var(--surface2);color:var(--text)}
+.vbtn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+#loading{height:2px;background:var(--border);position:relative;overflow:hidden;display:none}
+#loading::after{content:'';position:absolute;top:0;left:-40%;width:40%;height:100%;background:var(--accent);animation:slide 1s ease-in-out infinite}
+@keyframes slide{to{left:100%}}
+#content{flex:1;overflow-y:auto}
+#content::-webkit-scrollbar{width:5px}
+#content::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* Note */
+#note-wrap{max-width:760px;margin:0 auto;padding:28px 24px 60px}
+.n-title{font-size:20px;font-weight:700;line-height:1.4;margin-bottom:10px}
+.n-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
+.n-tag{padding:2px 7px;border-radius:3px;font-size:11px;background:var(--surface2);color:var(--text-dim);border:1px solid var(--border)}
+.tldr{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:7px;padding:14px 16px;margin-bottom:22px}
+.tldr h3{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:10px}
+.tldr-row{display:flex;gap:8px;margin-bottom:7px;font-size:13px}
+.tldr-row:last-child{margin-bottom:0}
+.tldr-k{color:var(--text-dim);min-width:105px;flex-shrink:0;font-weight:500}
+.tldr-v{color:var(--text)}
+
+/* Markdown body */
+.md{font-size:14px;line-height:1.8;color:var(--text)}
+.md h1{font-size:20px;font-weight:700;margin:26px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.md h2{font-size:16px;font-weight:700;margin:24px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.md h3{font-size:14px;font-weight:700;margin:18px 0 7px;color:var(--accent)}
+.md h4{font-size:13px;font-weight:600;margin:12px 0 5px;color:var(--text-dim)}
+.md p{margin-bottom:10px}
+.md ul,.md ol{padding-left:20px;margin-bottom:10px}
+.md li{margin-bottom:4px}
+.md strong{color:#d4d0ff;font-weight:600}
+.md em{color:var(--text-dim)}
+.md code{background:var(--surface2);padding:1px 5px;border-radius:3px;font-size:12px;font-family:monospace}
+.md pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px;overflow-x:auto;margin:10px 0}
+.md pre code{background:none;padding:0}
+.md blockquote{border-left:3px solid var(--accent);padding-left:12px;color:var(--text-dim);margin:10px 0}
+.md table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+.md th{background:var(--surface2);padding:7px 11px;text-align:left;font-weight:600;border:1px solid var(--border)}
+.md td{padding:6px 11px;border:1px solid var(--border)}
+.md tr:hover td{background:var(--surface2)}
+.md hr{border:none;border-top:1px solid var(--border);margin:18px 0}
+.md img{max-width:100%;border-radius:6px;margin:6px 0}
+.md a{color:var(--accent);text-decoration:none}
+.md a:hover{text-decoration:underline}
+
+/* Sections */
+.sec-grid{display:flex;flex-direction:column;gap:10px}
+.sec-card{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:13px 15px}
+.sec-card h4{font-size:13px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.ts-chip{font-size:10px;color:var(--accent);background:var(--accent-dim);padding:1px 6px;border-radius:3px;cursor:pointer}
+.ts-chip:hover{filter:brightness(1.3)}
+.sec-card ul{padding-left:16px}
+.sec-card li{font-size:13px;line-height:1.65;margin-bottom:3px}
+.insight{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--yellow);border-radius:6px;padding:9px 13px;font-size:13px;line-height:1.6;margin-bottom:8px}
+
+/* Transcript panel */
+#tp{width:300px;border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;transition:width .2s}
+#tp.off{width:0;border:none}
+#tp-head{padding:10px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#tp-head span{font-size:12px;font-weight:600;color:var(--text-dim)}
+#tp-close{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:15px}
+#tp-close:hover{color:var(--text)}
+#tp-list{flex:1;overflow-y:auto;padding:6px 0}
+#tp-list::-webkit-scrollbar{width:3px}
+#tp-list::-webkit-scrollbar-thumb{background:var(--border)}
+.seg{display:flex;gap:7px;padding:5px 12px;cursor:pointer;transition:background .1s}
+.seg:hover{background:var(--surface2)}
+.seg.active{background:var(--accent-dim)}
+.seg-t{font-size:10px;color:var(--accent);min-width:34px;flex-shrink:0;padding-top:2px}
+.seg-txt{font-size:12px;line-height:1.6}
+
+/* Audio */
+#audio-bar{background:var(--surface);border-top:1px solid var(--border);padding:8px 14px;display:none;flex-shrink:0}
+#audio-bar.on{display:block}
+#aud{width:100%;height:30px}
+
+/* Empty/error */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--text-muted)}
+.empty svg{opacity:.25}
+.empty p{font-size:14px}
+.empty small{font-size:12px}
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div id="sidebar-header">
+    <h1>🎙 Podcast Notes</h1>
+    <p id="ep-count">載入中…</p>
+  </div>
+  <div id="search-wrap">
+    <input id="search" type="text" placeholder="搜尋標題 / EP 號…" autocomplete="off">
+  </div>
+  <div id="pod-tabs"></div>
+  <div id="ep-list"></div>
+</div>
+
+<div id="main">
+  <div id="topbar">
+    <div><div id="tb-title">Podcast Notes</div><div id="tb-meta"></div></div>
+    <div id="view-btns">
+      <button class="vbtn active" data-v="note">筆記</button>
+      <button class="vbtn" data-v="sections">章節</button>
+      <button class="vbtn" data-v="raw">原始</button>
+      <button class="vbtn" id="tp-btn" style="display:none">逐字稿</button>
+    </div>
+  </div>
+  <div id="loading"></div>
+  <div id="content">
+    <div class="empty" id="empty">
+      <svg width="44" height="44" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+          d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+      </svg>
+      <p>選擇左側集數查看筆記</p>
+      <small>綠色標記表示有筆記</small>
+    </div>
+  </div>
+  <div id="audio-bar"><audio id="aud" controls preload="none"></audio></div>
+</div>
+
+<div id="tp" class="off">
+  <div id="tp-head"><span>逐字稿</span><button id="tp-close">✕</button></div>
+  <div id="tp-list"></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let episodes=[],podcasts=[],currentEp=null,currentNote=null,currentView='note',currentPod='all',readStatus={};
+
+async function apiFetch(path){
+  const r=await fetch(path);
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function init(){
+  try{
+    const[pods,rs]=await Promise.all([
+      apiFetch('/api/podcasts'),
+      apiFetch('/api/reading-status').catch(()=>({}))
+    ]);
+    podcasts=pods; readStatus=rs;
+    episodes=[];
+    for(const pod of podcasts){
+      for(const ep of(pod.episodes||[])){
+        ep._pod=pod.name; ep._art=pod.artwork||'';
+        episodes.push(ep);
+      }
+    }
+    buildTabs(); renderList();
+    const noted=episodes.filter(e=>e.has_note).length;
+    $('ep-count').textContent=`${noted} 篇筆記 / ${episodes.length} 集`;
+  }catch(e){
+    $('ep-count').textContent='載入失敗';
+    console.error(e);
+  }
+}
+
+function buildTabs(){
+  const tabs=$('pod-tabs');
+  tabs.innerHTML='<button class="pod-tab active" data-pod="all">全部</button>';
+  for(const pod of podcasts){
+    const btn=document.createElement('button');
+    btn.className='pod-tab'; btn.dataset.pod=pod.id;
+    btn.textContent=pod.name.replace(/[｜|].*/,'').trim().slice(0,8);
+    btn.title=pod.name;
+    tabs.appendChild(btn);
+  }
+  tabs.addEventListener('click',e=>{
+    const btn=e.target.closest('.pod-tab');
+    if(!btn) return;
+    currentPod=btn.dataset.pod;
+    tabs.querySelectorAll('.pod-tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderList();
+  });
+}
+
+function renderList(){
+  const q=$('search').value.trim().toLowerCase();
+  const list=$('ep-list');
+  list.innerHTML='';
+  let items=episodes;
+  if(currentPod!=='all') items=items.filter(e=>e.podcast_id===currentPod);
+  if(q) items=items.filter(e=>
+    (e.title_zh||'').toLowerCase().includes(q)||
+    (e.episode_label||'').toLowerCase().includes(q)||
+    (e.ep_num||'').includes(q)
+  );
+  if(!items.length){
+    list.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px">沒有符合的集數</div>';
+    return;
+  }
+  for(const ep of items){
+    const rs=readStatus[ep.ep_num||'']||'unread';
+    const el=document.createElement('div');
+    el.className='ep-item'+(ep.has_note?'':' no-note')+(currentEp?.id===ep.id?' active':'');
+    el.dataset.id=ep.id;
+    el.innerHTML=`
+      <img class="ep-art" src="${h(ep._art)}" alt="" onerror="this.style.display='none'">
+      <div class="ep-info">
+        <div class="ep-title">${h(ep.title_zh||ep.episode_label||ep.id)}</div>
+        <div class="ep-meta">
+          <span>${h(ep.episode_label||'')}</span>
+          ${ep.upload_date?`<span>${h(ep.upload_date)}</span>`:''}
+          <span class="badge ${ep.has_note?'badge-note':'badge-nonote'}">${ep.has_note?'筆記':'無筆記'}</span>
+        </div>
+      </div>
+      ${ep.has_note?`<div class="read-dot${rs==='read'?' done':''}" title="${rs==='read'?'已讀':'未讀'}"></div>`:''}`;
+    el.addEventListener('click',()=>selectEp(ep));
+    list.appendChild(el);
+  }
+}
+
+async function selectEp(ep){
+  currentEp=ep;
+  document.querySelectorAll('.ep-item').forEach(el=>el.classList.toggle('active',el.dataset.id===ep.id));
+  $('tb-title').textContent=ep.title_zh||ep.episode_label||ep.id;
+  $('tb-meta').textContent=[ep._pod,ep.upload_date].filter(Boolean).join(' · ');
+  $('tp-btn').style.display=ep.has_transcript?'':'none';
+  if(!ep.has_note){showEmpty('此集尚無筆記',ep.has_transcript?'可查看逐字稿':'');return;}
+  loading(true);
+  try{
+    currentNote=await apiFetch(`/api/episodes/${ep.id}/note`);
+    renderView();
+  }catch(e){showErr(e.message);}
+  finally{loading(false);}
+}
+
+$('view-btns').addEventListener('click',e=>{
+  const btn=e.target.closest('.vbtn');
+  if(!btn) return;
+  if(btn.id==='tp-btn'){toggleTP();return;}
+  currentView=btn.dataset.v;
+  document.querySelectorAll('.vbtn:not(#tp-btn)').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(currentNote) renderView();
+});
+
+function renderView(){
+  if(!currentNote) return;
+  if(currentView==='note') renderNote();
+  else if(currentView==='sections') renderSections();
+  else renderRaw();
+}
+
+async function renderNote(){
+  try{
+    const{markdown}=await apiFetch(`/api/episodes/${currentEp.id}/note-raw`);
+    const body=markdown.replace(/^---\n[\s\S]*?\n---\n/,'');
+    const clean=body
+      .replace(/!\[\[([^\]]+)\]\]/g,'**[嵌入: $1]**')
+      .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g,'[$2](#)')
+      .replace(/\[\[([^\]]+)\]\]/g,'$1');
+    $('content').innerHTML=`<div id="note-wrap"><div class="md">${marked.parse(clean)}</div></div>`;
+  }catch(_){renderNoteFromData(currentNote);}
+}
+
+function renderNoteFromData(n){
+  let html=`<div id="note-wrap">`;
+  html+=`<div class="n-title">${h(n.title_zh||'')}</div>`;
+  if(n.tags?.length) html+=`<div class="n-tags">${n.tags.map(t=>`<span class="n-tag">${h(t)}</span>`).join('')}</div>`;
+  if(n.tldr&&Object.keys(n.tldr).length){
+    html+=`<div class="tldr"><h3>TL;DR</h3>`;
+    for(const[k,v]of Object.entries(n.tldr))
+      html+=`<div class="tldr-row"><span class="tldr-k">${h(k)}</span><span class="tldr-v">${h(v)}</span></div>`;
+    html+=`</div>`;
+  }
+  if(n.sections?.length){
+    html+=`<div class="sec-grid">`;
+    for(const s of n.sections){
+      const pts=(s.content_points||[]).filter(p=>p.trim());
+      html+=`<div class="sec-card"><h4>${h(s.title)}${s.start_time?`<span class="ts-chip">${h(s.start_time)}</span>`:''}</h4>`;
+      if(pts.length) html+=`<ul>${pts.map(p=>`<li>${inline(p.replace(/^[-*]\s*/,''))}</li>`).join('')}</ul>`;
+      html+=`</div>`;
+    }
+    html+=`</div>`;
+  }
+  if(n.key_insights?.length){
+    html+=`<h2 class="md" style="font-size:15px;margin:26px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--border)">關鍵洞見</h2>`;
+    html+=n.key_insights.map(i=>`<div class="insight">${h(i)}</div>`).join('');
+  }
+  if(n.data_table?.length){
+    html+=`<h2 class="md" style="font-size:15px;margin:26px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--border)">關鍵數據速查</h2>`;
+    html+=`<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr>
+      <th style="background:var(--surface2);padding:7px 11px;border:1px solid var(--border)">指標</th>
+      <th style="background:var(--surface2);padding:7px 11px;border:1px solid var(--border)">數值</th>
+      <th style="background:var(--surface2);padding:7px 11px;border:1px solid var(--border)">備註</th>
+    </tr></thead><tbody>`;
+    for(const r of n.data_table)
+      html+=`<tr><td style="padding:6px 11px;border:1px solid var(--border)">${h(r['指標']||'')}</td>
+        <td style="padding:6px 11px;border:1px solid var(--border)">${h(r['數值']||'')}</td>
+        <td style="padding:6px 11px;border:1px solid var(--border)">${h(r['備註']||'')}</td></tr>`;
+    html+=`</tbody></table>`;
+  }
+  html+=`</div>`;
+  $('content').innerHTML=html;
+}
+
+function renderSections(){
+  const n=currentNote;
+  let html=`<div id="note-wrap">`;
+  if(n.tldr&&Object.keys(n.tldr).length){
+    html+=`<div class="tldr"><h3>TL;DR</h3>`;
+    for(const[k,v]of Object.entries(n.tldr))
+      html+=`<div class="tldr-row"><span class="tldr-k">${h(k)}</span><span class="tldr-v">${h(v)}</span></div>`;
+    html+=`</div>`;
+  }
+  if(n.sections?.length){
+    html+=`<div class="sec-grid">`;
+    for(const s of n.sections){
+      const pts=(s.content_points||[]).filter(p=>p.trim());
+      html+=`<div class="sec-card"><h4>${h(s.title)}${s.start_time?`<span class="ts-chip" data-ts="${h(s.start_time)}">${h(s.start_time)}</span>`:''}</h4>`;
+      if(pts.length) html+=`<ul>${pts.map(p=>`<li>${inline(p.replace(/^[-*]\s*/,''))}</li>`).join('')}</ul>`;
+      html+=`</div>`;
+    }
+    html+=`</div>`;
+  }else{
+    html+=`<div style="color:var(--text-muted);text-align:center;padding:40px;font-size:13px">此筆記無章節結構</div>`;
+  }
+  if(n.key_insights?.length){
+    html+=`<h2 style="font-size:15px;margin:26px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--border)">關鍵洞見</h2>`;
+    html+=n.key_insights.map(i=>`<div class="insight">${h(i)}</div>`).join('');
+  }
+  html+=`</div>`;
+  $('content').innerHTML=html;
+  $('content').querySelectorAll('.ts-chip[data-ts]').forEach(el=>{
+    el.addEventListener('click',()=>seekAudio(el.dataset.ts));
+  });
+}
+
+async function renderRaw(){
+  try{
+    const{markdown}=await apiFetch(`/api/episodes/${currentEp.id}/note-raw`);
+    $('content').innerHTML=`<div id="note-wrap"><pre style="white-space:pre-wrap;font-size:12px;line-height:1.7;font-family:monospace;color:var(--text-dim)">${h(markdown)}</pre></div>`;
+  }catch(e){
+    $('content').innerHTML=`<div id="note-wrap"><div style="color:var(--text-muted);font-size:13px">${h(e.message)}</div></div>`;
+  }
+}
+
+async function toggleTP(){
+  const panel=$('tp');
+  if(!panel.classList.contains('off')){panel.classList.add('off');return;}
+  panel.classList.remove('off');
+  const list=$('tp-list');
+  list.innerHTML='<div style="padding:10px;color:var(--text-muted);font-size:12px">載入中…</div>';
+  try{
+    const data=await apiFetch(`/api/episodes/${currentEp.id}/transcript`);
+    list.innerHTML='';
+    for(const seg of(data.segments||[])){
+      const d=document.createElement('div');
+      d.className='seg'; d.dataset.sec=seg.seconds;
+      d.innerHTML=`<span class="seg-t">${h(seg.time)}</span><span class="seg-txt">${h(seg.text)}</span>`;
+      d.addEventListener('click',()=>seekAudio(seg.time,seg.seconds));
+      list.appendChild(d);
+    }
+  }catch(e){
+    list.innerHTML=`<div style="padding:10px;color:var(--red);font-size:12px">${h(e.message)}</div>`;
+  }
+}
+$('tp-close').addEventListener('click',()=>$('tp').classList.add('off'));
+
+function seekAudio(timeStr,seconds){
+  const aud=$('aud'),bar=$('audio-bar');
+  if(!aud.src||aud.src===location.href){
+    if(!currentEp) return;
+    aud.src=`/api/episodes/${currentEp.id}/audio`;
+    bar.classList.add('on');
+  }
+  const s=seconds!==undefined?seconds:ts2s(timeStr);
+  aud.currentTime=s; aud.play().catch(()=>{});
+  document.querySelectorAll('.seg').forEach(el=>
+    el.classList.toggle('active',parseFloat(el.dataset.sec)===parseFloat(s)));
+}
+function ts2s(t){
+  const p=t.split(':').map(Number);
+  return p.length===2?p[0]*60+p[1]:p[0]*3600+p[1]*60+p[2];
+}
+
+function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function inline(s){
+  return s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+          .replace(/\*(.+?)\*/g,'<em>$1</em>')
+          .replace(/`(.+?)`/g,'<code>$1</code>')
+          .replace(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g,'<span style="color:var(--accent)">$1</span>');
+}
+function loading(on){$('loading').style.display=on?'block':'none'}
+function showEmpty(msg,sub=''){
+  $('content').innerHTML=`<div class="empty">
+    <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    </svg>
+    <p>${h(msg)}</p>${sub?`<small>${h(sub)}</small>`:''}</div>`;
+}
+function showErr(msg){$('content').innerHTML=`<div class="empty"><p style="color:var(--red)">${h(msg)}</p></div>`}
+
+$('search').addEventListener('input',renderList);
+init();
+</script>
+</body>
+</html>
