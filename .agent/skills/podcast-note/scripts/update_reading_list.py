@@ -11,7 +11,7 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-READING_LIST = Path("/home/trx50/Documents/arthurwang_DB/待閱讀清單.md")
+READING_LIST = Path("/home/trx50/Documents/arthurwang_DB/待看影片與Podcast清單.md")
 SKILL_DIR    = Path(__file__).parent.parent
 CONFIG_PATH  = SKILL_DIR / "config" / "podcasts.json"
 
@@ -70,7 +70,7 @@ def main():
         content = content.replace(existing_header, last_week_label, 1)
         content = content.replace(last_week_label, f"{this_week_header}\n\n" + last_week_label, 1)
     elif need_new_week:
-        insert_after = re.search(r'^# 待閱讀清單\n', content, re.MULTILINE)
+        insert_after = re.search(r'^# 待看影片與 Podcast 清單\n', content, re.MULTILINE)
         pos = insert_after.end() if insert_after else 0
         content = content[:pos] + f"\n{this_week_header}\n\n---\n\n" + content[pos:]
 

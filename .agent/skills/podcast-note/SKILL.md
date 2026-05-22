@@ -1,6 +1,6 @@
 ---
 name: podcast-note
-description: Podcast 音頻 → faster-whisper 轉錄 → Claude 分析 → 投資筆記（note-investment.md 格式）+ 更新待閱讀清單。支援從 RSS 下載、本地 MP3、或已有逐字稿直接分析。
+description: Podcast 音頻 → faster-whisper 轉錄 → Claude 分析 → 投資筆記（note-investment.md 格式）+ 更新待看影片與Podcast清單。支援從 RSS 下載、本地 MP3、或已有逐字稿直接分析。
 ---
 
 # /podcast-note
@@ -9,7 +9,7 @@ description: Podcast 音頻 → faster-whisper 轉錄 → Claude 分析 → 投�
 1. RSS → yt-dlp 下載 MP3（或接受本地音頻 / 逐字稿）
 2. faster-whisper（GPU 優先）轉錄 → transcript.txt
 3. Claude 直接分析（不呼叫外部 LLM）→ `note-investment.md` 格式
-4. 輸出 Obsidian 投資筆記 + 更新待閱讀清單
+4. 輸出 Obsidian 投資筆記 + 更新待看影片與Podcast清單
 
 ## Usage
 
@@ -31,7 +31,7 @@ description: Podcast 音頻 → faster-whisper 轉錄 → Claude 分析 → 投�
 
 - **投資筆記**：`/home/trx50/Documents/arthurwang_DB/投資/`
 - **工作目錄**：`<SKILL_DIR>/data/episodes/<podcast_id>_ep<episode>/`
-- **待閱讀清單**：`/home/trx50/Documents/arthurwang_DB/待閱讀清單.md`
+- **待看影片與Podcast清單**：`/home/trx50/Documents/arthurwang_DB/待看影片與Podcast清單.md`
 
 ## Config
 
@@ -59,7 +59,7 @@ scripts/
 ├── download.sh           # RSS → yt-dlp 下載 MP3 → 寫 env.sh
 ├── transcribe.py         # MP3 → faster-whisper → transcript.txt + .json
 ├── generate_note.py      # analysis.json → Obsidian 筆記
-└── update_reading_list.py # 更新待閱讀清單
+└── update_reading_list.py # 更新待看影片與Podcast清單
 ```
 
 ---
@@ -238,7 +238,7 @@ echo "筆記：$NOTE_PATH"
 
 ---
 
-### Step 5 — 更新待閱讀清單
+### Step 5 — 更新待看影片與Podcast清單
 
 ```bash
 python3.10 "$SKILL_DIR/scripts/update_reading_list.py" "$WORK_DIR"
@@ -252,7 +252,7 @@ python3.10 "$SKILL_DIR/scripts/update_reading_list.py" "$WORK_DIR"
 - 筆記路徑
 - 章節數、洞見數
 - 轉錄耗時（若有執行轉錄）
-- 待閱讀清單更新狀態
+- 待看影片與Podcast清單更新狀態
 
 ---
 
@@ -280,6 +280,6 @@ python3.10 "$SKILL_DIR/scripts/update_reading_list.py" "$WORK_DIR"
  ├─ Step 3: Claude 分析 ← 直接讀 transcript.txt
  │           note-investment.md 格式（TL;DR + 章節 + 框架 + 風險）
  ├─ Step 4: 生成筆記 (generate_note.py) → 投資/ 目錄
- ├─ Step 5: 更新待閱讀清單 (update_reading_list.py)
+ ├─ Step 5: 更新待看影片與Podcast清單 (update_reading_list.py)
  └─ Step 6: 報告
 ```

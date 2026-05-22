@@ -9,7 +9,7 @@ description: YouTube CC subtitle URL → yt-dlp transcript → Claude analysis �
 1. yt-dlp 下載字幕 + metadata（含 YouTube 章節）
 2. 解析 VTT → 60 秒合併壓縮
 3. Claude 直接分析（不呼叫外部 LLM）→ `note-ai-lecture.md` 格式
-4. 輸出 Obsidian 筆記 + 更新待閱讀清單
+4. 輸出 Obsidian 筆記 + 更新待看影片與Podcast清單
 
 不下載影片，不截圖。純字幕 → 結構化知識筆記。
 
@@ -27,7 +27,7 @@ description: YouTube CC subtitle URL → yt-dlp transcript → Claude analysis �
 
 - **Notes**: `/home/trx50/Documents/arthurwang_DB/AI Knowledge/影片筆記/`
 - **Transcripts**: `<SKILL_DIR>/data/transcripts/<VIDEO_ID>/`（永久存放，不用 /tmp）
-- **Reading list**: `/home/trx50/Documents/arthurwang_DB/待閱讀清單.md`
+- **Reading list**: `/home/trx50/Documents/arthurwang_DB/待看影片與Podcast清單.md`
 
 ## Scripts
 
@@ -207,6 +207,6 @@ YouTube URL
  │
  └─ scripts/finalize.sh
      ├─ Step 5: generate_note.py → Obsidian .md
-     ├─ Step 6: update_reading_list.py → 待閱讀清單
+     ├─ Step 6: update_reading_list.py → 待看影片與Podcast清單
      └─ Step 7: 報告
 ```

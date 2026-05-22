@@ -16,7 +16,7 @@ fi
 YT_URL=$(python3 -c "import json; d=json.load(open('$WORK_DIR/meta.json')); print(d.get('webpage_url',''))" 2>/dev/null)
 YT_URL="$YT_URL" VIDEO_ID="$VIDEO_ID" WORK_DIR="$WORK_DIR" python3 "$SCRIPT_DIR/generate_note.py"
 
-# ── Step 6: Update 待閱讀清單 ────────────────────────────────────────────────
+# ── Step 6: Update 待看影片與Podcast清單 ────────────────────────────────────────────────
 WORK_DIR="$WORK_DIR" python3 "$SCRIPT_DIR/update_reading_list.py"
 
 # ── Step 6b: Update _INDEX.md ────────────────────────────────────────────────
@@ -36,7 +36,7 @@ insights = data.get("key_insights", [])
 has_vtt  = os.path.exists(f"{work_dir}/condensed.txt") and \
     not open(f"{work_dir}/condensed.txt").read().startswith("[Description")
 
-short = note_path.replace("/Users/yankesswang/Documents/arthurwang_DB/", "")
+short = note_path.replace("/home/trx50/Documents/arthurwang_DB/", "")
 print(f"\n✓ Note:      {short}")
 print(f"✓ Sections:  {len(sections)}")
 print(f"✓ Insights:  {len(insights)}")

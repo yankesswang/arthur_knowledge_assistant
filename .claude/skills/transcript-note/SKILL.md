@@ -10,7 +10,7 @@ Given a YouTube URL with CC subtitles (auto-generated or manual), automatically:
 2. Parse + condense VTT into clean timestamped text
 3. Analyze with Claude (chunked for long videos) using `note-ai-lecture.md` format
 4. Generate Obsidian note: TL;DR + 章節筆記 + 關鍵洞見 + 數據速查表
-5. Add entry to 待閱讀清單
+5. Add entry to 待看影片與Podcast清單
 
 No video download, no screenshots. Pure transcript → structured knowledge note.
 
@@ -27,7 +27,7 @@ No video download, no screenshots. Pure transcript → structured knowledge note
 
 - **Notes**: `/home/trx50/Documents/arthurwang_DB/AI Knowledge/影片筆記/`
 - **Temp work**: `/tmp/transcript_note/<VIDEO_ID>/`
-- **Reading list**: `/home/trx50/Documents/arthurwang_DB/待閱讀清單.md`
+- **Reading list**: `/home/trx50/Documents/arthurwang_DB/待看影片與Podcast清單.md`
 
 ---
 
@@ -402,12 +402,12 @@ PYEOF
 
 ---
 
-### Step 6 — Update 待閱讀清單
+### Step 6 — Update 待看影片與Podcast清單
 
 Read `$WORK_DIR/note_path.txt` to get the note filename (without path and `.md`).
 Read `$WORK_DIR/analysis.json` to get `reading_list_category`.
 
-Then run the following Python script to update `/home/trx50/Documents/arthurwang_DB/待閱讀清單.md`:
+Then run the following Python script to update `/home/trx50/Documents/arthurwang_DB/待看影片與Podcast清單.md`:
 
 ```python
 import json, os, re
@@ -422,7 +422,7 @@ with open(f"{work_dir}/analysis.json") as f:
 
 note_title    = os.path.splitext(os.path.basename(note_path))[0]
 category      = data.get("reading_list_category", "").split("|")[0].strip()
-reading_list  = "/home/trx50/Documents/arthurwang_DB/待閱讀清單.md"
+reading_list  = "/home/trx50/Documents/arthurwang_DB/待看影片與Podcast清單.md"
 
 # ── Compute this week's Monday–Sunday (week starts Monday) ──────────────────
 today   = date.today()
@@ -462,7 +462,7 @@ if need_new_week and current_header_match:
     content = content.replace(last_week_label, new_block + last_week_label, 1)
 elif need_new_week:
     # No existing 🆕 block at all — prepend after frontmatter / H1
-    insert_after = re.search(r'^# 待閱讀清單\n', content, re.MULTILINE)
+    insert_after = re.search(r'^# 待看影片與 Podcast 清單\n', content, re.MULTILINE)
     pos = insert_after.end() if insert_after else 0
     content = content[:pos] + f"\n{this_week_header}\n\n---\n\n" + content[pos:]
 
@@ -493,7 +493,7 @@ else:
             content = content[:insert_pos] + new_section + content[insert_pos:]
     with open(reading_list, "w", encoding="utf-8") as f:
         f.write(content)
-    print(f"Added to 待閱讀清單 [{category}]: {note_title}")
+    print(f"Added to 待看影片與Podcast清單 [{category}]: {note_title}")
 ```
 
 Category mapping (from `reading_list_category` field in analysis.json):
@@ -548,7 +548,7 @@ PYEOF
 | LLM provider | opencli gemini / chatgpt-app | Claude (self, no external CLI) |
 | Note format | 影片資訊 + 章節摘要 + 截圖 | AI lecture format (TL;DR + 推理鏈 + 洞見) |
 | Output depth | 每章節 3 bullet points | 每章節 5-12 nested bullet points |
-| Reading list | No | Yes (自動更新待閱讀清單) |
+| Reading list | No | Yes (自動更新待看影片與Podcast清單) |
 
 ## Edge Cases
 
@@ -577,6 +577,6 @@ URL (v=, youtu.be, shorts, live)
  │           note-ai-lecture.md format: TL;DR + nested bullet points
  ├─ Step 5: Obsidian note (frontmatter + TL;DR + 章節筆記 + 洞見 + 速查表)
  │           timestamp links: [MM:SS](youtube.com/watch?v=...&t=Xs)
- ├─ Step 6: 待閱讀清單 update ([ ] entry, correct subsection)
+ ├─ Step 6: 待看影片與Podcast清單 update ([ ] entry, correct subsection)
  └─ Step 7: report
 ```

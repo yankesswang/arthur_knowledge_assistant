@@ -15,30 +15,6 @@
       "reading_list_category": "投資"
     },
     {
-      "id": "allinwithchamathjaso",
-      "name": "All-In with Chamath, Jason, Sacks & Friedberg",
-      "rss": "https://rss.libsyn.com/shows/254861/destinations/1928300.xml",
-      "apple_id": "1502871393",
-      "artwork": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts124/v4/c7/d2/92/c7d292ea-44b3-47ff-2f5e-74fa5b23db6c/mza_7005270671777648882.png/600x600bb.jpg",
-      "language": "zh",
-      "note_type": "investment",
-      "note_dir": "/home/trx50/Documents/arthurwang_DB/Podcast/All-In with Chamath, Jason, Sacks & Friedberg/notes",
-      "transcript_dir": "/home/trx50/Documents/arthurwang_DB/Podcast/All-In with Chamath, Jason, Sacks & Friedberg/transcripts",
-      "reading_list_category": "投資"
-    },
-    {
-      "id": "vk",
-      "name": "VK科技閱讀時間",
-      "rss": "https://feed.firstory.me/rss/user/clpapr32q00qf01rn9f6o9e0l",
-      "apple_id": "1698471334",
-      "artwork": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts126/v4/06/4c/5a/064c5ae1-7db1-d6d3-6ddc-795fef9af5d2/mza_3446215578816942043.jpeg/600x600bb.jpg",
-      "language": "zh",
-      "note_type": "investment",
-      "note_dir": "/home/trx50/Documents/arthurwang_DB/Podcast/VK科技閱讀時間/notes",
-      "transcript_dir": "/home/trx50/Documents/arthurwang_DB/Podcast/VK科技閱讀時間/transcripts",
-      "reading_list_category": "投資"
-    },
-    {
       "id": "mannews",
       "name": "曼報",
       "rss": "https://feed.firstory.me/rss/user/ckb7oop2y0yit0873vc36njil",
@@ -60,18 +36,6 @@
       "note_type": "investment",
       "note_dir": "/home/trx50/Documents/arthurwang_DB/Podcast/財報狗/notes",
       "transcript_dir": "/home/trx50/Documents/arthurwang_DB/Podcast/財報狗/transcripts",
-      "reading_list_category": "投資"
-    },
-    {
-      "id": "macromicrom",
-      "name": "MacroMicro 財經M平方",
-      "rss": "https://feeds.soundon.fm/podcasts/d2aab16c-3a70-4023-b52b-e50f07852ecd.xml",
-      "apple_id": "1522682178",
-      "artwork": "https://is1-ssl.mzstatic.com/image/thumb/Podcasts114/v4/3a/05/81/3a058112-4d66-0286-6f48-167daf4a5a56/mza_11610169726646443770.jpeg/600x600bb.jpg",
-      "language": "zh",
-      "note_type": "investment",
-      "note_dir": "/home/trx50/Documents/arthurwang_DB/Podcast/MacroMicro 財經M平方/notes",
-      "transcript_dir": "/home/trx50/Documents/arthurwang_DB/Podcast/MacroMicro 財經M平方/transcripts",
       "reading_list_category": "投資"
     }
   ]

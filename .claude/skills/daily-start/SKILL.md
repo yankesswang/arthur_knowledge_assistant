@@ -15,7 +15,7 @@
 
 - Daily Notes：`/home/trx50/Documents/arthurwang_DB/` 根目錄，格式 `YYYY-MM-DD.md`
 - Decision Log：`/home/trx50/Documents/arthurwang_DB/AI Knowledge/知識創作/洞見/Decision Log.md`（若不存在則跳過）
-- 待閱讀清單：`/home/trx50/Documents/arthurwang_DB/待閱讀清單.md`
+- 待看影片與Podcast清單：`/home/trx50/Documents/arthurwang_DB/待看影片與Podcast清單.md`
 
 ---
 

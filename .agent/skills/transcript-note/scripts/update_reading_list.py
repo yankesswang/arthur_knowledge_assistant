@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Step 6: Update 待閱讀清單.md with new note entry"""
+"""Step 6: Update 待看影片與Podcast清單.md with new note entry"""
 import json, os, re
 from datetime import date, timedelta
 
@@ -12,7 +12,7 @@ with open(f"{work_dir}/analysis.json") as f:
 
 note_title    = os.path.splitext(os.path.basename(note_path))[0]
 category      = data.get("reading_list_category", "").split("|")[0].strip()
-reading_list  = "/home/trx50/Documents/arthurwang_DB/待閱讀清單.md"
+reading_list  = "/home/trx50/Documents/arthurwang_DB/待看影片與Podcast清單.md"
 
 # ── Compute this week's Monday–Sunday (week starts Monday) ──────────────────
 today   = date.today()
@@ -47,7 +47,7 @@ if need_new_week and current_header_match:
     new_block = f"{this_week_header}\n\n"
     content = content.replace(last_week_label, new_block + last_week_label, 1)
 elif need_new_week:
-    insert_after = re.search(r'^# 待閱讀清單\n', content, re.MULTILINE)
+    insert_after = re.search(r'^# 待看影片與 Podcast 清單\n', content, re.MULTILINE)
     pos = insert_after.end() if insert_after else 0
     content = content[:pos] + f"\n{this_week_header}\n\n---\n\n" + content[pos:]
 
@@ -75,4 +75,4 @@ else:
             content = content[:insert_pos] + new_section + content[insert_pos:]
     with open(reading_list, "w", encoding="utf-8") as f:
         f.write(content)
-    print(f"Added to 待閱讀清單 [{category}]: {note_title}")
+    print(f"Added to 待看影片與Podcast清單 [{category}]: {note_title}")

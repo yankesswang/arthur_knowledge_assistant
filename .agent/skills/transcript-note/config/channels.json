@@ -55,6 +55,118 @@
       "enabled": true,
       "channel_id": "UCKV2yWPB3wn0RTZh3cTD8YA",
       "avatar": "https://yt3.googleusercontent.com/Vqg_8nFFDNbk_IvXWE7ngTBTTx3h1StP7nPtRQv77UVvtXfHurANruNVH3MA-Ms-OC-6Ge0L=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@AcquiredFM",
+      "name": "Acquired",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCyFqFYfTW2VoIQKylJ04Rtw",
+      "avatar": "https://yt3.googleusercontent.com/s0dn9A2roEyYBJKf2fC0RLykmjDdD-cqV-H-htL8fVgBzMegI0QJ3qJzr3hDoTbyk_BJ93XW=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@chamath",
+      "name": "Chamath Palihapitiya",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCVRZ75ihzAZFihD1dS8qvwg",
+      "avatar": "https://yt3.googleusercontent.com/HpF-5y2TvDmETKhbs-d_Yk5qR64TFT5kbCdIF1aR3YKX-0oqnhk6-Siy2sc0q72LJnCanNmcSQ=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@LennysPodcast",
+      "name": "Lenny's Podcast",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UC6t1O76G0jYXOAoYCm153dA",
+      "avatar": "https://yt3.googleusercontent.com/Wk7-4UW17JqDXgVWDiE7s1gJxDkt_UwNa2oNw8OYRwc9deiCv2V2fFAdNgByDi0K9AAF0YMj=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@lexfridman",
+      "name": "Lex Fridman",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCSHZKyawb77ixDdsGog4iWA",
+      "avatar": "https://yt3.googleusercontent.com/ytc/AIdro_ljfMy9kUR1PH9VRf-XsTsPqFMgORC_zodOQVEAm4hx36lC=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@kedaibiao",
+      "name": "课代表立正",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UC_5lJHgnMP_lb_VpIiXV0hQ",
+      "avatar": "https://yt3.googleusercontent.com/LL9aVTPfIlfGNMuMAbm4gyUWz6OATG83Njj8zGK2EkQz0qxX0YpUOPVvMmy-5OCFsQQNtvV-Bw=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@aiDotEngineer",
+      "name": "AI Engineer",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCLKPca3kwwd-B59HNr-_lvA",
+      "avatar": "https://yt3.googleusercontent.com/ajVemEB89DAOemsbfuMY6ZOWXJAACx3cbty9z21jeqRKODaVkDBSRun1b1xfQJljEsziOWS_Mg=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@ycombinator",
+      "name": "Y Combinator",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCcefcZRL2oaA_uBNeo5UOWg",
+      "avatar": "https://yt3.googleusercontent.com/dGyATx87Fp_s1nZvnupUFSnMqbAPZ6nqRby9Esk1m6YE41iBq-9Z8iGoIgHTCT9SiDBUpP2V=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@xiaojunpodcast",
+      "name": "Zhang Xiaojun Podcast",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UC3Sv1JuKpbOx3csUO8FAo5g",
+      "avatar": "https://yt3.googleusercontent.com/u001-C_-_3ukhwdVqQtv1hzzY-ULF5nU-_O5lW3uw4v63nmEG1SXYM8YKT1ZZVylPWw3i4VxUQ=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@tech_wav",
+      "name": "科技浪",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UC--2T9M_DTarf2LuwxxGRww",
+      "avatar": "https://yt3.googleusercontent.com/Ir5YbIVgoYOxOrkzgMtlNDw9OhXzu8vynx8EeCNz14XyzevX75wY07wQk3fl3ER_4fo7cRWDCms=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@allin",
+      "name": "All-In Podcast",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCESLZhusAkFfsNsApnjF_Cg",
+      "avatar": "https://yt3.googleusercontent.com/ytc/AIdro_muNFL-sKuOPm72UvG-ofixqx70KVyRS4365-fTtxH_cg=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@VK-TECH223",
+      "name": "VK科技閱讀時間",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCoDYUA1JTp857AsqeRh1tqg",
+      "avatar": "https://yt3.googleusercontent.com/r_5L4cURrh_xzd26bnroPt3rwIxUZu9fRWi_0nwPVwcYvGgJwq2ZlCc3ak3x2pjFBlN8iymPeQ=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@TEDx",
+      "name": "TEDx Talks",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCsT0YIqwnpJCM-mx7-gSA4Q",
+      "avatar": "https://yt3.googleusercontent.com/1gDPO-4YPWFErfn3yQBnv0yxpkmiud1m5CrorApkOqUYdNd9FrZQ9xB9C9VmDt4EsgArnlwqAQc=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@macromicrom2843",
+      "name": "MacroMicro財經M平方",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UC6LU7FUBvbFCh_cQasrHZ_Q",
+      "avatar": "https://yt3.googleusercontent.com/ytc/AIdro_kAnnmMk4xW6GMT1DWnmSeYB1Rg-I81a0w6OvKKBFGYNg=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@NavalR",
+      "name": "Naval",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCh_dVD10YuSghle8g6yjePg",
+      "avatar": "https://yt3.googleusercontent.com/lV4R_u6OuI0xnRhHVS3jjOZGo_KYBOscekvEWRtkccoRuMAkPUNwwB59DjBd8QJdM1Dw0cGElg=s900-c-k-c0x00ffffff-no-rj"
     }
   ]
 }

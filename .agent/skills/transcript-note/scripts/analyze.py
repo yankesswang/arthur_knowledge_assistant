@@ -1,6 +1,6 @@
 #!/usr/bin/env python3.10
 """
-analyze.py — 用 claude -p 分析 condensed.txt → analysis.json + Obsidian 筆記 + 更新待閱讀清單
+analyze.py — 用 claude -p 分析 condensed.txt → analysis.json + Obsidian 筆記 + 更新待看影片與Podcast清單
 用法：python3.10 analyze.py <video_id>
       work_dir 自動推導為 <SKILL_DIR>/data/transcripts/<video_id>
 """
@@ -73,26 +73,68 @@ def main():
     prompt = build_prompt(video_id, work_dir)
 
     print(f"→ 呼叫 claude -p 分析逐字稿（{video_id}）...", flush=True)
+    print("PROGRESS:5:啟動中", flush=True)
 
     proc = subprocess.Popen(
         [
             "claude", "-p", prompt,
             "--dangerously-skip-permissions",
             "--add-dir", str(SKILL_DIR.parent.parent),  # project root
+            "--output-format", "stream-json",
+            "--verbose",
         ],
         stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
+        stderr=subprocess.DEVNULL,
         text=True,
         bufsize=1,
         env=os.environ.copy(),
     )
 
+    seen_assistant = False
+    write_count = 0
+    bash_count = 0
     for line in proc.stdout:
-        print(line, end="", flush=True)
+        line = line.rstrip()
+        if not line:
+            continue
+        try:
+            ev = json.loads(line)
+        except Exception:
+            print(line, flush=True)
+            continue
+
+        t = ev.get("type", "")
+        if t == "system" and ev.get("subtype") == "init":
+            print("PROGRESS:5:啟動中", flush=True)
+        elif t == "assistant":
+            if not seen_assistant:
+                seen_assistant = True
+                print("PROGRESS:15:分析逐字稿中", flush=True)
+            usage = ev.get("message", {}).get("usage", {})
+            out_tokens = usage.get("output_tokens", 0)
+            if out_tokens:
+                p = min(65, 15 + int(out_tokens / 120))
+                print(f"PROGRESS:{p}:分析中（{out_tokens} tokens）", flush=True)
+            for block in ev.get("message", {}).get("content", []) or []:
+                if isinstance(block, dict) and block.get("type") == "tool_use":
+                    name = block.get("name", "")
+                    if name == "Write":
+                        write_count += 1
+                        print("PROGRESS:70:寫入 analysis.json", flush=True)
+                    elif name in ("Bash", "bash"):
+                        bash_count += 1
+                        print(f"PROGRESS:{75 + min(bash_count * 5, 15)}:執行後處理腳本", flush=True)
+        elif t == "result":
+            if ev.get("subtype") == "success":
+                print("PROGRESS:95:Claude 完成", flush=True)
+            else:
+                err = ev.get("result", "") or ev.get("subtype", "")
+                print(f"✗ claude 失敗：{err}", flush=True)
 
     proc.wait()
 
     if proc.returncode == 0:
+        print("PROGRESS:98:後處理中", flush=True)
         print("\n✓ 分析完成", flush=True)
         note_path_file = work_dir / "note_path.txt"
         if note_path_file.exists():

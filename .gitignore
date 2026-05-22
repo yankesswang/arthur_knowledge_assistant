@@ -19,6 +19,10 @@ __pycache__/
 logs/
 gallery-dl/
 video_transcript/
+.agent/skills/podcast-note/data/server_cache.sqlite3*
+.agent/skills/podcast-note/data/inbox.json
+.agent/skills/podcast-note/data/episodes/
+.agent/skills/transcript-note/data/queue.txt
 .claude/scheduled_tasks.lock
 .agent/skills/transcript-note/data/transcripts/
 scripts/hardware_event_logger.py

@@ -27,6 +27,16 @@ Arthur 的 Obsidian 知識管理 + 投資筆記 + 內容創作 AI 助理。
 
 ---
 
+## Clippings 整理規範
+
+整理完 Clippings 內的筆記後，**不直接刪除原始檔案**，一律移動到：
+
+```
+/home/trx50/Documents/arthurwang_DB/待檢查/
+```
+
+---
+
 ## 全域規範（所有任務共用，各 instruction 不重複）
 
 ### 檔名規則
@@ -55,9 +65,9 @@ Arthur 的 Obsidian 知識管理 + 投資筆記 + 內容創作 AI 助理。
 - 判斷依據相同：有資訊內容的保留，純裝飾的刪除
 - 整理筆記時若重寫段落內容，**必須回頭確認對應圖片是否遺漏**，並補回到正確段落後
 
-### 筆記完成後更新待閱讀清單
+### 筆記完成後更新待看影片與Podcast清單
 
-清單路徑：`/Users/yankesswang/Documents/arthurwang_DB/待閱讀清單.md`
+清單路徑：`/Users/yankesswang/Documents/arthurwang_DB/待看影片與Podcast清單.md`
 
 #### 閱讀清單結構（時間分層）
 
@@ -149,7 +159,7 @@ Arthur 的 Obsidian 知識管理 + 投資筆記 + 內容創作 AI 助理。
 - 投資筆記：`/home/trx50/Documents/arthurwang_DB/投資/`
 - AI Knowledge：`/home/trx50/Documents/arthurwang_DB/AI Knowledge/`
 - 文章輸出：`/home/trx50/Documents/arthurwang_DB/Arthur_Blog/Posts/`
-- 待閱讀清單：`/home/trx50/Documents/arthurwang_DB/待閱讀清單.md`
+- 待看影片與Podcast清單：`/home/trx50/Documents/arthurwang_DB/待看影片與Podcast清單.md`
 - 操作建議總表（一般）：`/home/trx50/Documents/arthurwang_DB/投資/投資操作建議總表.md`
 - 操作建議總表（mimi）：`/home/trx50/Documents/arthurwang_DB/投資/mimi操作建議總表.md`
 - **影片筆記**：`/home/trx50/Documents/arthurwang_DB/影片筆記/<頻道名稱>/`

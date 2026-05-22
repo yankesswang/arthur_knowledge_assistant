@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Knowledge Notes</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%237c6af7'/><text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-size='20'>🎙</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
 :root {
@@ -21,6 +22,9 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .nav-tab{padding:6px 14px;font-size:13px;cursor:pointer;color:var(--text-dim);border-bottom:2px solid transparent;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none}
 .nav-tab:hover{color:var(--text)}
 .nav-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.nav-tab-yt{background:rgba(124,106,247,.12);border-radius:6px;margin-right:10px;color:var(--accent)!important;border-bottom:2px solid transparent!important}
+.nav-tab-yt:hover{background:rgba(124,106,247,.2)}
+.nav-tab-yt.active{background:rgba(124,106,247,.22);border-bottom-color:var(--accent)!important}
 #nav-search{margin-left:auto;position:relative}
 #nav-search input{padding:6px 10px 6px 30px;border-radius:6px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:12px;outline:none;width:200px}
 #nav-search input:focus{border-color:var(--accent)}
@@ -71,6 +75,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .ep-meta{font-size:10px;color:var(--text-dim);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .badge{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700}
 .badge-note{background:#1a3a25;color:var(--green)}
+.badge-transcript{background:#1a2535;color:#7eb8f7}
 .badge-nonote{background:#2a2520;color:var(--yellow)}
 .badge-new{background:#1a2a3a;color:var(--blue)}
 .read-toggle{font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;flex-shrink:0;transition:all .15s;white-space:nowrap}
@@ -80,6 +85,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .ep-dl-btn:hover{border-color:var(--blue);color:var(--blue)}
 .ep-dl-btn.queued{border-color:#3a4a5a;color:#60a5fa;cursor:default}
 .ep-dl-btn.done{border-color:#3a5a3a;color:var(--green);cursor:default}
+.ep-note-btn{font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;flex-shrink:0;transition:all .15s;white-space:nowrap}
+.ep-note-btn:hover{background:var(--accent);color:#fff}
+.ep-note-btn.running{border-color:var(--accent);color:var(--accent);cursor:default;animation:note-btn-pulse 1.2s ease-in-out infinite}
+@keyframes note-btn-pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(124,106,247,.4)}50%{opacity:.6;box-shadow:0 0 0 4px rgba(124,106,247,0)}}
 
 /* ── DETAIL PANEL ── */
 #detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;backdrop-filter:blur(2px)}
@@ -128,6 +137,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .md img{max-width:100%;border-radius:6px;margin:6px 0}
 .md a{color:var(--accent);text-decoration:none}
 .md a:hover{text-decoration:underline}
+.md mark{background:#fbbf2466;color:var(--text);border-radius:2px;padding:0 2px}
 .tldr-card{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:7px;padding:13px 15px;margin-bottom:20px}
 .tldr-card h3{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:10px}
 .tldr-row{display:flex;gap:8px;margin-bottom:6px;font-size:13px}
@@ -143,7 +153,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .insight-item{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--yellow);border-radius:6px;padding:8px 12px;font-size:13px;line-height:1.6;margin-bottom:7px}
 
 /* Transcript panel */
-#tp-panel{display:none;flex-direction:column;border-left:1px solid var(--border);width:280px;flex-shrink:0;overflow:hidden}
+#tp-panel{display:none;flex-direction:column;border-left:1px solid var(--border);width:280px;min-width:160px;max-width:60vw;flex-shrink:0;overflow:hidden;position:relative}
 #tp-panel.open{display:flex}
 #tp-head{padding:9px 12px;border-bottom:1px solid var(--border);font-size:11px;font-weight:600;color:var(--text-dim);flex-shrink:0}
 #tp-list{flex:1;overflow-y:auto}
@@ -155,6 +165,17 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .seg-t{font-size:10px;color:var(--accent);min-width:32px;flex-shrink:0;padding-top:2px}
 .seg-txt{font-size:11px;line-height:1.55}
 #detail-inner{flex:1;display:flex;overflow:hidden}
+
+/* Resize handles */
+#panel-resize{position:absolute;left:0;top:0;width:4px;height:100%;cursor:ew-resize;z-index:10;background:transparent;transition:background .15s}
+#panel-resize:hover,#panel-resize.dragging{background:var(--accent)}
+#tp-resize{position:absolute;left:0;top:0;width:4px;height:100%;cursor:ew-resize;z-index:10;background:transparent;transition:background .15s}
+#tp-resize:hover,#tp-resize.dragging{background:var(--accent)}
+
+/* Fullscreen */
+#detail-panel.fullscreen{width:100vw!important}
+#detail-expand{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:15px;padding:0 4px;flex-shrink:0;transition:color .15s}
+#detail-expand:hover{color:var(--text)}
 
 /* Empty */
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:10px;color:var(--text-muted)}
@@ -173,14 +194,76 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   .cards-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
   #detail-panel{width:100vw}
 }
+
+/* ── Add-channel bar ── */
+.page-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+.add-ch-btn{padding:6px 14px;border-radius:6px;background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.add-ch-btn:hover{background:var(--accent);color:#fff}
+.ch-remove-btn{padding:4px 6px;border-radius:4px;border:1px solid transparent;background:transparent;color:var(--text-muted);cursor:pointer;transition:all .15s;flex-shrink:0;display:flex;align-items:center}
+.ch-remove-btn:hover{border-color:var(--red);color:var(--red)}
+.card-remove{position:absolute;top:6px;right:6px;z-index:2;background:rgba(15,17,23,.78);border-color:var(--border)}
+
+/* ── Add-channel modal ── */
+#add-ch-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:300;backdrop-filter:blur(3px);align-items:flex-start;justify-content:center;padding-top:80px}
+#add-ch-modal.open{display:flex}
+#add-ch-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:min(540px,95vw);max-height:70vh;display:flex;flex-direction:column;overflow:hidden}
+#add-ch-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+#add-ch-head h2{font-size:14px;font-weight:700}
+#add-ch-head button{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:0 4px}
+#add-ch-head button:hover{color:var(--text)}
+#add-ch-search-wrap{padding:12px 16px;border-bottom:1px solid var(--border);position:relative}
+#add-ch-search-wrap svg{position:absolute;left:25px;top:50%;transform:translateY(-50%);opacity:.4;pointer-events:none}
+#add-ch-q{width:100%;padding:8px 10px 8px 34px;border-radius:7px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:13px;outline:none}
+#add-ch-q:focus{border-color:var(--accent)}
+#add-ch-q::placeholder{color:var(--text-muted)}
+#add-ch-results{flex:1;overflow-y:auto;padding:8px 0}
+#add-ch-results::-webkit-scrollbar{width:4px}
+#add-ch-results::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.ach-item{display:flex;align-items:center;gap:12px;padding:9px 16px;cursor:pointer;transition:background .1s}
+.ach-item:hover{background:var(--surface2)}
+.ach-thumb{width:40px;height:40px;border-radius:6px;object-fit:cover;background:var(--surface2);flex-shrink:0}
+.ach-thumb.round{border-radius:50%}
+.ach-info{flex:1;min-width:0}
+.ach-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ach-sub{font-size:11px;color:var(--text-dim);margin-top:2px}
+.ach-add{font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s}
+.ach-add:hover{background:var(--accent);color:#fff}
+.ach-add:disabled{opacity:.5;cursor:default}
+#add-ch-hint{padding:20px;text-align:center;color:var(--text-muted);font-size:13px}
+
+/* ── Inbox ── */
+.inbox-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;transition:all .15s}
+.inbox-item:hover{border-color:var(--accent)}
+.inbox-thumb{width:48px;height:48px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--surface2)}
+.inbox-thumb.round{border-radius:50%}
+.inbox-info{flex:1;min-width:0}
+.inbox-title{font-size:13px;font-weight:600;line-height:1.4;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.inbox-title:hover{color:var(--accent)}
+.inbox-meta{font-size:11px;color:var(--text-dim);display:flex;gap:6px;align-items:center}
+.inbox-type{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;background:var(--accent-dim);color:var(--accent)}
+.inbox-read-btn{font-size:11px;padding:4px 12px;border-radius:5px;border:1px solid var(--green);color:var(--green);background:transparent;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s}
+.inbox-read-btn:hover{background:var(--green);color:#000}
+.inbox-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:200px;gap:8px;color:var(--text-muted)}
+.inbox-empty p{font-size:14px}
+
+/* ── Highlight mode ── */
+#hl-mode-btn.active{background:var(--yellow)!important;border-color:var(--yellow)!important;color:#000!important}
+body.hl-mode #detail-body{cursor:crosshair}
+body.hl-mode #detail-body *{cursor:crosshair;user-select:text}
+body.hl-mode #detail-body mark{cursor:pointer}
+body.hl-mode #detail-body mark:hover{background:#fbbf2499;outline:2px solid #fbbf24;outline-offset:1px}
 </style>
 </head>
 <body>
 
 <div id="nav">
   <h1>🎙 Notes</h1>
-  <button class="nav-tab active" data-page="podcast">Podcast</button>
-  <button class="nav-tab" data-page="youtube">YouTube</button>
+  <button class="nav-tab nav-tab-yt active" data-page="youtube">YouTube</button>
+  <button class="nav-tab" data-page="podcast">Podcast</button>
+  <button class="nav-tab" data-page="inbox">
+    待讀
+    <span id="inbox-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:4px;vertical-align:middle"></span>
+  </button>
   <div id="nav-search">
     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="11" cy="11" r="8" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke-width="2" stroke-linecap="round"/></svg>
     <input id="search-input" type="text" placeholder="搜尋…" autocomplete="off">
@@ -188,35 +271,77 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 </div>
 
 <!-- Podcast page -->
-<div id="page-podcast" class="page active">
+<div id="page-podcast" class="page">
+  <div class="page-toolbar">
+    <button class="add-ch-btn" onclick="openAddChannel('podcast')">+ 新增 Podcast</button>
+  </div>
   <div id="podcast-cards" class="cards-grid"></div>
 </div>
 
 <!-- YouTube page -->
-<div id="page-youtube" class="page">
+<div id="page-youtube" class="page active">
+  <div class="page-toolbar">
+    <button class="add-ch-btn" onclick="openAddChannel('yt')">+ 新增 YouTube 頻道</button>
+  </div>
   <div id="yt-cards" class="cards-grid"></div>
+</div>
+
+<!-- Inbox page -->
+<div id="page-inbox" class="page">
+  <div class="page-toolbar" style="justify-content:space-between">
+    <span style="font-size:13px;font-weight:700;color:var(--text-dim)">待閱讀筆記</span>
+    <div style="display:flex;gap:6px;align-items:center">
+      <button class="dvbtn inbox-sort-btn active" data-sort="pub_date" title="依發布日期排序">📅 發布</button>
+      <button class="dvbtn inbox-sort-btn" data-sort="note_created" title="依筆記建立時間排序">✏️ 筆記</button>
+      <button id="inbox-clear-all" class="add-ch-btn" style="background:transparent;border-color:var(--border);color:var(--text-muted);margin-left:6px">全部清除</button>
+    </div>
+  </div>
+  <div id="inbox-list"></div>
+</div>
+
+<!-- Add channel modal -->
+<div id="add-ch-modal">
+  <div id="add-ch-box">
+    <div id="add-ch-head">
+      <h2 id="add-ch-title">新增頻道</h2>
+      <button onclick="closeAddChannel()">✕</button>
+    </div>
+    <div id="add-ch-search-wrap">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="11" cy="11" r="8" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke-width="2" stroke-linecap="round"/></svg>
+      <input id="add-ch-q" type="text" placeholder="輸入關鍵字搜尋…" autocomplete="off">
+    </div>
+    <div id="add-ch-results">
+      <div id="add-ch-hint">輸入關鍵字開始搜尋</div>
+    </div>
+  </div>
 </div>
 
 <!-- Detail overlay -->
 <div id="detail-overlay">
   <div id="detail-panel">
+    <div id="panel-resize"></div>
     <div id="detail-header">
       <div style="flex:1">
         <div id="detail-title"></div>
         <div id="detail-meta"></div>
       </div>
+      <button id="detail-expand" title="全螢幕">⛶</button>
       <button id="detail-close">✕</button>
     </div>
     <div id="detail-view-btns">
       <button class="dvbtn active" data-v="note">筆記</button>
       <button class="dvbtn" data-v="sections">章節</button>
-      <button class="dvbtn" data-v="raw">原始</button>
       <button class="dvbtn" id="tp-btn" style="display:none">逐字稿</button>
+      <div style="flex:1"></div>
+      <button class="dvbtn" id="hl-mode-btn" style="display:none" title="螢光筆模式">🖊</button>
+      <button class="dvbtn" id="copy-note-btn" style="display:none" title="複製筆記 Markdown">⎘ 筆記</button>
+      <button class="dvbtn" id="copy-tp-btn" style="display:none" title="複製逐字稿純文字">⎘ 逐字稿</button>
     </div>
     <div id="detail-loading"></div>
     <div id="detail-inner">
       <div id="detail-body"></div>
       <div id="tp-panel">
+        <div id="tp-resize"></div>
         <div id="tp-head">逐字稿</div>
         <div id="tp-list"></div>
       </div>
@@ -239,6 +364,11 @@ const $=id=>document.getElementById(id);
 let podcasts=[], ytChannels=[], readStatus={}, currentView='note';
 let currentItem=null, currentType=null; // 'podcast' | 'yt'
 let jobPoll=null;
+let ytRefreshPoll=null;
+let ytJobRefreshPoll=null;
+let inboxItems=[];
+let inboxSort='pub_date'; // 'pub_date' | 'note_created'
+const analyzingIds=new Set(); // episodeId or 'yt:videoId' currently running
 const expandedCards=new Set();
 const expandedMonths=new Set(); // key: "cardId:monthKey"
 
@@ -250,6 +380,16 @@ function avatarPlaceholder(name){
   return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
 }
 const h=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function ytImg(url){
+  if(!url) return '';
+  if(url.startsWith('https://yt3.') || url.startsWith('https://i.ytimg.') || url.startsWith('https://img.youtube.'))
+    return '/api/proxy-image?url='+encodeURIComponent(url);
+  return url;
+}
+function setImgSrc(el, primary, fallback){
+  el.onerror=()=>{ el.onerror=null; el.src=fallback; };
+  el.src=primary||fallback;
+}
 async function api(path,opts){
   const r=await fetch(path,opts);
   if(!r.ok) throw new Error(await r.text());
@@ -274,25 +414,122 @@ function groupByMonth(items, dateField='upload_date'){
   return Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0]));
 }
 
+// ── Inbox ─────────────────────────────────────────────────────
+// sort button listeners
+document.querySelectorAll('.inbox-sort-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    inboxSort=btn.dataset.sort;
+    document.querySelectorAll('.inbox-sort-btn').forEach(b=>b.classList.toggle('active',b.dataset.sort===inboxSort));
+    renderInbox();
+  });
+});
+
+function updateInboxBadge(){
+  const badge=$('inbox-badge');
+  if(inboxItems.length){
+    badge.textContent=inboxItems.length;
+    badge.style.display='inline';
+  }else{
+    badge.style.display='none';
+  }
+}
+
+function renderInbox(){
+  updateInboxBadge();
+  const el=$('inbox-list');
+  if(!el) return;
+  if(!inboxItems.length){
+    el.innerHTML='<div class="inbox-empty"><p>沒有待閱讀的筆記</p></div>';
+    return;
+  }
+  const sorted=[...inboxItems].sort((a,b)=>{
+    const va=inboxSort==='note_created'?(a.note_created||0):(a.pub_date||'');
+    const vb=inboxSort==='note_created'?(b.note_created||0):(b.pub_date||'');
+    return va>vb?-1:va<vb?1:0;
+  });
+  el.innerHTML='';
+  for(const item of sorted){
+    const isYT=item.type==='yt';
+    const thumb=isYT
+      ? ytImg(item.thumbnail||`https://img.youtube.com/vi/${item.video_id}/mqdefault.jpg`)
+      : (item.artwork||'');
+    const typeLabel=isYT?'YouTube':'Podcast';
+    const meta=[isYT?item.channel:item.podcast, item.episode, item.date].filter(Boolean).join(' · ');
+
+    const row=document.createElement('div');
+    row.className='inbox-item';
+    row.innerHTML=`
+      <img class="inbox-thumb${isYT?'':' round'}" src="${h(thumb)}" onerror="this.style.opacity='.3'">
+      <div class="inbox-info">
+        <div class="inbox-title" data-id="${h(item.id)}">${h(item.title||item.episode||item.video_id||'')}</div>
+        <div class="inbox-meta">
+          <span class="inbox-type">${typeLabel}</span>
+          <span>${h(meta)}</span>
+        </div>
+        <div class="inbox-meta" style="margin-top:3px;gap:10px">
+          ${item.pub_date?`<span title="發布日期">📅 ${h(item.pub_date)}</span>`:''}
+          ${item.note_created?`<span title="筆記建立時間">✏️ ${new Date(item.note_created*1000).toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'})}</span>`:''}
+        </div>
+      </div>
+      <button class="inbox-read-btn" data-id="${h(item.id)}">✓ 已閱</button>`;
+
+    // 點標題 → 開 detail
+    row.querySelector('.inbox-title').addEventListener('click',()=>{
+      if(isYT){
+        const v={id:item.video_id, title_zh:item.title, title:item.title, channel:item.channel,
+                 url:item.url, thumbnail:item.thumbnail, has_note:!!item.note_path,
+                 has_analysis:!!item.note_path, has_transcript:true};
+        openDetailYT(v);
+      }else{
+        const pod=podcasts.find(p=>p.id===item.podcast_id)||{name:item.podcast};
+        const ep={id:`${item.podcast_id}_${item.episode}`, title_zh:item.title,
+                  episode_label:item.episode, has_note:!!item.note_path,
+                  has_transcript:true, _pod:pod.name};
+        openDetail('podcast', ep, pod);
+      }
+    });
+
+    // 已閱 → dismiss
+    row.querySelector('.inbox-read-btn').addEventListener('click',async e=>{
+      e.stopPropagation();
+      const id=e.target.dataset.id;
+      try{
+        await api(`/api/inbox/${encodeURIComponent(id)}/dismiss`,{method:'POST'});
+        inboxItems=inboxItems.filter(i=>i.id!==id);
+        renderInbox();
+      }catch(err){ alert('失敗：'+err.message); }
+    });
+
+    el.appendChild(row);
+  }
+}
+
+$('inbox-clear-all')?.addEventListener('click',async()=>{
+  if(!inboxItems.length) return;
+  if(!confirm(`清除全部 ${inboxItems.length} 筆待閱讀？`)) return;
+  try{
+    await api('/api/inbox/dismiss-all',{method:'POST'});
+    inboxItems=[];
+    renderInbox();
+  }catch(err){ alert('失敗：'+err.message); }
+});
+
 // ── Init ──────────────────────────────────────────────────────
 async function init(){
-  const[pods,rs]=await Promise.all([
+  const[pods,rs,inbox]=await Promise.all([
     api('/api/podcasts').catch(()=>[]),
-    api('/api/reading-status').catch(()=>({}))
+    api('/api/reading-status').catch(()=>({})),
+    api('/api/inbox').catch(()=>[]),
   ]);
-  podcasts=pods; readStatus=rs;
+  podcasts=pods; readStatus=rs; inboxItems=inbox;
   renderPodcastCards();
+  renderInbox();
 
   api('/api/youtube/channels').then(chs=>{
     ytChannels=chs;
     renderYTCards();
-    // 若 remote 尚未就緒（背景還在抓），15 秒後重抓一次
-    const needRefresh=chs.some(c=>!c.remote_ready);
-    if(needRefresh){
-      setTimeout(()=>{
-        api('/api/youtube/channels').then(updated=>{ytChannels=updated;renderYTCards();}).catch(()=>{});
-      }, 15000);
-    }
+    startYTPollIfNeeded();
+    startYTJobRefreshPoll();
     // 若有缺 avatar，觸發補抓
     const missingAvatar=chs.filter(c=>c.handle&&!c.avatar);
     if(missingAvatar.length){
@@ -309,6 +546,47 @@ async function init(){
       api('/api/podcasts').then(updated=>{podcasts=updated;renderPodcastCards();}).catch(()=>{});
     }
   }, 15000);
+}
+
+function startYTPollIfNeeded(){
+  if(!ytChannels.some(c=>c.handle&&(!c.remote_ready||c.remote_loading||!c.dates_ready))){
+    if(ytRefreshPoll){clearInterval(ytRefreshPoll);ytRefreshPoll=null;}
+    return;
+  }
+  if(ytRefreshPoll) return;
+  let attempts=0;
+  ytRefreshPoll=setInterval(()=>{
+    attempts++;
+    api('/api/youtube/channels').then(updated=>{
+      ytChannels=updated;
+      renderYTCards();
+      if(!updated.some(c=>c.handle&&(!c.remote_ready||c.remote_loading||!c.dates_ready))||attempts>=120){
+        clearInterval(ytRefreshPoll);
+        ytRefreshPoll=null;
+      }
+    }).catch(()=>{});
+  },5000);
+}
+
+function startYTJobRefreshPoll(){
+  if(ytJobRefreshPoll) return;
+  ytJobRefreshPoll=setInterval(async()=>{
+    try{
+      const jobs=await api('/api/jobs');
+      const now=Date.now()/1000;
+      const needsRefresh=jobs.some(j=>{
+        const isYT=String(j.type||'').startsWith('yt_');
+        const active=j.status==='pending'||j.status==='running';
+        const recent=(now-(j.finished_at||j.started_at||0))<20;
+        return isYT&&(active||recent);
+      });
+      if(needsRefresh){
+        const updated=await api('/api/youtube/channels');
+        ytChannels=updated;
+        renderYTCards();
+      }
+    }catch(_){}
+  },5000);
 }
 
 // ── Nav tabs ──────────────────────────────────────────────────
@@ -358,12 +636,14 @@ function renderPodcastCards(){
               <span class="stat-total">${allEps.length} 集</span>
             </div>
           </div>
+          <button class="ch-remove-btn" data-id="${h(pod.id)}" title="移除頻道"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
           <span style="font-size:18px;color:var(--text-muted)">⌃</span>
         </div>`;
       const epContainer=buildPodEpList(pod, filtered);
       card.appendChild(epContainer);
     } else {
       card.innerHTML=`
+        <button class="ch-remove-btn card-remove" data-id="${h(pod.id)}" title="移除頻道"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
         <img class="card-art" src="${h(pod.artwork)}" alt="" onerror="this.style.display='none'">
         <div class="card-body">
           <div class="card-name">${h(pod.name)}</div>
@@ -375,12 +655,16 @@ function renderPodcastCards(){
     }
 
     card.addEventListener('click',e=>{
+      if(e.target.closest('.ch-remove-btn')){
+        const id=e.target.closest('.ch-remove-btn').dataset.id;
+        removePodcast(id); return;
+      }
       if(e.target.closest('[data-toggle]')){
         expandedCards.delete(pod.id);
         renderPodcastCards(); return;
       }
       if(e.target.closest('.ep-row')||e.target.closest('.month-header')||
-         e.target.closest('.read-toggle')||e.target.closest('.ep-dl-btn')) return;
+         e.target.closest('.read-toggle')||e.target.closest('.ep-dl-btn')||e.target.closest('.ep-note-btn')) return;
       if(!expandedCards.has(pod.id)){
         expandedCards.add(pod.id);
         renderPodcastCards();
@@ -442,6 +726,8 @@ function buildPodEpRow(ep, pod){
   const dlLabel=isLocal?'↓ 再下載':'↓ 下載';
   const dlClass=isLocal?'ep-dl-btn done':'ep-dl-btn';
 
+  const showNoteBtn = ep.has_transcript && !ep.has_note;
+  const isAnalyzing = analyzingIds.has(ep.id);
   row.innerHTML=`
     <img class="ep-thumb sq" src="${h(ep._artwork||ep.artwork||pod.artwork)}" onerror="this.style.display='none'">
     <div class="ep-info">
@@ -451,16 +737,22 @@ function buildPodEpRow(ep, pod){
         ${ep.upload_date?`<span>${h(ep.upload_date)}</span>`:''}
         ${ep.duration?`<span>${h(ep.duration)}</span>`:''}
         ${ep.has_note?`<span class="badge badge-note">筆記</span>`:''}
-        ${ep.has_transcript?`<span class="badge badge-note">逐字稿</span>`:''}
+        ${ep.has_transcript&&!ep.has_note?`<span class="badge badge-transcript">逐字稿</span>`:''}
         ${!isLocal?`<span class="badge badge-new">未下載</span>`:''}
       </div>
     </div>
     ${isLocal||!epNum?`<button class="read-toggle" data-epnum="${h(epNum)}">${rs==='read'?'已讀':'未讀'}</button>`:''}
+    ${showNoteBtn||isAnalyzing?`<button class="ep-note-btn${isAnalyzing?' running':''}" data-epid="${h(ep.id)}" data-title="${h(ep.title_zh||ep.episode_label||'')}"${isAnalyzing?' disabled':''}>
+      ${isAnalyzing?'⏳ 產生中…':'✨ 產生筆記'}</button>`:''}
     <button class="${dlClass}" data-podid="${h(pod.id)}" data-epnum="${h(epNum)}" data-title="${h(ep.title_zh||ep.episode_label||'')}">${dlLabel}</button>`;
 
   row.querySelector('.read-toggle')?.addEventListener('click',e=>{
     e.stopPropagation();
     toggleRead(epNum, row, e.target);
+  });
+  row.querySelector('.ep-note-btn')?.addEventListener('click',e=>{
+    e.stopPropagation();
+    startAnalyze(ep.id, ep.title_zh||ep.episode_label||ep.id, e.target);
   });
   row.querySelector('.ep-dl-btn').addEventListener('click',e=>{
     e.stopPropagation();
@@ -493,7 +785,7 @@ function renderYTCards(){
     if(expandedCards.has('yt:'+ch.handle)){
       card.innerHTML=`
         <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;cursor:pointer" data-toggle="yt:${h(ch.handle)}">
-          <img src="${h(ch.avatar||avatarPlaceholder(ch.name||ch.handle))}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--surface2)">
+          <img class="yt-avatar-img" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--surface2)">
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:700">${h(ch.name)}</div>
             <div style="font-size:11px;color:var(--text-dim);margin-top:2px">
@@ -502,13 +794,16 @@ function renderYTCards(){
               <span class="stat-total">${ch.video_count} 支影片</span>
             </div>
           </div>
+          <button class="ch-remove-btn" data-handle="${h(ch.handle)}" title="移除頻道"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
           <span style="font-size:18px;color:var(--text-muted)">⌃</span>
         </div>`;
+      setImgSrc(card.querySelector('.yt-avatar-img'), ytImg(ch.avatar), avatarPlaceholder(ch.name||ch.handle));
       const epContainer=buildYTEpList(ch, filtered);
       card.appendChild(epContainer);
     } else {
       card.innerHTML=`
-        <img class="card-art" src="${h(ch.avatar||avatarPlaceholder(ch.name||ch.handle))}" alt="" style="border-radius:0;aspect-ratio:1;object-fit:cover;background:var(--surface2)">
+        <button class="ch-remove-btn card-remove" data-handle="${h(ch.handle)}" title="移除頻道"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+        <img class="card-art yt-avatar-img" alt="" style="border-radius:0;aspect-ratio:1;object-fit:cover;background:var(--surface2)">
         <div class="card-body">
           <div class="card-name">${h(ch.name||ch.handle)}</div>
           <div class="card-stats">
@@ -516,15 +811,20 @@ function renderYTCards(){
             <span class="stat-total">${ch.video_count} 支</span>
           </div>
         </div>`;
+      setImgSrc(card.querySelector('.yt-avatar-img'), ytImg(ch.avatar), avatarPlaceholder(ch.name||ch.handle));
     }
 
     card.addEventListener('click',e=>{
+      if(e.target.closest('.ch-remove-btn')){
+        const handle=e.target.closest('.ch-remove-btn').dataset.handle;
+        removeYTChannel(handle); return;
+      }
       if(e.target.closest('[data-toggle]')){
         expandedCards.delete('yt:'+ch.handle);
         renderYTCards(); return;
       }
       if(e.target.closest('.ep-row')||e.target.closest('.month-header')||
-         e.target.closest('.read-toggle')||e.target.closest('.ep-dl-btn')) return;
+         e.target.closest('.read-toggle')||e.target.closest('.ep-dl-btn')||e.target.closest('.ep-note-btn')) return;
       if(!expandedCards.has('yt:'+ch.handle)){
         expandedCards.add('yt:'+ch.handle);
         renderYTCards();
@@ -578,40 +878,67 @@ function buildYTEpList(ch, videos){
 function buildYTRow(v){
   const rs=readStatus[v.id]||'unread';
   const isLocal=v.is_local||v.has_local||v.has_analysis||v.has_note;
+  const hasDone=v.has_analysis||v.has_transcript;
+  const actionText=v.has_note?'✓ 有筆記':(v.has_transcript?'✓ 逐字稿':'↓ 處理');
+  const showNoteBtn=v.has_transcript&&!v.has_note;
+  const isAnalyzing=analyzingIds.has('yt:'+v.id);
   const row=document.createElement('div');
   row.className='ep-row'+(rs==='read'?' read':'')+(isLocal?'':' no-note');
 
   row.innerHTML=`
-    <img class="ep-thumb" src="${h(v.thumbnail)}" onerror="this.style.display='none'">
+    <img class="ep-thumb yt-thumb-img">
     <div class="ep-info">
       <div class="ep-title">${h(v.title_zh||v.title||v.id)}</div>
       <div class="ep-meta">
         ${v.upload_date?`<span>${h(v.upload_date)}</span>`:''}
         ${v.duration?`<span>${h(v.duration)}</span>`:''}
         ${v.has_note?`<span class="badge badge-note">筆記</span>`:''}
+        ${v.has_transcript&&!v.has_note?`<span class="badge badge-transcript">逐字稿</span>`:''}
         ${!isLocal?`<span class="badge badge-new">未處理</span>`:''}
       </div>
     </div>
     <button class="read-toggle" data-vid="${h(v.id)}">${rs==='read'?'已讀':'未讀'}</button>
-    <button class="ep-dl-btn${v.has_analysis?' done':''}" data-vid="${h(v.id)}" data-url="${h(v.url)}">
-      ${v.has_analysis?'✓ 已處理':'↓ 處理'}
+    ${showNoteBtn||isAnalyzing?`<button class="ep-note-btn${isAnalyzing?' running':''}" data-vid="${h(v.id)}" data-title="${h(v.title_zh||v.title||'')}"${isAnalyzing?' disabled':''}>
+      ${isAnalyzing?'⏳ 產生中…':'✨ 產生筆記'}</button>`:''}
+    <button class="ep-dl-btn${hasDone?' done':''}" data-vid="${h(v.id)}" data-url="${h(v.url)}">
+      ${actionText}
     </button>`;
+
+  setImgSrc(row.querySelector('.yt-thumb-img'), ytImg(v.thumbnail), '');
 
   row.querySelector('.read-toggle').addEventListener('click',e=>{
     e.stopPropagation();
     toggleReadYT(v.id, row, e.target);
   });
+  row.querySelector('.ep-note-btn')?.addEventListener('click',e=>{
+    e.stopPropagation();
+    startAnalyzeYT(v.id, v.title_zh||v.title||v.id, e.target);
+  });
   row.querySelector('.ep-dl-btn').addEventListener('click',e=>{
     e.stopPropagation();
-    if(!v.has_analysis) addToYTQueue(v.url, e.target);
+    if(!hasDone) addToYTQueue(v.url, e.target);
   });
   row.addEventListener('click',()=>{
-    if(v.has_note||v.has_analysis) openDetailYT(v);
+    if(v.has_note||v.has_analysis||v.has_transcript) openDetailYT(v);
   });
   return row;
 }
 
 // ── Read toggle ───────────────────────────────────────────────
+async function dismissInboxByEp(epNum, videoId){
+  // find matching inbox item and dismiss it
+  const item=inboxItems.find(i=>
+    (epNum && i.episode && i.episode.replace('EP','')===String(epNum)) ||
+    (videoId && i.video_id===videoId)
+  );
+  if(!item) return;
+  try{
+    await api(`/api/inbox/${encodeURIComponent(item.id)}/dismiss`,{method:'POST'});
+    inboxItems=inboxItems.filter(i=>i.id!==item.id);
+    renderInbox();
+  }catch(_){}
+}
+
 async function toggleRead(epNum, row, btn){
   if(!epNum) return;
   const isRead=row.classList.contains('read');
@@ -621,15 +948,16 @@ async function toggleRead(epNum, row, btn){
     readStatus[epNum]=isRead?'unread':'read';
     row.classList.toggle('read',!isRead);
     btn.textContent=isRead?'未讀':'已讀';
+    if(!isRead) dismissInboxByEp(epNum, null);
   }catch(e){ alert('標記失敗：'+e.message); }
 }
 
 async function toggleReadYT(videoId, row, btn){
-  // YT uses note title as key — just toggle local state for now
   const isRead=row.classList.contains('read');
   row.classList.toggle('read',!isRead);
   btn.textContent=isRead?'未讀':'已讀';
   readStatus[videoId]=isRead?'unread':'read';
+  if(!isRead) dismissInboxByEp(null, videoId);
 }
 
 // ── Download ──────────────────────────────────────────────────
@@ -649,15 +977,158 @@ async function startDownload(podId, epNum, title, btn){
   }
 }
 
+async function startAnalyzeFromDetailYT(v){
+  const btn=$('detail-analyze-btn');
+  if(!btn) return;
+  btn.textContent='分析中…'; btn.classList.add('running'); btn.disabled=true;
+  try{
+    const{job_id}=await api(`/api/youtube/videos/${encodeURIComponent(v.id)}/analyze`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+    });
+    showJobToast(job_id, v.title_zh||v.title||'產生 YT 筆記');
+    const checkDone=setInterval(async()=>{
+      try{
+        const job=await api(`/api/jobs/${job_id}`);
+        if(job.status==='done'){
+          clearInterval(checkDone);
+          try{
+            const note=await api(`/api/youtube/videos/${v.id}/note`);
+            currentItem._note=note;
+            renderDetailNote();
+            const updated=await api('/api/youtube/channels');
+            ytChannels=updated; renderYTCards();
+          }catch(_){}
+        }else if(job.status==='error'){
+          clearInterval(checkDone);
+          if($('detail-analyze-btn')){
+            $('detail-analyze-btn').textContent='✨ 產生筆記';
+            $('detail-analyze-btn').classList.remove('running');
+            $('detail-analyze-btn').disabled=false;
+          }
+        }
+      }catch(_){ clearInterval(checkDone); }
+    },2000);
+  }catch(e){
+    btn.textContent='✨ 產生筆記'; btn.classList.remove('running'); btn.disabled=false;
+    alert('失敗：'+e.message);
+  }
+}
+
+async function startAnalyzeYT(videoId, title, btn){
+  const key='yt:'+videoId;
+  analyzingIds.add(key);
+  btn.textContent='⏳ 產生中…'; btn.classList.add('running'); btn.disabled=true;
+  try{
+    const{job_id}=await api(`/api/youtube/videos/${encodeURIComponent(videoId)}/analyze`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+    });
+    showJobToast(job_id, title||'產生 YT 筆記');
+    const checkDone=setInterval(async()=>{
+      try{
+        const job=await api(`/api/jobs/${job_id}`);
+        if(job.status==='done'){
+          clearInterval(checkDone);
+          analyzingIds.delete(key);
+          const updated=await api('/api/youtube/channels');
+          ytChannels=updated; renderYTCards();
+        }else if(job.status==='error'){
+          clearInterval(checkDone);
+          analyzingIds.delete(key);
+          renderYTCards();
+          alert('產生筆記失敗，請查看 job log');
+        }
+      }catch(_){ clearInterval(checkDone); }
+    },2000);
+  }catch(e){
+    analyzingIds.delete(key);
+    renderYTCards();
+    alert('失敗：'+e.message);
+  }
+}
+
+async function startAnalyzeFromDetail(item){
+  const btn=$('detail-analyze-btn');
+  if(!btn) return;
+  btn.textContent='分析中…'; btn.classList.add('running'); btn.disabled=true;
+  try{
+    const{job_id}=await api(`/api/episodes/${encodeURIComponent(item.id)}/analyze`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+    });
+    showJobToast(job_id, item.title_zh||item.episode_label||'產生筆記');
+    const checkDone=setInterval(async()=>{
+      try{
+        const job=await api(`/api/jobs/${job_id}`);
+        if(job.status==='done'){
+          clearInterval(checkDone);
+          // reload note into detail panel
+          try{
+            const note=await api(`/api/episodes/${item.id}/note`);
+            currentItem._note=note;
+            renderDetailNote();
+            const updated=await api('/api/podcasts');
+            podcasts=updated; renderPodcastCards();
+          }catch(_){}
+        }else if(job.status==='error'){
+          clearInterval(checkDone);
+          if($('detail-analyze-btn')){
+            $('detail-analyze-btn').textContent='✨ 產生筆記';
+            $('detail-analyze-btn').classList.remove('running');
+            $('detail-analyze-btn').disabled=false;
+          }
+        }
+      }catch(_){ clearInterval(checkDone); }
+    },2000);
+  }catch(e){
+    btn.textContent='✨ 產生筆記'; btn.classList.remove('running'); btn.disabled=false;
+    alert('失敗：'+e.message);
+  }
+}
+
+async function startAnalyze(episodeId, title, btn){
+  analyzingIds.add(episodeId);
+  btn.textContent='⏳ 產生中…'; btn.classList.add('running'); btn.disabled=true;
+  try{
+    const{job_id}=await api(`/api/episodes/${encodeURIComponent(episodeId)}/analyze`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+    });
+    showJobToast(job_id, title||'產生筆記');
+    const checkDone=setInterval(async()=>{
+      try{
+        const job=await api(`/api/jobs/${job_id}`);
+        if(job.status==='done'){
+          clearInterval(checkDone);
+          analyzingIds.delete(episodeId);
+          const updated=await api('/api/podcasts');
+          podcasts=updated; renderPodcastCards();
+        }else if(job.status==='error'){
+          clearInterval(checkDone);
+          analyzingIds.delete(episodeId);
+          renderPodcastCards();
+          alert('產生筆記失敗，請查看 job log');
+        }
+      }catch(_){ clearInterval(checkDone); }
+    },2000);
+  }catch(e){
+    analyzingIds.delete(episodeId);
+    renderPodcastCards();
+    alert('失敗：'+e.message);
+  }
+}
+
 async function addToYTQueue(url, btn){
   btn.textContent='加入中…'; btn.classList.add('queued');
   try{
-    await api('/api/youtube/queue',{
+    const res=await api('/api/youtube/queue',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({url})
     });
-    btn.textContent='已加入佇列'; btn.classList.add('done');
+    btn.textContent='抓逐字稿'; btn.classList.add('done');
+    if(res.job_id) showJobToast(res.job_id, '抓取 YouTube 逐字稿');
   }catch(e){
     btn.textContent='↓ 處理'; btn.classList.remove('queued');
     alert('失敗：'+e.message);
@@ -679,6 +1150,10 @@ function showJobToast(jobId, title){
       $('jt-bar').style.width=(job.progress||0)+'%';
       if(job.status==='done'||job.status==='error'){
         clearInterval(jobPoll); jobPoll=null;
+        api('/api/youtube/channels').then(updated=>{ytChannels=updated;renderYTCards();}).catch(()=>{});
+        if(job.status==='done'){
+          api('/api/inbox').then(items=>{inboxItems=items;renderInbox();}).catch(()=>{});
+        }
         setTimeout(()=>$('job-toast').classList.remove('show'),3000);
       }
     }catch(_){ clearInterval(jobPoll); jobPoll=null; }
@@ -693,6 +1168,7 @@ async function openDetail(type, item, parent){
   $('tp-panel').classList.remove('open');
   $('detail-audio').classList.remove('on');
   setDetailView('note');
+  updateCopyBtns();
 
   $('detail-title').textContent=item.title_zh||item.episode_label||item.id;
   $('detail-meta').textContent=[parent?.name||item._pod, item.upload_date].filter(Boolean).join(' · ');
@@ -702,7 +1178,19 @@ async function openDetail(type, item, parent){
     const note=await api(`/api/episodes/${item.id}/note`);
     currentItem._note=note;
     renderDetailNote();
-  }catch(e){ $('detail-body').innerHTML=`<div class="empty"><p style="color:var(--red)">${h(e.message)}</p></div>`; }
+  }catch(e){
+    if(item.has_transcript){
+      $('detail-body').innerHTML=`<div class="empty" style="gap:14px">
+        <p>此集有逐字稿，尚未產生筆記</p>
+        <button id="detail-analyze-btn" class="ep-note-btn" style="font-size:12px;padding:6px 16px">✨ 產生筆記</button>
+      </div>`;
+      $('detail-analyze-btn').addEventListener('click',()=>{
+        startAnalyzeFromDetail(item);
+      });
+    }else{
+      $('detail-body').innerHTML=`<div class="empty"><p style="color:var(--red)">${h(e.message)}</p></div>`;
+    }
+  }
   finally{ detailLoading(false); }
 }
 
@@ -713,6 +1201,7 @@ async function openDetailYT(v){
   $('tp-panel').classList.remove('open');
   $('detail-audio').classList.remove('on');
   setDetailView('note');
+  updateCopyBtns();
 
   $('detail-title').textContent=v.title_zh||v.title||v.id;
   $('detail-meta').textContent=[v.channel, v.upload_date].filter(Boolean).join(' · ');
@@ -722,12 +1211,24 @@ async function openDetailYT(v){
     const note=await api(`/api/youtube/videos/${v.id}/note`);
     currentItem._note=note;
     renderDetailNote();
-  }catch(e){ $('detail-body').innerHTML=`<div class="empty"><p style="color:var(--red)">${h(e.message)}</p></div>`; }
+  }catch(e){
+    if(v.has_transcript){
+      $('detail-body').innerHTML=`<div class="empty" style="gap:14px">
+        <p>此影片已有逐字稿，尚未產生分析筆記</p>
+        <button id="detail-analyze-btn" class="ep-note-btn" style="font-size:12px;padding:6px 16px">✨ 產生筆記</button>
+      </div>`;
+      $('detail-analyze-btn').addEventListener('click',()=>startAnalyzeFromDetailYT(v));
+      setTimeout(()=>{ if(!$('tp-panel').classList.contains('open')) toggleTP(); },0);
+    }else{
+      $('detail-body').innerHTML=`<div class="empty"><p style="color:var(--red)">${h(e.message)}</p></div>`;
+    }
+  }
   finally{ detailLoading(false); }
 }
 
 $('detail-close').addEventListener('click',()=>{
   $('detail-overlay').classList.remove('open');
+  setHlMode(false);
   currentItem=null;
 });
 $('detail-overlay').addEventListener('click',e=>{
@@ -739,41 +1240,109 @@ $('detail-view-btns').addEventListener('click',e=>{
   const btn=e.target.closest('.dvbtn');
   if(!btn) return;
   if(btn.id==='tp-btn'){ toggleTP(); return; }
+  if(btn.id==='copy-note-btn'){ copyDetailNote(); return; }
+  if(btn.id==='copy-tp-btn'){ copyDetailTranscript(); return; }
+  if(btn.id==='hl-mode-btn'){ return; }  // handled by its own listener
   setDetailView(btn.dataset.v);
   if(currentItem?._note||currentItem) renderDetailView();
 });
 
+async function copyDetailNote(){
+  const btn=$('copy-note-btn');
+  try{
+    let text='';
+    if(currentType==='podcast' && currentItem?.id){
+      const{markdown}=await api(`/api/episodes/${currentItem.id}/note-raw`);
+      text=markdown;
+    } else if(currentType==='yt' && currentItem?.id){
+      const{markdown}=await api(`/api/youtube/videos/${currentItem.id}/note-raw`);
+      text=markdown;
+    }
+    if(!text) throw new Error('無內容');
+    await navigator.clipboard.writeText(text);
+    const orig=btn.textContent; btn.textContent='✓ 已複製';
+    setTimeout(()=>btn.textContent=orig, 1500);
+  }catch(e){ alert('複製失敗：'+e.message); }
+}
+
+async function copyDetailTranscript(){
+  const btn=$('copy-tp-btn');
+  try{
+    const path=currentType==='podcast'
+      ? `/api/episodes/${currentItem.id}/transcript`
+      : `/api/youtube/videos/${currentItem.id}/transcript`;
+    const data=await api(path);
+    const text=(data.segments||[]).map(s=>`[${s.time}] ${s.text}`).join('\n');
+    if(!text) throw new Error('無逐字稿內容');
+    await navigator.clipboard.writeText(text);
+    const orig=btn.textContent; btn.textContent='✓ 已複製';
+    setTimeout(()=>btn.textContent=orig, 1500);
+  }catch(e){ alert('複製失敗：'+e.message); }
+}
+
+function updateCopyBtns(){
+  const hasNote=currentItem?.has_note||currentItem?._note||currentItem?.has_analysis;
+  const hasTp=currentItem?.has_transcript;
+  $('copy-note-btn').style.display=hasNote?'':'none';
+  $('copy-tp-btn').style.display=hasTp?'':'none';
+  $('hl-mode-btn').style.display=hasNote&&currentView==='note'?'':'none';
+}
+
 function setDetailView(v){
   currentView=v;
-  document.querySelectorAll('.dvbtn:not(#tp-btn)').forEach(b=>b.classList.toggle('active',b.dataset.v===v));
+  document.querySelectorAll('.dvbtn:not(#tp-btn):not(#copy-note-btn):not(#copy-tp-btn):not(#hl-mode-btn)').forEach(b=>b.classList.toggle('active',b.dataset.v===v));
+  if(v!=='note') setHlMode(false);
+  $('hl-mode-btn').style.display=(v==='note'&&(currentItem?.has_note||currentItem?.has_analysis))?'':'none';
 }
 
 function renderDetailView(){
   if(currentView==='note') renderDetailNote();
-  else if(currentView==='sections') renderDetailSections();
-  else renderDetailRaw();
+  else renderDetailSections();
 }
 
 // ── Note view: raw MD → marked ────────────────────────────────
+function _mdToHtml(markdown){
+  const body=markdown.replace(/^---\n[\s\S]*?\n---\n/,'');
+  // stash ==highlights== as placeholders before marked touches them
+  const marks=[];
+  const withPlaceholders=body.replace(/==([^=\n]+?)==/g,(_,t)=>{
+    marks.push(t);
+    return `\x00MARK${marks.length-1}\x00`;
+  });
+  const clean=withPlaceholders
+    .replace(/!\[\[([^\]]+)\]\]/g,'**[嵌入: $1]**')
+    .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g,'[$2](#)')
+    .replace(/\[\[([^\]]+)\]\]/g,'$1');
+  const html=marked.parse(clean)
+    .replace(/\x00MARK(\d+)\x00/g,(_,i)=>`<mark>${marks[+i]}</mark>`)
+    // fallback: maxresdefault → mqdefault for YT thumbnails in note body
+    .replace(/(<img\s[^>]*src="[^"]*youtube\.com\/vi\/[^"]*\/)maxresdefault(\.jpg")/g,'$1mqdefault$2');
+  return `<div class="nwrap"><div class="md">${html}</div></div>`;
+}
+
 async function renderDetailNote(){
   const item=currentItem;
   if(!item) return;
 
-  // try raw MD endpoint for podcast items
+  // podcast: always try note-raw → marked
   if(currentType==='podcast' && item.id){
     try{
       const{markdown}=await api(`/api/episodes/${item.id}/note-raw`);
-      const body=markdown.replace(/^---\n[\s\S]*?\n---\n/,'');
-      const clean=body
-        .replace(/!\[\[([^\]]+)\]\]/g,'**[嵌入: $1]**')
-        .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g,'[$2](#)')
-        .replace(/\[\[([^\]]+)\]\]/g,'$1');
-      $('detail-body').innerHTML=`<div class="nwrap"><div class="md">${marked.parse(clean)}</div></div>`;
+      $('detail-body').innerHTML=_mdToHtml(markdown);
       return;
     }catch(_){}
   }
 
-  // YT or fallback: render from parsed note data
+  // YT: try note-raw first (has actual .md with ==highlights==)
+  if(currentType==='yt' && item.id){
+    try{
+      const{markdown}=await api(`/api/youtube/videos/${item.id}/note-raw`);
+      $('detail-body').innerHTML=_mdToHtml(markdown);
+      return;
+    }catch(_){}
+  }
+
+  // fallback: render from parsed note data (no highlight support)
   const note=item._note;
   if(!note){ $('detail-body').innerHTML=`<div class="empty"><p>無法取得筆記</p></div>`; return; }
   renderFromParsed(note);
@@ -848,19 +1417,6 @@ function renderDetailSections(){
   });
 }
 
-async function renderDetailRaw(){
-  if(currentType==='podcast' && currentItem?.id){
-    try{
-      const{markdown}=await api(`/api/episodes/${currentItem.id}/note-raw`);
-      $('detail-body').innerHTML=`<div class="nwrap"><pre style="white-space:pre-wrap;font-size:12px;line-height:1.7;font-family:monospace;color:var(--text-dim)">${h(markdown)}</pre></div>`;
-      return;
-    }catch(e){
-      $('detail-body').innerHTML=`<div class="empty"><p style="color:var(--red)">${h(e.message)}</p></div>`;
-    }
-  } else {
-    $('detail-body').innerHTML=`<div class="empty"><p>YouTube 筆記無原始 MD</p></div>`;
-  }
-}
 
 // ── Transcript ────────────────────────────────────────────────
 async function toggleTP(){
@@ -904,6 +1460,145 @@ function ts2s(t){
   return p.length===2?p[0]*60+p[1]:p[0]*3600+p[1]*60+p[2];
 }
 
+// ── Add-channel modal ─────────────────────────────────────────
+let _addChMode='yt', _addChTimer=null;
+
+function openAddChannel(mode){
+  _addChMode=mode;
+  $('add-ch-title').textContent=mode==='yt'?'新增 YouTube 頻道':'新增 Podcast';
+  $('add-ch-q').placeholder=mode==='yt'?'搜尋頻道名稱…':'搜尋 Podcast 名稱…';
+  $('add-ch-q').value='';
+  $('add-ch-results').innerHTML='<div id="add-ch-hint">輸入關鍵字開始搜尋</div>';
+  $('add-ch-modal').classList.add('open');
+  setTimeout(()=>$('add-ch-q').focus(),50);
+}
+
+function closeAddChannel(){
+  $('add-ch-modal').classList.remove('open');
+  clearTimeout(_addChTimer);
+}
+
+$('add-ch-modal').addEventListener('click',e=>{
+  if(e.target===$('add-ch-modal')) closeAddChannel();
+});
+
+$('add-ch-q').addEventListener('keydown',e=>{
+  if(e.key==='Escape') closeAddChannel();
+});
+
+$('add-ch-q').addEventListener('input',()=>{
+  clearTimeout(_addChTimer);
+  const q=$('add-ch-q').value.trim();
+  if(!q){
+    $('add-ch-results').innerHTML='<div id="add-ch-hint">輸入關鍵字開始搜尋</div>';
+    return;
+  }
+  $('add-ch-results').innerHTML='<div id="add-ch-hint">搜尋中…</div>';
+  _addChTimer=setTimeout(()=>_doAddChSearch(q), 350);
+});
+
+async function _doAddChSearch(q){
+  const mode=_addChMode;
+  try{
+    const results=mode==='yt'
+      ? await api(`/api/youtube/search-channels?q=${encodeURIComponent(q)}&limit=8`)
+      : await api(`/api/search-podcasts?q=${encodeURIComponent(q)}&limit=8`);
+    if($('add-ch-q').value.trim()!==q) return; // stale
+    _renderAddChResults(results, mode);
+  }catch(e){
+    $('add-ch-results').innerHTML=`<div id="add-ch-hint" style="color:var(--red)">搜尋失敗：${h(e.message)}</div>`;
+  }
+}
+
+function _renderAddChResults(results, mode){
+  const container=$('add-ch-results');
+  if(!results.length){
+    container.innerHTML='<div id="add-ch-hint">沒有結果</div>';
+    return;
+  }
+  const existingHandles=new Set(ytChannels.map(c=>c.handle));
+  const existingRss=new Set(podcasts.map(p=>p.rss||''));
+
+  container.innerHTML='';
+  for(const r of results){
+    const item=document.createElement('div');
+    item.className='ach-item';
+    const thumb=mode==='yt' ? ytImg(r.artwork||r.thumbnail||'') : (r.artwork||r.thumbnail||'');
+    const isRound=mode==='yt';
+    const alreadyAdded=mode==='yt'
+      ? existingHandles.has(r.handle)
+      : existingRss.has(r.rss);
+    const sub=mode==='yt'
+      ? h(r.handle||'')
+      : `${h(r.artist||'')}${r.episode_count?` · ${r.episode_count} 集`:''}`;
+    item.innerHTML=`
+      <img class="ach-thumb${isRound?' round':''}" src="${h(thumb)}" onerror="this.style.visibility='hidden'">
+      <div class="ach-info">
+        <div class="ach-name">${h(r.name||r.handle||'')}</div>
+        <div class="ach-sub">${sub}</div>
+      </div>
+      <button class="ach-add"${alreadyAdded?' disabled':''}>${alreadyAdded?'已新增':'+ 新增'}</button>`;
+    if(!alreadyAdded){
+      item.querySelector('.ach-add').addEventListener('click',e=>{
+        e.stopPropagation();
+        _confirmAddChannel(r, mode, item.querySelector('.ach-add'));
+      });
+    }
+    container.appendChild(item);
+  }
+}
+
+async function _confirmAddChannel(r, mode, btn){
+  btn.disabled=true;
+  btn.textContent='新增中…';
+  try{
+    if(mode==='yt'){
+      await api('/api/youtube/channels',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({handle:r.handle, name:r.name, channel_id:r.channel_id||'', avatar:r.thumbnail||''}),
+      });
+      btn.textContent='✓ 已新增';
+      const updated=await api('/api/youtube/channels');
+      ytChannels=updated; renderYTCards(); startYTPollIfNeeded();
+    }else{
+      await api('/api/podcasters',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({rss:r.rss, name:r.name, apple_id:r.apple_id||'', artwork:r.artwork||'', language:'zh', note_type:'investment'}),
+      });
+      btn.textContent='✓ 已新增';
+      const updated=await api('/api/podcasts');
+      podcasts=updated; renderPodcastCards();
+    }
+  }catch(e){
+    btn.disabled=false;
+    btn.textContent='+ 新增';
+    alert('新增失敗：'+e.message);
+  }
+}
+
+async function removeYTChannel(handle){
+  if(!confirm(`移除頻道 ${handle}？（不刪除本地資料）`)) return;
+  try{
+    await api(`/api/youtube/channels/${encodeURIComponent(handle)}`,{method:'DELETE'});
+    expandedCards.delete('yt:'+handle);
+    const updated=await api('/api/youtube/channels');
+    ytChannels=updated; renderYTCards();
+  }catch(e){ alert('移除失敗：'+e.message); }
+}
+
+async function removePodcast(podId){
+  const pod=podcasts.find(p=>p.id===podId);
+  if(!confirm(`移除 ${pod?.name||podId}？（不刪除本地資料）`)) return;
+  try{
+    await api(`/api/podcasters/${encodeURIComponent(podId)}`,{method:'DELETE'});
+    expandedCards.delete(podId);
+    const updated=await api('/api/podcasts');
+    podcasts=updated; renderPodcastCards();
+  }catch(e){ alert('移除失敗：'+e.message); }
+}
+
 // ── Inline markdown ───────────────────────────────────────────
 function inline(s){
   return s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
@@ -912,6 +1607,153 @@ function inline(s){
           .replace(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g,'<span style="color:var(--accent)">$1</span>');
 }
 function detailLoading(on){$('detail-loading').style.display=on?'block':'none'}
+
+
+// ── Highlight mode ────────────────────────────────────────────
+let hlMode=false;
+
+function setHlMode(on){
+  hlMode=on;
+  document.body.classList.toggle('hl-mode',on);
+  const btn=$('hl-mode-btn');
+  if(btn){
+    btn.classList.toggle('active',on);
+    btn.title=on?'關閉螢光筆':'螢光筆模式';
+  }
+}
+
+$('hl-mode-btn')?.addEventListener('click',()=>setHlMode(!hlMode));
+
+// click on <mark> while hl-mode → remove highlight
+$('detail-body').addEventListener('click',async e=>{
+  if(!hlMode) return;
+  const mark=e.target.closest('mark');
+  if(!mark) return;
+  const text=mark.textContent.trim();
+  if(!text) return;
+  e.stopPropagation();
+  const url=currentType==='podcast'
+    ? `/api/episodes/${encodeURIComponent(currentItem.id)}/highlight`
+    : `/api/youtube/videos/${encodeURIComponent(currentItem.id)}/highlight`;
+  try{
+    await api(url,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,remove:true})});
+    await renderDetailNote();
+  }catch(err){ console.warn('remove highlight err:',err.message); }
+});
+
+// mouseup inside detail-body while hl-mode → highlight or remove
+$('detail-body').addEventListener('mouseup',async e=>{
+  if(!hlMode) return;
+  if(currentView!=='note') return;
+  const sel=window.getSelection();
+  const text=(sel?.toString()||'').trim();
+  if(!text||text.length<2){ sel?.removeAllRanges(); return; }
+
+  // detect if selection is inside a <mark> → remove mode
+  let remove=false;
+  if(sel.rangeCount>0){
+    const range=sel.getRangeAt(0);
+    const container=range.commonAncestorContainer;
+    const el=container.nodeType===3?container.parentElement:container;
+    remove=!!el.closest('mark');
+  }
+
+  const url=currentType==='podcast'
+    ? `/api/episodes/${encodeURIComponent(currentItem.id)}/highlight`
+    : `/api/youtube/videos/${encodeURIComponent(currentItem.id)}/highlight`;
+
+  sel.removeAllRanges();
+  try{
+    const res=await api(url,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text, remove}),
+    });
+    if(['ok','removed','already_highlighted'].includes(res.status)) await renderDetailNote();
+  }catch(err){
+    console.warn('highlight err:', err.message, '| text:', text);
+    if(!err.message.includes('找不到')&&!err.message.includes('422')) alert('Highlight 失敗：'+err.message);
+  }
+});
+
+// ── Resize & Fullscreen ───────────────────────────────────────
+(function(){
+  // panel-resize: drag left edge of detail-panel to resize width
+  const panelEl=$('detail-panel');
+  const panelHandle=$('panel-resize');
+  let panelDragging=false, panelStartX=0, panelStartW=0;
+  panelHandle.addEventListener('mousedown',e=>{
+    panelDragging=true;
+    panelStartX=e.clientX;
+    panelStartW=panelEl.offsetWidth;
+    panelHandle.classList.add('dragging');
+    document.body.style.userSelect='none';
+    document.body.style.cursor='ew-resize';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!panelDragging) return;
+    const dx=panelStartX-e.clientX; // dragging left = wider
+    const newW=Math.min(window.innerWidth, Math.max(320, panelStartW+dx));
+    panelEl.style.width=newW+'px';
+  });
+  document.addEventListener('mouseup',()=>{
+    if(!panelDragging) return;
+    panelDragging=false;
+    panelHandle.classList.remove('dragging');
+    document.body.style.userSelect='';
+    document.body.style.cursor='';
+  });
+
+  // tp-resize: drag left edge of tp-panel to resize transcript width
+  const tpEl=$('tp-panel');
+  const tpHandle=$('tp-resize');
+  let tpDragging=false, tpStartX=0, tpStartW=0;
+  tpHandle.addEventListener('mousedown',e=>{
+    tpDragging=true;
+    tpStartX=e.clientX;
+    tpStartW=tpEl.offsetWidth;
+    tpHandle.classList.add('dragging');
+    document.body.style.userSelect='none';
+    document.body.style.cursor='ew-resize';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!tpDragging) return;
+    const dx=tpStartX-e.clientX; // dragging left = wider
+    const maxW=panelEl.offsetWidth-200;
+    const newW=Math.min(maxW, Math.max(160, tpStartW+dx));
+    tpEl.style.width=newW+'px';
+  });
+  document.addEventListener('mouseup',()=>{
+    if(!tpDragging) return;
+    tpDragging=false;
+    tpHandle.classList.remove('dragging');
+    document.body.style.userSelect='';
+    document.body.style.cursor='';
+  });
+
+  // fullscreen toggle
+  const expandBtn=$('detail-expand');
+  let isFullscreen=false;
+  let savedWidth='';
+  expandBtn.addEventListener('click',()=>{
+    isFullscreen=!isFullscreen;
+    if(isFullscreen){
+      savedWidth=panelEl.style.width;
+      panelEl.style.width='';
+      panelEl.classList.add('fullscreen');
+    }else{
+      panelEl.classList.remove('fullscreen');
+      panelEl.style.width=savedWidth;
+    }
+    expandBtn.textContent=isFullscreen?'⊡':'⛶';
+    expandBtn.title=isFullscreen?'縮小':'全螢幕';
+  });
+
+  // reset panel width when closed
+  $('detail-close').addEventListener('click',()=>{ isFullscreen=false; panelEl.classList.remove('fullscreen'); expandBtn.textContent='⛶'; },true);
+})();
 
 init();
 </script>

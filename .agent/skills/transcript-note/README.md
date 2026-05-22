@@ -18,7 +18,7 @@ YouTube 影片 → Obsidian 筆記的自動化工作流。
 /transcript-note https://youtu.be/VIDEO_ID
 ```
 
-Claude 會自動完成：下載字幕 → 分析內容 → 產生 Obsidian 筆記 → 更新待閱讀清單 → 更新影片索引。
+Claude 會自動完成：下載字幕 → 分析內容 → 產生 Obsidian 筆記 → 更新待看影片與Podcast清單 → 更新影片索引。
 
 ### 處理佇列
 
@@ -108,7 +108,7 @@ transcript-note/
     ├── parse_vtt.py            # VTT → condensed.txt
     ├── finalize.sh             # 產生筆記 + 更新清單
     ├── generate_note.py        # 輸出 Obsidian .md
-    ├── update_reading_list.py  # 更新待閱讀清單
+    ├── update_reading_list.py  # 更新待看影片與Podcast清單
     ├── update_index.py         # 更新 _INDEX.md
     ├── check_channels.sh       # 掃描頻道 → 寫入 queue.txt
     └── mark_processed.sh       # 標記已處理
@@ -122,7 +122,7 @@ transcript-note/
 |--------|------|
 | 影片筆記 | `arthurwang_DB/AI Knowledge/影片筆記/` |
 | 影片總索引 | `arthurwang_DB/AI Knowledge/影片筆記/_INDEX.md` |
-| 待閱讀清單 | `arthurwang_DB/待閱讀清單.md` |
+| 待看影片與Podcast清單 | `arthurwang_DB/待看影片與Podcast清單.md` |
 
 ### 筆記格式
 

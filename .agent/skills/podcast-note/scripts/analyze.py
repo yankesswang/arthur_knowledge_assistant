@@ -190,16 +190,58 @@ def main():
             "claude", "-p", prompt,
             "--dangerously-skip-permissions",
             "--add-dir", str(PROJECT_ROOT),
+            "--output-format", "stream-json",
+            "--verbose",
         ],
         stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
+        stderr=subprocess.DEVNULL,
         text=True,
         bufsize=1,
         env={**os.environ, "PODCAST_ID": args.podcast},
     )
 
+    seen_assistant = False
+    write_count = 0
+    bash_count = 0
     for line in proc.stdout:
-        print(line, end="", flush=True)
+        line = line.rstrip()
+        if not line:
+            continue
+        try:
+            ev = json.loads(line)
+        except Exception:
+            print(line, flush=True)
+            continue
+
+        t = ev.get("type", "")
+        if t == "system" and ev.get("subtype") == "init":
+            print("PROGRESS:5:啟動中", flush=True)
+        elif t == "assistant":
+            if not seen_assistant:
+                seen_assistant = True
+                print("PROGRESS:15:分析逐字稿中", flush=True)
+            # stream output_tokens as rough progress 15→65
+            usage = ev.get("message", {}).get("usage", {})
+            out_tokens = usage.get("output_tokens", 0)
+            if out_tokens:
+                p = min(65, 15 + int(out_tokens / 120))
+                print(f"PROGRESS:{p}:分析中（{out_tokens} tokens）", flush=True)
+            # detect tool_use inside content
+            for block in ev.get("message", {}).get("content", []) or []:
+                if isinstance(block, dict) and block.get("type") == "tool_use":
+                    name = block.get("name", "")
+                    if name == "Write":
+                        write_count += 1
+                        print(f"PROGRESS:70:寫入 analysis.json", flush=True)
+                    elif name in ("Bash", "bash"):
+                        bash_count += 1
+                        print(f"PROGRESS:{75 + min(bash_count * 5, 15)}:執行後處理腳本", flush=True)
+        elif t == "result":
+            if ev.get("subtype") == "success":
+                print("PROGRESS:95:Claude 完成", flush=True)
+            else:
+                err = ev.get("result", "") or ev.get("subtype", "")
+                print(f"✗ claude 失敗：{err}", flush=True)
 
     proc.wait()
 

@@ -1,0 +1,31 @@
+"""Filesystem and runtime settings for the podcast note server."""
+
+import os
+from pathlib import Path
+
+SKILL_DIR = Path(__file__).parent.parent
+DATA_DIR = SKILL_DIR / "data" / "episodes"
+CONFIG_PATH = SKILL_DIR / "config" / "podcasts.json"
+STATIC_DIR = Path(__file__).parent / "static"
+
+YT_SKILL_DIR = SKILL_DIR.parent / "transcript-note"
+YT_DATA_DIR = YT_SKILL_DIR / "data" / "transcripts"
+YT_QUEUE_FILE = YT_SKILL_DIR / "data" / "queue.txt"
+YT_PROC_FILE = YT_SKILL_DIR / "data" / "processed_ids.txt"
+YT_CHANNEL_CFG = YT_SKILL_DIR / "config" / "channels.json"
+YT_NOTE_DIR = Path("/home/trx50/Documents/arthurwang_DB/影片筆記")
+
+READING_LIST_PATH = Path(os.environ.get("READING_LIST_PATH", "/home/trx50/Documents/arthurwang_DB/待看影片與Podcast清單.md"))
+INBOX_PATH = SKILL_DIR / "data" / "inbox.json"
+CACHE_DB_PATH = SKILL_DIR / "data" / "server_cache.sqlite3"
+
+SERVER_HOST = os.environ.get("HOST", "0.0.0.0")
+SERVER_PORT = int(os.environ.get("PORT", "7654"))
+YT_REMOTE_LIMIT = os.environ.get("YT_REMOTE_LIMIT", "all")
+YT_DETAIL_LIMIT = os.environ.get("YT_DETAIL_LIMIT", "all")
+YT_DETAIL_BATCH_SIZE = int(os.environ.get("YT_DETAIL_BATCH_SIZE", "25"))
+YT_CACHE_TTL_SECONDS = int(os.environ.get("YT_CACHE_TTL_SECONDS", "86400"))
+YT_AUTO_TRANSCRIPT = os.environ.get("YT_AUTO_TRANSCRIPT", "1").strip().lower() not in ("0", "false", "no", "off")
+YT_AUTO_TRANSCRIPT_START_DELAY_SECONDS = int(os.environ.get("YT_AUTO_TRANSCRIPT_START_DELAY_SECONDS", "15"))
+YT_AUTO_TRANSCRIPT_INTERVAL_SECONDS = int(os.environ.get("YT_AUTO_TRANSCRIPT_INTERVAL_SECONDS", "3600"))
+YT_AUTO_TRANSCRIPT_LIMIT_PER_CHANNEL = os.environ.get("YT_AUTO_TRANSCRIPT_LIMIT_PER_CHANNEL", "channel")
