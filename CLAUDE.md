@@ -139,13 +139,75 @@ Arthur 的 Obsidian 知識管理 + 投資筆記 + 內容創作 AI 助理。
 
 ### Vault 位置
 
-- 主 Vault：`/Users/yankesswang/Documents/arthurwang_DB/`
-- 投資筆記：`/Users/yankesswang/Documents/arthurwang_DB/投資/`
-- AI Knowledge：`/Users/yankesswang/Documents/arthurwang_DB/AI Knowledge/`
-- 文章輸出：`/Users/yankesswang/Documents/arthurwang_DB/Arthur_Blog/Posts/`
-- 待閱讀清單：`/Users/yankesswang/Documents/arthurwang_DB/待閱讀清單.md`
-- 操作建議總表（一般）：`/Users/yankesswang/Documents/arthurwang_DB/投資/投資操作建議總表.md`
-- 操作建議總表（mimi）：`/Users/yankesswang/Documents/arthurwang_DB/投資/mimi操作建議總表.md`
+- 主 Vault：`/home/trx50/Documents/arthurwang_DB/`
+- 投資筆記：`/home/trx50/Documents/arthurwang_DB/投資/`
+- AI Knowledge：`/home/trx50/Documents/arthurwang_DB/AI Knowledge/`
+- 文章輸出：`/home/trx50/Documents/arthurwang_DB/Arthur_Blog/Posts/`
+- 待閱讀清單：`/home/trx50/Documents/arthurwang_DB/待閱讀清單.md`
+- 操作建議總表（一般）：`/home/trx50/Documents/arthurwang_DB/投資/投資操作建議總表.md`
+- 操作建議總表（mimi）：`/home/trx50/Documents/arthurwang_DB/投資/mimi操作建議總表.md`
+- **影片筆記**：`/home/trx50/Documents/arthurwang_DB/影片筆記/<頻道名稱>/`
+
+### 影片筆記存放規則
+
+影片筆記一律存到 **`/home/trx50/Documents/arthurwang_DB/影片筆記/<頻道名稱>/`**，以頻道名稱建子資料夾：
+
+```
+影片筆記/
+├── Invest Like The Best/
+├── Dwarkesh Patel/
+├── The Diary Of A CEO/
+├── 硅谷101/
+└── <其他頻道>/
+```
+
+- 頻道名稱從 `info.json` 的 `channel` 欄位取得
+- 頻道名稱做為資料夾名稱時，移除 `/\:*?"<>|` 等非法字元
+- 無頻道資訊時，放到 `影片筆記/未分類/`
+- 檔名格式：`<中文標題>.md`，衝突時加 ` - <video_id>` suffix
+
+---
+
+## 決策捕捉（Decision Capture）
+
+對話過程中，若 Arthur 說了任何**影響未來方向的決定**，Claude 應主動詢問是否要記錄到 Decision Log。
+
+### 判斷標準：以下情況主動詢問
+
+- Arthur 說「決定用 X」、「改用 Y」、「從今天起 Z」、「不再做 A」
+- Arthur 確認了某個策略方向（如：「好，就照這個方向走」、「那就先做 X 再做 Y」）
+- Arthur 明確放棄某個選項（如：「那個方案不考慮了」）
+
+### 不需詢問的情況
+
+- 日常執行指令（「幫我整理這篇筆記」、「繼續」）
+- 純粹提問或資訊查詢
+- Arthur 只是在表達偏好，沒有做出決定
+
+### 詢問方式
+
+在回應末尾簡短問一句：
+
+> 這算是一個決策，要記到 Decision Log 嗎？
+
+若 Arthur 說「要」或「好」，立即用以下格式寫入：
+
+路徑：`/home/trx50/Documents/arthurwang_DB/AI Knowledge/知識創作/洞見/Decision Log.md`
+
+格式（追加到檔案頂端，header 之後）：
+
+```markdown
+## YYYY-MM-DD — [決策標題，10字以內]
+
+**背景**：[當時情境，一句話]
+**選擇**：[做了什麼決定，一句話]
+**理由**：[為什麼，一句話；若對話中沒提到則寫「—」]
+**結果**：（待補）
+
+---
+```
+
+若 Arthur 說「不用」則跳過，不再提。
 
 ---
 

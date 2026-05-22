@@ -25,9 +25,9 @@ description: YouTube CC subtitle URL → yt-dlp transcript → Claude analysis �
 
 ## Vault Paths
 
-- **Notes**: `/Users/yankesswang/Documents/arthurwang_DB/AI Knowledge/影片筆記/`
+- **Notes**: `/home/trx50/Documents/arthurwang_DB/AI Knowledge/影片筆記/`
 - **Transcripts**: `<SKILL_DIR>/data/transcripts/<VIDEO_ID>/`（永久存放，不用 /tmp）
-- **Reading list**: `/Users/yankesswang/Documents/arthurwang_DB/待閱讀清單.md`
+- **Reading list**: `/home/trx50/Documents/arthurwang_DB/待閱讀清單.md`
 
 ## Scripts
 
@@ -70,7 +70,7 @@ data/
 **若使用者說「處理佇列」或未提供 URL** → 先執行佇列模式：
 
 ```bash
-SKILL_DIR="/Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/.agent/skills/transcript-note"
+SKILL_DIR="/home/trx50/Project/arthur_knowledge_assistant/.agent/skills/transcript-note"
 cat "$SKILL_DIR/data/queue.txt"
 ```
 
@@ -82,16 +82,45 @@ bash "$SKILL_DIR/scripts/mark_processed.sh" "<VIDEO_URL>"
 
 ---
 
-### Action 1 — Setup + 下載 + 解析字幕
+### Action 1 — Setup + 下載 CC 字幕 + 解析
 
 ```bash
-SKILL_DIR="/Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/.agent/skills/transcript-note"
+SKILL_DIR="/home/trx50/Project/arthur_knowledge_assistant/.agent/skills/transcript-note"
 bash "$SKILL_DIR/scripts/setup.sh" "<user-provided URL>"
 ```
 
 輸出：
-- `<SKILL_DIR>/data/transcripts/<VIDEO_ID>/condensed.txt` — 壓縮後逐字稿
+- `<SKILL_DIR>/data/transcripts/<VIDEO_ID>/condensed.txt` — 壓縮後逐字稿（或 description fallback）
 - `<SKILL_DIR>/data/transcripts/<VIDEO_ID>/info.json` — 標題、頻道、時長、章節
+- `<SKILL_DIR>/data/transcripts/<VIDEO_ID>/transcript_source.txt` — `"cc"` 或 `"none"`
+
+---
+
+### Action 1b — Whisper 轉錄（僅在無 CC 字幕時執行）
+
+**執行前判斷**：讀取 `transcript_source.txt`：
+- 值為 `"cc"` → 跳過，直接進 Action 2
+- 值為 `"none"` → 執行 Whisper 下載音頻並轉錄
+
+```bash
+VIDEO_ID="<從 setup.sh 輸出取得>"
+TRANSCRIPT_SOURCE=$(cat "$SKILL_DIR/data/transcripts/$VIDEO_ID/transcript_source.txt" 2>/dev/null)
+
+if [ "$TRANSCRIPT_SOURCE" != "cc" ]; then
+  echo "無 CC 字幕，啟動 Whisper 轉錄..."
+  YT_URL="<user-provided URL>" \
+  python3.10 "$SKILL_DIR/scripts/transcribe_yt.py" \
+    "$SKILL_DIR/data/transcripts/$VIDEO_ID" \
+    --lang auto \
+    --model medium \
+    --device auto
+fi
+```
+
+**GPU 記憶體自動降級**（transcribe_yt.py 內建）：
+- ≥ 6 GB → large-v3；≥ 3 GB → medium；≥ 1.5 GB → small；< 1.5 GB → CPU + small
+
+完成後 `transcript_source.txt` 更新為 `"whisper"`，`condensed.txt` 被覆寫為 Whisper 結果。
 
 ---
 
@@ -139,7 +168,7 @@ bash "$SKILL_DIR/scripts/setup.sh" "<user-provided URL>"
 ### Action 3 — 產生筆記 + 更新清單 + 報告
 
 ```bash
-SKILL_DIR="/Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/.agent/skills/transcript-note"
+SKILL_DIR="/home/trx50/Project/arthur_knowledge_assistant/.agent/skills/transcript-note"
 VIDEO_ID="<從 setup.sh 輸出取得的 VIDEO_ID>"
 bash "$SKILL_DIR/scripts/finalize.sh" "$VIDEO_ID"
 ```
@@ -150,7 +179,8 @@ bash "$SKILL_DIR/scripts/finalize.sh" "$VIDEO_ID"
 
 | 情況 | 處理方式 |
 | --- | --- |
-| 無 CC 字幕 | 改用影片描述（最多 4000 字）；frontmatter 標記 |
+| 無 CC 字幕 | Action 1b：Whisper 下載音頻並轉錄，`transcript_source=whisper` |
+| Whisper GPU OOM | transcribe_yt.py 自動降級：large-v3 → medium → small → CPU |
 | 有手動 CC | 優先於自動生成字幕 |
 | 有 YouTube 章節 | 作為 sections 的分段依據 |
 | 逐字稿超過 15K 字 | 按 timestamp 分段分析後合併 |
@@ -165,7 +195,13 @@ YouTube URL
  ├─ scripts/setup.sh
  │   ├─ Step 1: 解析 URL → VIDEO_ID
  │   ├─ Step 2: yt-dlp → meta.json + VTT 字幕
- │   └─ Step 3: parse_vtt.py → condensed.txt + info.json
+ │   └─ Step 3: parse_vtt.py → condensed.txt + info.json + transcript_source.txt
+ │
+ ├─ [transcript_source = "none"] → scripts/transcribe_yt.py
+ │   ├─ yt-dlp download audio (bestaudio)
+ │   ├─ faster-whisper → entries[]
+ │   └─ entries → condensed.txt（60s buckets，同 CC 格式）
+ │                transcript_source → "whisper"
  │
  ├─ Claude 分析 → Write analysis.json
  │

@@ -75,12 +75,23 @@ d=json.load(open('$WORK_DIR/meta.json'))
 ch=d.get('chapters') or []
 print('Meta:', d.get('title','?')[:60], '| dur:', d.get('duration',0),'s | chapters:', len(ch))
 " 2>/dev/null || true
-echo "VTT:  ${VTT_FILE:-NONE (will use description)}"
+echo "VTT:  ${VTT_FILE:-NONE}"
 
 # ── Step 3: Parse VTT → condensed.txt + info.json ───────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VTT_FILE="$VTT_FILE" WORK_DIR="$WORK_DIR" python3 "$SCRIPT_DIR/parse_vtt.py"
 
+# ── Step 3b: 記錄字幕來源（供後續判斷是否需要 Whisper）────────────────────────
+if [ -n "$VTT_FILE" ]; then
+  echo "cc" > "$WORK_DIR/transcript_source.txt"
+  echo "✓ CC 字幕已取得"
+else
+  echo "none" > "$WORK_DIR/transcript_source.txt"
+  echo "⚠ 無 CC 字幕 — 可執行 Whisper 轉錄取得完整逐字稿"
+fi
+
 echo "---"
 echo "Setup complete. Work dir: $WORK_DIR"
+echo "VIDEO_ID=$VIDEO_ID"
+echo "TRANSCRIPT_SOURCE=$(cat "$WORK_DIR/transcript_source.txt")"
 echo "Next: read $WORK_DIR/condensed.txt and $WORK_DIR/info.json, write analysis.json"

@@ -12,7 +12,7 @@ with open(f"{work_dir}/analysis.json") as f:
 
 note_title    = os.path.splitext(os.path.basename(note_path))[0]
 category      = data.get("reading_list_category", "").split("|")[0].strip()
-reading_list  = "/Users/yankesswang/Documents/arthurwang_DB/待閱讀清單.md"
+reading_list  = "/home/trx50/Documents/arthurwang_DB/待閱讀清單.md"
 
 # ── Compute this week's Monday–Sunday (week starts Monday) ──────────────────
 today   = date.today()

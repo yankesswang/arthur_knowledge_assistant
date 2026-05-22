@@ -4,7 +4,57 @@
       "handle": "@ILTB_Podcast",
       "name": "Invest Like The Best",
       "limit": 5,
-      "enabled": true
+      "enabled": true,
+      "channel_id": "UCpQBb0fToph3jrDulwz1iUQ",
+      "avatar": "https://yt3.googleusercontent.com/4BC0ntll3pg401CRl9pi_cXxVLayYpl6VGNjhIQfHp9GpTqlj3qwGDtgG_YABpXTiOec9GABBQ=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@LatentSpacePod",
+      "name": "Latent Space",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCxBcwypKK-W3GHd_RZ9FZrQ",
+      "avatar": "https://yt3.googleusercontent.com/pSTHcffCXEverYEPdjM0iIRPH-IUT4d2biIMZ_Z7bhyf6sME-laFer9vEfpFbM5tqFYJV-UsLQ=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@DwarkeshPatel",
+      "name": "Dwarkesh Patel",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCXl4i9dYBrFOabk0xGmbkRA",
+      "avatar": "https://yt3.googleusercontent.com/lG-z7sTfhFIW2Ne1oXMHvXMXyZSaA02_I17gUel0GAEj7OypsSHQ7PE91Vp4bTbpm3PTIAWJdko=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@sequoiacapital",
+      "name": "Sequoia Capital",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCWrF0oN6unbXrWsTN7RctTw",
+      "avatar": "https://yt3.googleusercontent.com/uCN-D7KzMQY-Ti-xTsNAwilXVFFMYjEBRju_mXrR22HUYxJZjVZgP_SnamO9KbPo2XN-nE3O-A=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@TheDiaryOfACEO",
+      "name": "The Diary Of A CEO",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCGq-a57w-aPwyi3pW7XLiHw",
+      "avatar": "https://yt3.googleusercontent.com/JHCZDz37bsTmwoE1o4LEodF5vhsHfk29kCEauDTFr27-7hHXsHHvvWGzcG77v32ERrkpfInkGQ=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@vsyrakis",
+      "name": "Vasilios Syrakis",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCRs5BtvLv1NkOWxLupTIVYw",
+      "avatar": "https://yt3.googleusercontent.com/SJSsl2Qu_M6Q9cipbyrE8cE2ojl8blAayPljk_j1Vv3CyZdhMWaAtMbcmwPVc2esFIgBPEJ_=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@TheValley101",
+      "name": "硅谷101",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCKV2yWPB3wn0RTZh3cTD8YA",
+      "avatar": "https://yt3.googleusercontent.com/Vqg_8nFFDNbk_IvXWE7ngTBTTx3h1StP7nPtRQv77UVvtXfHurANruNVH3MA-Ms-OC-6Ge0L=s900-c-k-c0x00ffffff-no-rj"
     }
   ]
 }

@@ -3,13 +3,20 @@
 import json, os, re
 from datetime import date
 
-work_dir = os.environ["WORK_DIR"]
-yt_url   = os.environ["YT_URL"]
-video_id = os.environ["VIDEO_ID"]
-note_dir = "/Users/yankesswang/Documents/arthurwang_DB/AI Knowledge/影片筆記"
+work_dir      = os.environ["WORK_DIR"]
+yt_url        = os.environ["YT_URL"]
+video_id      = os.environ["VIDEO_ID"]
+NOTE_ROOT     = "/home/trx50/Documents/arthurwang_DB/影片筆記"
 
 with open(f"{work_dir}/analysis.json") as f: data = json.load(f)
 with open(f"{work_dir}/info.json")     as f: info = json.load(f)
+
+# 頻道子資料夾
+channel_raw  = info.get("channel", "").strip()
+safe_channel = re.sub(r'[/\\:*?"<>|]', ' ', channel_raw).strip() if channel_raw else "未分類"
+safe_channel = re.sub(r'\s+', ' ', safe_channel)
+note_dir     = os.path.join(NOTE_ROOT, safe_channel)
+os.makedirs(note_dir, exist_ok=True)
 
 title_zh      = data.get("title_zh", info["title"])
 note_type     = data.get("note_type", "A")
@@ -113,18 +120,14 @@ lines.append("")
 
 # --- 同頻道影片 ---
 import glob
-channel_name = info.get("channel", "")
+# 同頻道影片：直接列同一資料夾下的其他 .md
 related = []
-for md_path in glob.glob(os.path.join(note_dir, "**/*.md"), recursive=True):
+for md_path in glob.glob(os.path.join(note_dir, "*.md")):
     if os.path.basename(md_path) == "_INDEX.md":
         continue
-    try:
-        with open(md_path, "r", encoding="utf-8") as mf:
-            head = mf.read(1500)
-        if channel_name and channel_name in head:
-            related.append(os.path.splitext(os.path.basename(md_path))[0])
-    except Exception:
-        pass
+    stem = os.path.splitext(os.path.basename(md_path))[0]
+    if stem != re.sub(r'[/\\:*?"<>|]', ' ', data.get("title_zh", "")).strip():
+        related.append(stem)
 
 if related:
     lines += ["## 同頻道影片", ""]

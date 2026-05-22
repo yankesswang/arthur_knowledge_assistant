@@ -1,11 +1,21 @@
 ---
 name: youtube-subtitle
-description: YouTube URL → 下載影片 + 取得字幕 → Gemini 翻譯繁體中文 → ffmpeg 硬燒雙語字幕 → 輸出 mp4
-tags: [youtube, subtitle, translate, ffmpeg, 字幕, 翻譯, gemini]
+description: YouTube URL → 下載影片 + 取得字幕 → Gemini 翻譯繁體中文 → ffmpeg 硬燒雙語字幕 → 輸出 mp4；或 MP3/音訊檔 → faster-whisper 逐字稿
+tags: [youtube, subtitle, translate, ffmpeg, 字幕, 翻譯, gemini, whisper, transcript, mp3]
 allowed-tools: Bash
 ---
 
 # /youtube-subtitle
+
+## 模式判斷
+
+**若使用者提供 YouTube URL** → 執行 YouTube 字幕燒錄流程（Steps 0–8）
+
+**若使用者提供本地音訊檔案路徑**（`.mp3 / .m4a / .wav / .flac`）→ 執行 MP3 逐字稿模式
+
+---
+
+## 模式 A：YouTube 字幕燒錄
 
 給定 YouTube URL，自動完成：
 1. 下載影片（1080p）
@@ -618,7 +628,7 @@ PYEOF
 ## 架構
 
 ```
-URL
+模式 A：YouTube URL
  │
  ├─ Step 0: 解析使用者參數
  ├─ Step 1: Video ID 解析 + 依賴檢查（yt-dlp / ffmpeg / opencli）
@@ -630,6 +640,94 @@ URL
  ├─ Step 6: srt_entries → subtitles.ass（雙語/僅中文，自動偵測解析度）
  ├─ Step 7: ffmpeg ass= filter → 硬燒 mp4
  └─ Step 8: 報告（標題/字幕數/翻譯率/輸出路徑/大小）
+
+模式 B：本地音訊
+ │
+ └─ scripts/mp3_to_transcript.py → <stem>_transcript.txt + <stem>_transcript.json
 ```
 
 > 翻譯使用 Gemini（opencli），需要 Browser Bridge extension 連線。
+
+---
+
+## 模式 B：MP3 / 本地音訊 → 逐字稿
+
+### 觸發條件
+
+使用者提供的輸入**不是 YouTube URL**，而是本地音訊檔案路徑（`.mp3 / .m4a / .wav / .flac` 等）。
+
+### Usage
+
+```
+/youtube-subtitle /path/to/podcast.mp3
+/youtube-subtitle /path/to/lecture.mp3 --lang en
+/youtube-subtitle /path/to/interview.mp3 --model medium --output-dir /tmp/transcripts
+```
+
+### 參數
+
+| 參數 | 說明 | 預設 |
+|------|------|------|
+| 音訊路徑 | 本地音訊檔案（必填） | — |
+| `--lang` | 音訊語言（ISO 639-1，如 `en/zh/ja`）；不指定則自動偵測 | 自動 |
+| `--model` | Whisper 模型：`tiny/base/small/medium/large-v2/large-v3` | `large-v3` |
+| `--output-dir` | 輸出目錄 | 與音訊同目錄 |
+| `--format` | 輸出格式：`txt / json / both` | `both` |
+
+### What You Must Do When Invoked（模式 B）
+
+**Step 1 — 解析參數**
+
+從使用者輸入提取：
+- `AUDIO_PATH`：音訊檔案路徑
+- 其他選項：`--lang`、`--model`、`--output-dir`、`--format`（有給才帶入）
+
+**Step 2 — 執行 script**
+
+```bash
+SKILL_DIR="/home/trx50/Project/arthur_knowledge_assistant/.agent/skills/youtube-subtitle"
+PYTHON="/home/trx50/.virtualenvs/chatbot/bin/python3"
+
+$PYTHON "$SKILL_DIR/scripts/mp3_to_transcript.py" \
+  "<AUDIO_PATH>" \
+  [--lang <lang>] \
+  [--model <model>] \
+  [--output-dir <dir>] \
+  [--format <fmt>]
+```
+
+**Step 3 — 報告**
+
+script 執行完後，顯示：
+- 偵測語言（若未指定）
+- 轉錄段數與音訊時長
+- 輸出檔案路徑（.txt 和/或 .json）
+
+### 輸出格式
+
+**TXT**（`<stem>_transcript.txt`）：
+```
+[00:00.00] And so what we're going to talk about today...
+[00:06.50] The key insight here is that...
+```
+
+**JSON**（`<stem>_transcript.json`）：
+```json
+{
+  "language": "en",
+  "language_probability": 0.9987,
+  "duration": 3642.5,
+  "segments": [
+    { "start": 0.0, "end": 6.2, "text": "And so what we're going to talk about today..." }
+  ]
+}
+```
+
+### Edge Cases（模式 B）
+
+| 情況 | 處理方式 |
+|------|---------|
+| 找不到音訊檔案 | 顯示錯誤訊息，exit 1 |
+| 無 GPU | 自動使用 CPU + int8 量化 |
+| large-v3 太慢 | 建議使用者改用 `--model medium` |
+| 語言偵測錯誤 | 請使用者明確指定 `--lang` |
