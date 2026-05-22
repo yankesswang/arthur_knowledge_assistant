@@ -3,82 +3,114 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Podcast Notes</title>
+<title>Knowledge Notes</title>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
 :root {
   --bg:#0f1117; --surface:#1a1d27; --surface2:#22253a; --border:#2e3145;
   --accent:#7c6af7; --accent-dim:#2e2860; --text:#e2e4f0; --text-dim:#8b8fa8;
   --text-muted:#555870; --green:#4ade80; --yellow:#fbbf24; --red:#f87171;
+  --blue:#60a5fa; --read-bg:#1a2a1a; --unread-bg:#1a1d27;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;height:100vh;display:flex;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
 
-/* Sidebar */
-#sidebar{width:300px;min-width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-#sidebar-header{padding:16px 14px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
-#sidebar-header h1{font-size:14px;font-weight:700}
-#sidebar-header p{font-size:11px;color:var(--text-muted);margin-top:2px}
-#search-wrap{padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
-#search{width:100%;padding:7px 10px;border-radius:6px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:13px;outline:none}
-#search:focus{border-color:var(--accent)}
-#search::placeholder{color:var(--text-muted)}
-#pod-tabs{display:flex;gap:4px;padding:8px 12px;overflow-x:auto;border-bottom:1px solid var(--border);flex-shrink:0;scrollbar-width:none}
-#pod-tabs::-webkit-scrollbar{display:none}
-.pod-tab{padding:3px 9px;border-radius:20px;font-size:11px;cursor:pointer;white-space:nowrap;border:1px solid var(--border);background:transparent;color:var(--text-dim);transition:all .15s}
-.pod-tab:hover{background:var(--surface2);color:var(--text)}
-.pod-tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
-#ep-list{flex:1;overflow-y:auto;padding:4px 0}
-#ep-list::-webkit-scrollbar{width:3px}
-#ep-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-.ep-item{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;border-left:3px solid transparent;transition:background .1s}
-.ep-item:hover{background:var(--surface2)}
-.ep-item.active{background:var(--surface2);border-left-color:var(--accent)}
-.ep-item.no-note{opacity:.5}
-.ep-art{width:34px;height:34px;border-radius:5px;object-fit:cover;flex-shrink:0;background:var(--surface2)}
+/* ── TOP NAV ── */
+#nav{height:48px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:0;position:sticky;top:0;z-index:100}
+#nav h1{font-size:15px;font-weight:700;margin-right:24px;white-space:nowrap}
+.nav-tab{padding:6px 14px;font-size:13px;cursor:pointer;color:var(--text-dim);border-bottom:2px solid transparent;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none}
+.nav-tab:hover{color:var(--text)}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+#nav-search{margin-left:auto;position:relative}
+#nav-search input{padding:6px 10px 6px 30px;border-radius:6px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:12px;outline:none;width:200px}
+#nav-search input:focus{border-color:var(--accent)}
+#nav-search input::placeholder{color:var(--text-muted)}
+#nav-search svg{position:absolute;left:8px;top:50%;transform:translateY(-50%);opacity:.4;pointer-events:none}
+
+/* ── PAGE WRAPPER ── */
+#page{display:none;padding:24px 20px 60px;max-width:1200px;margin:0 auto}
+#page.active{display:block}
+
+/* ── CARDS GRID ── */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:32px}
+.source-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .2s;position:relative}
+.source-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.source-card.expanded{border-color:var(--accent)}
+.card-art{width:100%;aspect-ratio:1;object-fit:cover;background:var(--surface2);display:block}
+.card-art-yt{width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--surface2);display:block}
+.card-body{padding:10px 12px 12px}
+.card-name{font-size:12px;font-weight:700;line-height:1.4;margin-bottom:4px}
+.card-stats{font-size:10px;color:var(--text-dim);display:flex;gap:8px}
+.stat-note{color:var(--green)}
+.stat-total{color:var(--text-muted)}
+
+/* ── EPISODE LIST (under card) ── */
+.ep-container{display:none;border-top:1px solid var(--border)}
+.ep-container.open{display:block}
+
+/* Month group */
+.month-group{}
+.month-header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;cursor:pointer;background:var(--surface2);border-bottom:1px solid var(--border);user-select:none}
+.month-header:hover{background:#252840}
+.month-label{font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px}
+.month-chevron{font-size:10px;color:var(--text-muted);transition:transform .15s}
+.month-chevron.open{transform:rotate(180deg)}
+.month-eps{display:none}
+.month-eps.open{display:block}
+
+/* Episode row */
+.ep-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.ep-row:last-child{border-bottom:none}
+.ep-row:hover{background:var(--surface2)}
+.ep-row.read{background:var(--read-bg)}
+.ep-row.read .ep-title{color:#6fa66f}
+.ep-thumb{width:54px;height:30px;border-radius:3px;object-fit:cover;flex-shrink:0;background:var(--surface2)}
+.ep-thumb.sq{width:30px;height:30px;border-radius:4px}
 .ep-info{flex:1;min-width:0}
-.ep-title{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ep-meta{font-size:10px;color:var(--text-dim);margin-top:2px;display:flex;gap:5px;align-items:center}
+.ep-title{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.ep-meta{font-size:10px;color:var(--text-dim);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .badge{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700}
 .badge-note{background:#1a3a25;color:var(--green)}
 .badge-nonote{background:#2a2520;color:var(--yellow)}
-.read-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0}
-.read-dot.done{background:var(--text-muted)}
+.badge-new{background:#1a2a3a;color:var(--blue)}
+.read-toggle{font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;flex-shrink:0;transition:all .15s;white-space:nowrap}
+.read-toggle:hover{border-color:var(--accent);color:var(--accent)}
+.ep-row.read .read-toggle{border-color:#3a5a3a;color:#6fa66f}
+.ep-dl-btn{font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;flex-shrink:0;transition:all .15s;white-space:nowrap}
+.ep-dl-btn:hover{border-color:var(--blue);color:var(--blue)}
+.ep-dl-btn.queued{border-color:#3a4a5a;color:#60a5fa;cursor:default}
+.ep-dl-btn.done{border-color:#3a5a3a;color:var(--green);cursor:default}
 
-/* Main */
-#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
-#topbar{height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
-#tb-title{font-size:13px;font-weight:600}
-#tb-meta{font-size:10px;color:var(--text-dim);margin-top:1px}
-#view-btns{display:flex;gap:3px}
-.vbtn{padding:4px 10px;border-radius:5px;font-size:11px;background:transparent;border:1px solid var(--border);color:var(--text-dim);cursor:pointer;transition:all .15s}
-.vbtn:hover{background:var(--surface2);color:var(--text)}
-.vbtn.active{background:var(--accent);border-color:var(--accent);color:#fff}
-#loading{height:2px;background:var(--border);position:relative;overflow:hidden;display:none}
-#loading::after{content:'';position:absolute;top:0;left:-40%;width:40%;height:100%;background:var(--accent);animation:slide 1s ease-in-out infinite}
+/* ── DETAIL PANEL ── */
+#detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;backdrop-filter:blur(2px)}
+#detail-overlay.open{display:flex;align-items:flex-start;justify-content:flex-end}
+#detail-panel{width:min(760px,95vw);height:100vh;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+#detail-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-shrink:0}
+#detail-title{font-size:15px;font-weight:700;line-height:1.4;flex:1}
+#detail-meta{font-size:11px;color:var(--text-dim);margin-top:3px}
+#detail-close{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:0 4px;flex-shrink:0}
+#detail-close:hover{color:var(--text)}
+#detail-view-btns{padding:8px 18px;border-bottom:1px solid var(--border);display:flex;gap:4px;flex-shrink:0}
+.dvbtn{padding:4px 10px;border-radius:5px;font-size:11px;background:transparent;border:1px solid var(--border);color:var(--text-dim);cursor:pointer;transition:all .15s}
+.dvbtn:hover{background:var(--surface2);color:var(--text)}
+.dvbtn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+#detail-body{flex:1;overflow-y:auto;padding:0}
+#detail-body::-webkit-scrollbar{width:5px}
+#detail-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+#detail-loading{height:2px;background:var(--border);position:relative;overflow:hidden;display:none;flex-shrink:0}
+#detail-loading::after{content:'';position:absolute;top:0;left:-40%;width:40%;height:100%;background:var(--accent);animation:slide 1s ease-in-out infinite}
 @keyframes slide{to{left:100%}}
-#content{flex:1;overflow-y:auto}
-#content::-webkit-scrollbar{width:5px}
-#content::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+#detail-audio{background:var(--surface);border-top:1px solid var(--border);padding:8px 16px;display:none;flex-shrink:0}
+#detail-audio.on{display:block}
+#aud{width:100%;height:30px}
 
-/* Note */
-#note-wrap{max-width:760px;margin:0 auto;padding:28px 24px 60px}
-.n-title{font-size:20px;font-weight:700;line-height:1.4;margin-bottom:10px}
-.n-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
-.n-tag{padding:2px 7px;border-radius:3px;font-size:11px;background:var(--surface2);color:var(--text-dim);border:1px solid var(--border)}
-.tldr{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:7px;padding:14px 16px;margin-bottom:22px}
-.tldr h3{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:10px}
-.tldr-row{display:flex;gap:8px;margin-bottom:7px;font-size:13px}
-.tldr-row:last-child{margin-bottom:0}
-.tldr-k{color:var(--text-dim);min-width:105px;flex-shrink:0;font-weight:500}
-.tldr-v{color:var(--text)}
-
-/* Markdown body */
+/* Note content */
+.nwrap{max-width:100%;padding:22px 22px 50px}
 .md{font-size:14px;line-height:1.8;color:var(--text)}
-.md h1{font-size:20px;font-weight:700;margin:26px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
-.md h2{font-size:16px;font-weight:700;margin:24px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--border)}
-.md h3{font-size:14px;font-weight:700;margin:18px 0 7px;color:var(--accent)}
-.md h4{font-size:13px;font-weight:600;margin:12px 0 5px;color:var(--text-dim)}
+.md h1{font-size:19px;font-weight:700;margin:24px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.md h2{font-size:15px;font-weight:700;margin:22px 0 9px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.md h3{font-size:13px;font-weight:700;margin:16px 0 6px;color:var(--accent)}
+.md h4{font-size:12px;font-weight:600;margin:10px 0 4px;color:var(--text-dim)}
 .md p{margin-bottom:10px}
 .md ul,.md ol{padding-left:20px;margin-bottom:10px}
 .md li{margin-bottom:4px}
@@ -92,277 +124,636 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .md th{background:var(--surface2);padding:7px 11px;text-align:left;font-weight:600;border:1px solid var(--border)}
 .md td{padding:6px 11px;border:1px solid var(--border)}
 .md tr:hover td{background:var(--surface2)}
-.md hr{border:none;border-top:1px solid var(--border);margin:18px 0}
+.md hr{border:none;border-top:1px solid var(--border);margin:16px 0}
 .md img{max-width:100%;border-radius:6px;margin:6px 0}
 .md a{color:var(--accent);text-decoration:none}
 .md a:hover{text-decoration:underline}
-
-/* Sections */
-.sec-grid{display:flex;flex-direction:column;gap:10px}
-.sec-card{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:13px 15px}
-.sec-card h4{font-size:13px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:7px}
-.ts-chip{font-size:10px;color:var(--accent);background:var(--accent-dim);padding:1px 6px;border-radius:3px;cursor:pointer}
+.tldr-card{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:7px;padding:13px 15px;margin-bottom:20px}
+.tldr-card h3{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);margin-bottom:10px}
+.tldr-row{display:flex;gap:8px;margin-bottom:6px;font-size:13px}
+.tldr-row:last-child{margin-bottom:0}
+.tldr-k{color:var(--text-dim);min-width:100px;flex-shrink:0;font-weight:500}
+.sec-grid{display:flex;flex-direction:column;gap:8px}
+.sec-card{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:11px 14px}
+.sec-card h4{font-size:13px;font-weight:700;margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.ts-chip{font-size:10px;color:var(--accent);background:var(--accent-dim);padding:1px 5px;border-radius:3px;cursor:pointer}
 .ts-chip:hover{filter:brightness(1.3)}
-.sec-card ul{padding-left:16px}
-.sec-card li{font-size:13px;line-height:1.65;margin-bottom:3px}
-.insight{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--yellow);border-radius:6px;padding:9px 13px;font-size:13px;line-height:1.6;margin-bottom:8px}
+.sec-card ul{padding-left:15px}
+.sec-card li{font-size:13px;line-height:1.6;margin-bottom:2px}
+.insight-item{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--yellow);border-radius:6px;padding:8px 12px;font-size:13px;line-height:1.6;margin-bottom:7px}
 
 /* Transcript panel */
-#tp{width:300px;border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;transition:width .2s}
-#tp.off{width:0;border:none}
-#tp-head{padding:10px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-#tp-head span{font-size:12px;font-weight:600;color:var(--text-dim)}
-#tp-close{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:15px}
-#tp-close:hover{color:var(--text)}
-#tp-list{flex:1;overflow-y:auto;padding:6px 0}
+#tp-panel{display:none;flex-direction:column;border-left:1px solid var(--border);width:280px;flex-shrink:0;overflow:hidden}
+#tp-panel.open{display:flex}
+#tp-head{padding:9px 12px;border-bottom:1px solid var(--border);font-size:11px;font-weight:600;color:var(--text-dim);flex-shrink:0}
+#tp-list{flex:1;overflow-y:auto}
 #tp-list::-webkit-scrollbar{width:3px}
 #tp-list::-webkit-scrollbar-thumb{background:var(--border)}
-.seg{display:flex;gap:7px;padding:5px 12px;cursor:pointer;transition:background .1s}
+.seg{display:flex;gap:6px;padding:5px 11px;cursor:pointer;transition:background .1s}
 .seg:hover{background:var(--surface2)}
 .seg.active{background:var(--accent-dim)}
-.seg-t{font-size:10px;color:var(--accent);min-width:34px;flex-shrink:0;padding-top:2px}
-.seg-txt{font-size:12px;line-height:1.6}
+.seg-t{font-size:10px;color:var(--accent);min-width:32px;flex-shrink:0;padding-top:2px}
+.seg-txt{font-size:11px;line-height:1.55}
+#detail-inner{flex:1;display:flex;overflow:hidden}
 
-/* Audio */
-#audio-bar{background:var(--surface);border-top:1px solid var(--border);padding:8px 14px;display:none;flex-shrink:0}
-#audio-bar.on{display:block}
-#aud{width:100%;height:30px}
-
-/* Empty/error */
-.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--text-muted)}
-.empty svg{opacity:.25}
+/* Empty */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:10px;color:var(--text-muted)}
 .empty p{font-size:14px}
-.empty small{font-size:12px}
+
+/* Download job toast */
+#job-toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:12px;z-index:500;min-width:240px;display:none}
+#job-toast.show{display:block}
+#job-toast .jt-title{font-weight:700;margin-bottom:4px}
+#job-toast .jt-phase{color:var(--text-dim)}
+#job-toast .jt-bar-wrap{height:3px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden}
+#job-toast .jt-bar{height:100%;background:var(--accent);transition:width .3s}
+
+/* Responsive */
+@media(max-width:600px){
+  .cards-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+  #detail-panel{width:100vw}
+}
 </style>
 </head>
 <body>
 
-<div id="sidebar">
-  <div id="sidebar-header">
-    <h1>🎙 Podcast Notes</h1>
-    <p id="ep-count">載入中…</p>
+<div id="nav">
+  <h1>🎙 Notes</h1>
+  <button class="nav-tab active" data-page="podcast">Podcast</button>
+  <button class="nav-tab" data-page="youtube">YouTube</button>
+  <div id="nav-search">
+    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="11" cy="11" r="8" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke-width="2" stroke-linecap="round"/></svg>
+    <input id="search-input" type="text" placeholder="搜尋…" autocomplete="off">
   </div>
-  <div id="search-wrap">
-    <input id="search" type="text" placeholder="搜尋標題 / EP 號…" autocomplete="off">
-  </div>
-  <div id="pod-tabs"></div>
-  <div id="ep-list"></div>
 </div>
 
-<div id="main">
-  <div id="topbar">
-    <div><div id="tb-title">Podcast Notes</div><div id="tb-meta"></div></div>
-    <div id="view-btns">
-      <button class="vbtn active" data-v="note">筆記</button>
-      <button class="vbtn" data-v="sections">章節</button>
-      <button class="vbtn" data-v="raw">原始</button>
-      <button class="vbtn" id="tp-btn" style="display:none">逐字稿</button>
-    </div>
-  </div>
-  <div id="loading"></div>
-  <div id="content">
-    <div class="empty" id="empty">
-      <svg width="44" height="44" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
-          d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
-      </svg>
-      <p>選擇左側集數查看筆記</p>
-      <small>綠色標記表示有筆記</small>
-    </div>
-  </div>
-  <div id="audio-bar"><audio id="aud" controls preload="none"></audio></div>
+<!-- Podcast page -->
+<div id="page-podcast" class="page active">
+  <div id="podcast-cards" class="cards-grid"></div>
 </div>
 
-<div id="tp" class="off">
-  <div id="tp-head"><span>逐字稿</span><button id="tp-close">✕</button></div>
-  <div id="tp-list"></div>
+<!-- YouTube page -->
+<div id="page-youtube" class="page">
+  <div id="yt-cards" class="cards-grid"></div>
+</div>
+
+<!-- Detail overlay -->
+<div id="detail-overlay">
+  <div id="detail-panel">
+    <div id="detail-header">
+      <div style="flex:1">
+        <div id="detail-title"></div>
+        <div id="detail-meta"></div>
+      </div>
+      <button id="detail-close">✕</button>
+    </div>
+    <div id="detail-view-btns">
+      <button class="dvbtn active" data-v="note">筆記</button>
+      <button class="dvbtn" data-v="sections">章節</button>
+      <button class="dvbtn" data-v="raw">原始</button>
+      <button class="dvbtn" id="tp-btn" style="display:none">逐字稿</button>
+    </div>
+    <div id="detail-loading"></div>
+    <div id="detail-inner">
+      <div id="detail-body"></div>
+      <div id="tp-panel">
+        <div id="tp-head">逐字稿</div>
+        <div id="tp-list"></div>
+      </div>
+    </div>
+    <audio id="aud" controls preload="none" style="display:none"></audio>
+    <div id="detail-audio"><audio id="aud-bar" controls preload="none" style="width:100%;height:30px"></audio></div>
+  </div>
+</div>
+
+<!-- Job toast -->
+<div id="job-toast">
+  <div class="jt-title" id="jt-title"></div>
+  <div class="jt-phase" id="jt-phase"></div>
+  <div class="jt-bar-wrap"><div class="jt-bar" id="jt-bar" style="width:0%"></div></div>
 </div>
 
 <script>
 const $=id=>document.getElementById(id);
-let episodes=[],podcasts=[],currentEp=null,currentNote=null,currentView='note',currentPod='all',readStatus={};
+// ── State ─────────────────────────────────────────────────────
+let podcasts=[], ytChannels=[], readStatus={}, currentView='note';
+let currentItem=null, currentType=null; // 'podcast' | 'yt'
+let jobPoll=null;
+const expandedCards=new Set();
+const expandedMonths=new Set(); // key: "cardId:monthKey"
 
-async function apiFetch(path){
-  const r=await fetch(path);
+// ── Helpers ───────────────────────────────────────────────────
+const h=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+async function api(path,opts){
+  const r=await fetch(path,opts);
   if(!r.ok) throw new Error(await r.text());
   return r.json();
 }
+function monthKey(dateStr){
+  if(!dateStr) return '未知日期';
+  return dateStr.slice(0,7); // "YYYY-MM"
+}
+function monthLabel(key){
+  if(key==='未知日期') return '未知日期';
+  const[y,m]=key.split('-');
+  return `${y} 年 ${parseInt(m)} 月`;
+}
+function groupByMonth(items, dateField='upload_date'){
+  const groups={};
+  for(const it of items){
+    const k=monthKey(it[dateField]||'');
+    (groups[k]||(groups[k]=[])).push(it);
+  }
+  // sort months desc
+  return Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0]));
+}
 
+// ── Init ──────────────────────────────────────────────────────
 async function init(){
-  try{
-    const[pods,rs]=await Promise.all([
-      apiFetch('/api/podcasts'),
-      apiFetch('/api/reading-status').catch(()=>({}))
-    ]);
-    podcasts=pods; readStatus=rs;
-    episodes=[];
-    for(const pod of podcasts){
-      for(const ep of(pod.episodes||[])){
-        ep._pod=pod.name; ep._art=pod.artwork||'';
-        episodes.push(ep);
-      }
-    }
-    buildTabs(); renderList();
-    const noted=episodes.filter(e=>e.has_note).length;
-    $('ep-count').textContent=`${noted} 篇筆記 / ${episodes.length} 集`;
-  }catch(e){
-    $('ep-count').textContent='載入失敗';
-    console.error(e);
-  }
+  const[pods,rs]=await Promise.all([
+    api('/api/podcasts').catch(()=>[]),
+    api('/api/reading-status').catch(()=>({}))
+  ]);
+  podcasts=pods; readStatus=rs;
+  renderPodcastCards();
+
+  api('/api/youtube/channels').then(chs=>{
+    ytChannels=chs;
+    renderYTCards();
+  }).catch(()=>{});
 }
 
-function buildTabs(){
-  const tabs=$('pod-tabs');
-  tabs.innerHTML='<button class="pod-tab active" data-pod="all">全部</button>';
-  for(const pod of podcasts){
-    const btn=document.createElement('button');
-    btn.className='pod-tab'; btn.dataset.pod=pod.id;
-    btn.textContent=pod.name.replace(/[｜|].*/,'').trim().slice(0,8);
-    btn.title=pod.name;
-    tabs.appendChild(btn);
-  }
-  tabs.addEventListener('click',e=>{
-    const btn=e.target.closest('.pod-tab');
-    if(!btn) return;
-    currentPod=btn.dataset.pod;
-    tabs.querySelectorAll('.pod-tab').forEach(b=>b.classList.remove('active'));
+// ── Nav tabs ──────────────────────────────────────────────────
+document.querySelectorAll('.nav-tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
-    renderList();
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    $(`page-${btn.dataset.page}`).classList.add('active');
   });
-}
-
-function renderList(){
-  const q=$('search').value.trim().toLowerCase();
-  const list=$('ep-list');
-  list.innerHTML='';
-  let items=episodes;
-  if(currentPod!=='all') items=items.filter(e=>e.podcast_id===currentPod);
-  if(q) items=items.filter(e=>
-    (e.title_zh||'').toLowerCase().includes(q)||
-    (e.episode_label||'').toLowerCase().includes(q)||
-    (e.ep_num||'').includes(q)
-  );
-  if(!items.length){
-    list.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px">沒有符合的集數</div>';
-    return;
-  }
-  for(const ep of items){
-    const rs=readStatus[ep.ep_num||'']||'unread';
-    const el=document.createElement('div');
-    el.className='ep-item'+(ep.has_note?'':' no-note')+(currentEp?.id===ep.id?' active':'');
-    el.dataset.id=ep.id;
-    el.innerHTML=`
-      <img class="ep-art" src="${h(ep._art)}" alt="" onerror="this.style.display='none'">
-      <div class="ep-info">
-        <div class="ep-title">${h(ep.title_zh||ep.episode_label||ep.id)}</div>
-        <div class="ep-meta">
-          <span>${h(ep.episode_label||'')}</span>
-          ${ep.upload_date?`<span>${h(ep.upload_date)}</span>`:''}
-          <span class="badge ${ep.has_note?'badge-note':'badge-nonote'}">${ep.has_note?'筆記':'無筆記'}</span>
-        </div>
-      </div>
-      ${ep.has_note?`<div class="read-dot${rs==='read'?' done':''}" title="${rs==='read'?'已讀':'未讀'}"></div>`:''}`;
-    el.addEventListener('click',()=>selectEp(ep));
-    list.appendChild(el);
-  }
-}
-
-async function selectEp(ep){
-  currentEp=ep;
-  document.querySelectorAll('.ep-item').forEach(el=>el.classList.toggle('active',el.dataset.id===ep.id));
-  $('tb-title').textContent=ep.title_zh||ep.episode_label||ep.id;
-  $('tb-meta').textContent=[ep._pod,ep.upload_date].filter(Boolean).join(' · ');
-  $('tp-btn').style.display=ep.has_transcript?'':'none';
-  if(!ep.has_note){showEmpty('此集尚無筆記',ep.has_transcript?'可查看逐字稿':'');return;}
-  loading(true);
-  try{
-    currentNote=await apiFetch(`/api/episodes/${ep.id}/note`);
-    renderView();
-  }catch(e){showErr(e.message);}
-  finally{loading(false);}
-}
-
-$('view-btns').addEventListener('click',e=>{
-  const btn=e.target.closest('.vbtn');
-  if(!btn) return;
-  if(btn.id==='tp-btn'){toggleTP();return;}
-  currentView=btn.dataset.v;
-  document.querySelectorAll('.vbtn:not(#tp-btn)').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  if(currentNote) renderView();
+});
+$('search-input').addEventListener('input',()=>{
+  renderPodcastCards(); renderYTCards();
 });
 
-function renderView(){
-  if(!currentNote) return;
-  if(currentView==='note') renderNote();
-  else if(currentView==='sections') renderSections();
-  else renderRaw();
-}
+// ── PODCAST CARDS ─────────────────────────────────────────────
+function renderPodcastCards(){
+  const q=$('search-input').value.trim().toLowerCase();
+  const container=$('podcast-cards');
+  container.innerHTML='';
 
-async function renderNote(){
-  try{
-    const{markdown}=await apiFetch(`/api/episodes/${currentEp.id}/note-raw`);
-    const body=markdown.replace(/^---\n[\s\S]*?\n---\n/,'');
-    const clean=body
-      .replace(/!\[\[([^\]]+)\]\]/g,'**[嵌入: $1]**')
-      .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g,'[$2](#)')
-      .replace(/\[\[([^\]]+)\]\]/g,'$1');
-    $('content').innerHTML=`<div id="note-wrap"><div class="md">${marked.parse(clean)}</div></div>`;
-  }catch(_){renderNoteFromData(currentNote);}
-}
+  for(const pod of podcasts){
+    const allEps=pod.episodes||[];
+    const filtered=q
+      ? allEps.filter(e=>(e.title_zh||'').toLowerCase().includes(q)||(e.episode_label||'').toLowerCase().includes(q))
+      : allEps;
 
-function renderNoteFromData(n){
-  let html=`<div id="note-wrap">`;
-  html+=`<div class="n-title">${h(n.title_zh||'')}</div>`;
-  if(n.tags?.length) html+=`<div class="n-tags">${n.tags.map(t=>`<span class="n-tag">${h(t)}</span>`).join('')}</div>`;
-  if(n.tldr&&Object.keys(n.tldr).length){
-    html+=`<div class="tldr"><h3>TL;DR</h3>`;
-    for(const[k,v]of Object.entries(n.tldr))
-      html+=`<div class="tldr-row"><span class="tldr-k">${h(k)}</span><span class="tldr-v">${h(v)}</span></div>`;
-    html+=`</div>`;
-  }
-  if(n.sections?.length){
-    html+=`<div class="sec-grid">`;
-    for(const s of n.sections){
-      const pts=(s.content_points||[]).filter(p=>p.trim());
-      html+=`<div class="sec-card"><h4>${h(s.title)}${s.start_time?`<span class="ts-chip">${h(s.start_time)}</span>`:''}</h4>`;
-      if(pts.length) html+=`<ul>${pts.map(p=>`<li>${inline(p.replace(/^[-*]\s*/,''))}</li>`).join('')}</ul>`;
-      html+=`</div>`;
+    const wrap=document.createElement('div');
+    wrap.style.gridColumn=expandedCards.has(pod.id)?'1 / -1':'';
+
+    const card=document.createElement('div');
+    card.className='source-card'+(expandedCards.has(pod.id)?' expanded':'');
+    card.dataset.id=pod.id;
+
+    const noteCount=allEps.filter(e=>e.has_note).length;
+
+    if(expandedCards.has(pod.id)){
+      // expanded layout: horizontal header + episode list
+      card.innerHTML=`
+        <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;cursor:pointer" data-toggle="${pod.id}">
+          <img src="${h(pod.artwork)}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700">${h(pod.name)}</div>
+            <div style="font-size:11px;color:var(--text-dim);margin-top:2px">
+              <span class="stat-note">${noteCount} 篇筆記</span>
+              <span style="margin:0 4px;color:var(--text-muted)">·</span>
+              <span class="stat-total">${allEps.length} 集</span>
+            </div>
+          </div>
+          <span style="font-size:18px;color:var(--text-muted)">⌃</span>
+        </div>`;
+      const epContainer=buildPodEpList(pod, filtered);
+      card.appendChild(epContainer);
+    } else {
+      card.innerHTML=`
+        <img class="card-art" src="${h(pod.artwork)}" alt="" onerror="this.style.display='none'">
+        <div class="card-body">
+          <div class="card-name">${h(pod.name)}</div>
+          <div class="card-stats">
+            <span class="stat-note">${noteCount} 篇筆記</span>
+            <span class="stat-total">${allEps.length} 集</span>
+          </div>
+        </div>`;
     }
-    html+=`</div>`;
+
+    card.addEventListener('click',e=>{
+      if(e.target.closest('[data-toggle]')){
+        expandedCards.delete(pod.id);
+        renderPodcastCards(); return;
+      }
+      if(e.target.closest('.ep-row')||e.target.closest('.month-header')||
+         e.target.closest('.read-toggle')||e.target.closest('.ep-dl-btn')) return;
+      if(!expandedCards.has(pod.id)){
+        expandedCards.add(pod.id);
+        renderPodcastCards();
+      }
+    });
+
+    wrap.appendChild(card);
+    container.appendChild(wrap);
   }
-  if(n.key_insights?.length){
-    html+=`<h2 class="md" style="font-size:15px;margin:26px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--border)">關鍵洞見</h2>`;
-    html+=n.key_insights.map(i=>`<div class="insight">${h(i)}</div>`).join('');
-  }
-  if(n.data_table?.length){
-    html+=`<h2 class="md" style="font-size:15px;margin:26px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--border)">關鍵數據速查</h2>`;
-    html+=`<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr>
-      <th style="background:var(--surface2);padding:7px 11px;border:1px solid var(--border)">指標</th>
-      <th style="background:var(--surface2);padding:7px 11px;border:1px solid var(--border)">數值</th>
-      <th style="background:var(--surface2);padding:7px 11px;border:1px solid var(--border)">備註</th>
-    </tr></thead><tbody>`;
-    for(const r of n.data_table)
-      html+=`<tr><td style="padding:6px 11px;border:1px solid var(--border)">${h(r['指標']||'')}</td>
-        <td style="padding:6px 11px;border:1px solid var(--border)">${h(r['數值']||'')}</td>
-        <td style="padding:6px 11px;border:1px solid var(--border)">${h(r['備註']||'')}</td></tr>`;
-    html+=`</tbody></table>`;
-  }
-  html+=`</div>`;
-  $('content').innerHTML=html;
 }
 
-function renderSections(){
-  const n=currentNote;
-  let html=`<div id="note-wrap">`;
+function buildPodEpList(pod, episodes){
+  const container=document.createElement('div');
+  container.className='ep-container open';
+
+  const months=groupByMonth(episodes,'upload_date');
+  months.forEach(([mk, eps], idx)=>{
+    const mkey=`${pod.id}:${mk}`;
+    const isOpen=idx===0 || expandedMonths.has(mkey); // first month open by default
+
+    const group=document.createElement('div');
+    group.className='month-group';
+
+    const mhead=document.createElement('div');
+    mhead.className='month-header';
+    mhead.innerHTML=`<span class="month-label">${monthLabel(mk)}</span><span class="month-chevron${isOpen?' open':''}">▼</span>`;
+    mhead.addEventListener('click',e=>{
+      e.stopPropagation();
+      const meps=group.querySelector('.month-eps');
+      const chev=mhead.querySelector('.month-chevron');
+      const nowOpen=meps.classList.toggle('open');
+      chev.classList.toggle('open',nowOpen);
+      if(nowOpen) expandedMonths.add(mkey); else expandedMonths.delete(mkey);
+    });
+
+    const meps=document.createElement('div');
+    meps.className='month-eps'+(isOpen?' open':'');
+
+    for(const ep of eps){
+      meps.appendChild(buildPodEpRow(ep, pod));
+    }
+
+    group.appendChild(mhead);
+    group.appendChild(meps);
+    container.appendChild(group);
+  });
+
+  return container;
+}
+
+function buildPodEpRow(ep, pod){
+  const epNum=ep.ep_num||'';
+  const rs=readStatus[epNum]||'unread';
+  const row=document.createElement('div');
+  row.className='ep-row'+(rs==='read'?' read':'');
+  row.dataset.epid=ep.id;
+
+  row.innerHTML=`
+    <img class="ep-thumb sq" src="${h(ep._artwork||pod.artwork)}" onerror="this.style.display='none'">
+    <div class="ep-info">
+      <div class="ep-title">${h(ep.title_zh||ep.episode_label||ep.id)}</div>
+      <div class="ep-meta">
+        <span>${h(ep.episode_label||'')}</span>
+        ${ep.upload_date?`<span>${h(ep.upload_date)}</span>`:''}
+        <span class="badge ${ep.has_note?'badge-note':'badge-nonote'}">${ep.has_note?'筆記':'無筆記'}</span>
+      </div>
+    </div>
+    <button class="read-toggle" data-epnum="${h(epNum)}">${rs==='read'?'已讀':'未讀'}</button>
+    <button class="ep-dl-btn" data-podid="${h(pod.id)}" data-epnum="${h(epNum)}" data-title="${h(ep.title_zh||ep.episode_label||'')}">↓ 下載</button>`;
+
+  row.querySelector('.read-toggle').addEventListener('click',e=>{
+    e.stopPropagation();
+    toggleRead(epNum, row, e.target);
+  });
+  row.querySelector('.ep-dl-btn').addEventListener('click',e=>{
+    e.stopPropagation();
+    startDownload(pod.id, epNum, ep.title_zh||ep.episode_label||epNum, e.target);
+  });
+  row.addEventListener('click',()=>{
+    if(ep.has_note) openDetail('podcast', ep, pod);
+  });
+  return row;
+}
+
+// ── YOUTUBE CARDS ─────────────────────────────────────────────
+function renderYTCards(){
+  const q=$('search-input').value.trim().toLowerCase();
+  const container=$('yt-cards');
+  container.innerHTML='';
+
+  for(const ch of ytChannels){
+    const allVids=ch.videos||[];
+    const filtered=q
+      ? allVids.filter(v=>(v.title_zh||v.title||'').toLowerCase().includes(q))
+      : allVids;
+
+    const wrap=document.createElement('div');
+    wrap.style.gridColumn=expandedCards.has('yt:'+ch.handle)?'1 / -1':'';
+
+    const card=document.createElement('div');
+    card.className='source-card'+(expandedCards.has('yt:'+ch.handle)?' expanded':'');
+
+    if(expandedCards.has('yt:'+ch.handle)){
+      card.innerHTML=`
+        <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;cursor:pointer" data-toggle="yt:${h(ch.handle)}">
+          <img src="${h(ch.avatar)}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--surface2)" onerror="this.style.display='none'">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700">${h(ch.name)}</div>
+            <div style="font-size:11px;color:var(--text-dim);margin-top:2px">
+              <span class="stat-note">${ch.note_count} 篇筆記</span>
+              <span style="margin:0 4px;color:var(--text-muted)">·</span>
+              <span class="stat-total">${ch.video_count} 支影片</span>
+            </div>
+          </div>
+          <span style="font-size:18px;color:var(--text-muted)">⌃</span>
+        </div>`;
+      const epContainer=buildYTEpList(ch, filtered);
+      card.appendChild(epContainer);
+    } else {
+      card.innerHTML=`
+        <img class="card-art" src="${h(ch.avatar)}" alt="" style="border-radius:0;aspect-ratio:1;object-fit:cover;background:var(--surface2)" onerror="this.style.display='none'">
+        <div class="card-body">
+          <div class="card-name">${h(ch.name||ch.handle)}</div>
+          <div class="card-stats">
+            <span class="stat-note">${ch.note_count} 篇筆記</span>
+            <span class="stat-total">${ch.video_count} 支</span>
+          </div>
+        </div>`;
+    }
+
+    card.addEventListener('click',e=>{
+      if(e.target.closest('[data-toggle]')){
+        expandedCards.delete('yt:'+ch.handle);
+        renderYTCards(); return;
+      }
+      if(e.target.closest('.ep-row')||e.target.closest('.month-header')||
+         e.target.closest('.read-toggle')||e.target.closest('.ep-dl-btn')) return;
+      if(!expandedCards.has('yt:'+ch.handle)){
+        expandedCards.add('yt:'+ch.handle);
+        renderYTCards();
+      }
+    });
+
+    wrap.appendChild(card);
+    container.appendChild(wrap);
+  }
+}
+
+function buildYTEpList(ch, videos){
+  const container=document.createElement('div');
+  container.className='ep-container open';
+
+  const months=groupByMonth(videos,'upload_date');
+  months.forEach(([mk,vids],idx)=>{
+    const mkey=`yt:${ch.handle}:${mk}`;
+    const isOpen=idx===0||expandedMonths.has(mkey);
+
+    const group=document.createElement('div');
+    group.className='month-group';
+
+    const mhead=document.createElement('div');
+    mhead.className='month-header';
+    mhead.innerHTML=`<span class="month-label">${monthLabel(mk)}</span><span class="month-chevron${isOpen?' open':''}">▼</span>`;
+    mhead.addEventListener('click',e=>{
+      e.stopPropagation();
+      const meps=group.querySelector('.month-eps');
+      const chev=mhead.querySelector('.month-chevron');
+      const nowOpen=meps.classList.toggle('open');
+      chev.classList.toggle('open',nowOpen);
+      if(nowOpen) expandedMonths.add(mkey); else expandedMonths.delete(mkey);
+    });
+
+    const meps=document.createElement('div');
+    meps.className='month-eps'+(isOpen?' open':'');
+
+    for(const v of vids){
+      meps.appendChild(buildYTRow(v));
+    }
+
+    group.appendChild(mhead);
+    group.appendChild(meps);
+    container.appendChild(group);
+  });
+
+  return container;
+}
+
+function buildYTRow(v){
+  const rs=readStatus[v.id]||'unread';
+  const row=document.createElement('div');
+  row.className='ep-row'+(rs==='read'?' read':'');
+
+  row.innerHTML=`
+    <img class="ep-thumb" src="${h(v.thumbnail)}" onerror="this.style.display='none'">
+    <div class="ep-info">
+      <div class="ep-title">${h(v.title_zh||v.title||v.id)}</div>
+      <div class="ep-meta">
+        ${v.upload_date?`<span>${h(v.upload_date)}</span>`:''}
+        ${v.duration?`<span>${h(v.duration)}</span>`:''}
+        <span class="badge ${v.has_note?'badge-note':'badge-nonote'}">${v.has_note?'筆記':'無筆記'}</span>
+        ${!v.has_local?`<span class="badge badge-new">未下載</span>`:''}
+      </div>
+    </div>
+    <button class="read-toggle" data-vid="${h(v.id)}">${rs==='read'?'已讀':'未讀'}</button>
+    ${!v.has_analysis?`<button class="ep-dl-btn" data-vid="${h(v.id)}" data-url="${h(v.url)}">↓ 處理</button>`:''}`;
+
+  row.querySelector('.read-toggle').addEventListener('click',e=>{
+    e.stopPropagation();
+    toggleReadYT(v.id, row, e.target);
+  });
+  const dlBtn=row.querySelector('.ep-dl-btn');
+  if(dlBtn){
+    dlBtn.addEventListener('click',e=>{
+      e.stopPropagation();
+      addToYTQueue(v.url, dlBtn);
+    });
+  }
+  row.addEventListener('click',()=>{
+    if(v.has_note||v.has_analysis) openDetailYT(v);
+  });
+  return row;
+}
+
+// ── Read toggle ───────────────────────────────────────────────
+async function toggleRead(epNum, row, btn){
+  if(!epNum) return;
+  const isRead=row.classList.contains('read');
+  const endpoint=isRead?'unread':'read';
+  try{
+    await api(`/api/reading-status/${epNum}/${endpoint}`,{method:'POST'});
+    readStatus[epNum]=isRead?'unread':'read';
+    row.classList.toggle('read',!isRead);
+    btn.textContent=isRead?'未讀':'已讀';
+  }catch(e){ alert('標記失敗：'+e.message); }
+}
+
+async function toggleReadYT(videoId, row, btn){
+  // YT uses note title as key — just toggle local state for now
+  const isRead=row.classList.contains('read');
+  row.classList.toggle('read',!isRead);
+  btn.textContent=isRead?'未讀':'已讀';
+  readStatus[videoId]=isRead?'unread':'read';
+}
+
+// ── Download ──────────────────────────────────────────────────
+async function startDownload(podId, epNum, title, btn){
+  btn.textContent='排隊中…'; btn.classList.add('queued');
+  try{
+    const{job_id}=await api('/api/download',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({podcast_id:podId,episode:epNum})
+    });
+    btn.textContent='下載中'; btn.dataset.job=job_id;
+    showJobToast(job_id, title);
+  }catch(e){
+    btn.textContent='↓ 下載'; btn.classList.remove('queued');
+    alert('下載失敗：'+e.message);
+  }
+}
+
+async function addToYTQueue(url, btn){
+  btn.textContent='加入中…'; btn.classList.add('queued');
+  try{
+    await api('/api/youtube/queue',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({url})
+    });
+    btn.textContent='已加入佇列'; btn.classList.add('done');
+  }catch(e){
+    btn.textContent='↓ 處理'; btn.classList.remove('queued');
+    alert('失敗：'+e.message);
+  }
+}
+
+// ── Job toast ─────────────────────────────────────────────────
+function showJobToast(jobId, title){
+  $('jt-title').textContent=title||'下載中';
+  $('jt-phase').textContent='準備中';
+  $('jt-bar').style.width='0%';
+  $('job-toast').classList.add('show');
+
+  if(jobPoll) clearInterval(jobPoll);
+  jobPoll=setInterval(async()=>{
+    try{
+      const job=await api(`/api/jobs/${jobId}`);
+      $('jt-phase').textContent=job.phase||job.status;
+      $('jt-bar').style.width=(job.progress||0)+'%';
+      if(job.status==='done'||job.status==='error'){
+        clearInterval(jobPoll); jobPoll=null;
+        setTimeout(()=>$('job-toast').classList.remove('show'),3000);
+      }
+    }catch(_){ clearInterval(jobPoll); jobPoll=null; }
+  },1000);
+}
+
+// ── Detail panel ──────────────────────────────────────────────
+async function openDetail(type, item, parent){
+  currentItem=item; currentType=type;
+  $('detail-overlay').classList.add('open');
+  $('tp-btn').style.display=item.has_transcript?'':'none';
+  $('tp-panel').classList.remove('open');
+  $('detail-audio').classList.remove('on');
+  setDetailView('note');
+
+  $('detail-title').textContent=item.title_zh||item.episode_label||item.id;
+  $('detail-meta').textContent=[parent?.name||item._pod, item.upload_date].filter(Boolean).join(' · ');
+
+  detailLoading(true);
+  try{
+    const note=await api(`/api/episodes/${item.id}/note`);
+    currentItem._note=note;
+    renderDetailNote();
+  }catch(e){ $('detail-body').innerHTML=`<div class="empty"><p style="color:var(--red)">${h(e.message)}</p></div>`; }
+  finally{ detailLoading(false); }
+}
+
+async function openDetailYT(v){
+  currentItem=v; currentType='yt';
+  $('detail-overlay').classList.add('open');
+  $('tp-btn').style.display=v.has_transcript?'':'none';
+  $('tp-panel').classList.remove('open');
+  $('detail-audio').classList.remove('on');
+  setDetailView('note');
+
+  $('detail-title').textContent=v.title_zh||v.title||v.id;
+  $('detail-meta').textContent=[v.channel, v.upload_date].filter(Boolean).join(' · ');
+
+  detailLoading(true);
+  try{
+    const note=await api(`/api/youtube/videos/${v.id}/note`);
+    currentItem._note=note;
+    renderDetailNote();
+  }catch(e){ $('detail-body').innerHTML=`<div class="empty"><p style="color:var(--red)">${h(e.message)}</p></div>`; }
+  finally{ detailLoading(false); }
+}
+
+$('detail-close').addEventListener('click',()=>{
+  $('detail-overlay').classList.remove('open');
+  currentItem=null;
+});
+$('detail-overlay').addEventListener('click',e=>{
+  if(e.target===$('detail-overlay')) $('detail-overlay').classList.remove('open');
+});
+
+// view buttons
+$('detail-view-btns').addEventListener('click',e=>{
+  const btn=e.target.closest('.dvbtn');
+  if(!btn) return;
+  if(btn.id==='tp-btn'){ toggleTP(); return; }
+  setDetailView(btn.dataset.v);
+  if(currentItem?._note||currentItem) renderDetailView();
+});
+
+function setDetailView(v){
+  currentView=v;
+  document.querySelectorAll('.dvbtn:not(#tp-btn)').forEach(b=>b.classList.toggle('active',b.dataset.v===v));
+}
+
+function renderDetailView(){
+  if(currentView==='note') renderDetailNote();
+  else if(currentView==='sections') renderDetailSections();
+  else renderDetailRaw();
+}
+
+// ── Note view: raw MD → marked ────────────────────────────────
+async function renderDetailNote(){
+  const item=currentItem;
+  if(!item) return;
+
+  // try raw MD endpoint for podcast items
+  if(currentType==='podcast' && item.id){
+    try{
+      const{markdown}=await api(`/api/episodes/${item.id}/note-raw`);
+      const body=markdown.replace(/^---\n[\s\S]*?\n---\n/,'');
+      const clean=body
+        .replace(/!\[\[([^\]]+)\]\]/g,'**[嵌入: $1]**')
+        .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g,'[$2](#)')
+        .replace(/\[\[([^\]]+)\]\]/g,'$1');
+      $('detail-body').innerHTML=`<div class="nwrap"><div class="md">${marked.parse(clean)}</div></div>`;
+      return;
+    }catch(_){}
+  }
+
+  // YT or fallback: render from parsed note data
+  const note=item._note;
+  if(!note){ $('detail-body').innerHTML=`<div class="empty"><p>無法取得筆記</p></div>`; return; }
+  renderFromParsed(note);
+}
+
+function renderFromParsed(n){
+  let html=`<div class="nwrap">`;
   if(n.tldr&&Object.keys(n.tldr).length){
-    html+=`<div class="tldr"><h3>TL;DR</h3>`;
+    html+=`<div class="tldr-card"><h3>TL;DR</h3>`;
     for(const[k,v]of Object.entries(n.tldr))
-      html+=`<div class="tldr-row"><span class="tldr-k">${h(k)}</span><span class="tldr-v">${h(v)}</span></div>`;
+      html+=`<div class="tldr-row"><span class="tldr-k">${h(k)}</span><span style="color:var(--text)">${h(v)}</span></div>`;
     html+=`</div>`;
   }
   if(n.sections?.length){
-    html+=`<div class="sec-grid">`;
+    html+=`<div class="sec-grid" style="margin-bottom:20px">`;
     for(const s of n.sections){
       const pts=(s.content_points||[]).filter(p=>p.trim());
       html+=`<div class="sec-card"><h4>${h(s.title)}${s.start_time?`<span class="ts-chip" data-ts="${h(s.start_time)}">${h(s.start_time)}</span>`:''}</h4>`;
@@ -370,56 +761,102 @@ function renderSections(){
       html+=`</div>`;
     }
     html+=`</div>`;
-  }else{
-    html+=`<div style="color:var(--text-muted);text-align:center;padding:40px;font-size:13px">此筆記無章節結構</div>`;
   }
   if(n.key_insights?.length){
-    html+=`<h2 style="font-size:15px;margin:26px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--border)">關鍵洞見</h2>`;
-    html+=n.key_insights.map(i=>`<div class="insight">${h(i)}</div>`).join('');
+    html+=`<div class="md" style="font-size:14px;font-weight:700;margin:20px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)">關鍵洞見</div>`;
+    html+=n.key_insights.map(i=>`<div class="insight-item">${h(i)}</div>`).join('');
+  }
+  if(n.data_table?.length){
+    html+=`<div class="md" style="font-size:14px;font-weight:700;margin:20px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)">關鍵數據速查</div>`;
+    html+=`<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr>
+      <th style="background:var(--surface2);padding:6px 10px;border:1px solid var(--border)">指標</th>
+      <th style="background:var(--surface2);padding:6px 10px;border:1px solid var(--border)">數值</th>
+      <th style="background:var(--surface2);padding:6px 10px;border:1px solid var(--border)">備註</th>
+    </tr></thead><tbody>`;
+    for(const r of n.data_table)
+      html+=`<tr><td style="padding:6px 10px;border:1px solid var(--border)">${h(r['指標']||'')}</td>
+        <td style="padding:6px 10px;border:1px solid var(--border)">${h(r['數值']||'')}</td>
+        <td style="padding:6px 10px;border:1px solid var(--border)">${h(r['備註']||'')}</td></tr>`;
+    html+=`</tbody></table>`;
   }
   html+=`</div>`;
-  $('content').innerHTML=html;
-  $('content').querySelectorAll('.ts-chip[data-ts]').forEach(el=>{
+  $('detail-body').innerHTML=html;
+  $('detail-body').querySelectorAll('.ts-chip[data-ts]').forEach(el=>{
     el.addEventListener('click',()=>seekAudio(el.dataset.ts));
   });
 }
 
-async function renderRaw(){
-  try{
-    const{markdown}=await apiFetch(`/api/episodes/${currentEp.id}/note-raw`);
-    $('content').innerHTML=`<div id="note-wrap"><pre style="white-space:pre-wrap;font-size:12px;line-height:1.7;font-family:monospace;color:var(--text-dim)">${h(markdown)}</pre></div>`;
-  }catch(e){
-    $('content').innerHTML=`<div id="note-wrap"><div style="color:var(--text-muted);font-size:13px">${h(e.message)}</div></div>`;
+function renderDetailSections(){
+  const note=currentItem?._note;
+  if(!note){ renderDetailNote(); return; }
+  let html=`<div class="nwrap">`;
+  if(note.tldr&&Object.keys(note.tldr).length){
+    html+=`<div class="tldr-card"><h3>TL;DR</h3>`;
+    for(const[k,v]of Object.entries(note.tldr))
+      html+=`<div class="tldr-row"><span class="tldr-k">${h(k)}</span><span style="color:var(--text)">${h(v)}</span></div>`;
+    html+=`</div>`;
+  }
+  if(note.sections?.length){
+    html+=`<div class="sec-grid">`;
+    for(const s of note.sections){
+      const pts=(s.content_points||[]).filter(p=>p.trim());
+      html+=`<div class="sec-card"><h4>${h(s.title)}${s.start_time?`<span class="ts-chip" data-ts="${h(s.start_time)}">${h(s.start_time)}</span>`:''}</h4>`;
+      if(pts.length) html+=`<ul>${pts.map(p=>`<li>${inline(p.replace(/^[-*]\s*/,''))}</li>`).join('')}</ul>`;
+      html+=`</div>`;
+    }
+    html+=`</div>`;
+  }else html+=`<div class="empty"><p>此筆記無章節結構</p></div>`;
+  html+=`</div>`;
+  $('detail-body').innerHTML=html;
+  $('detail-body').querySelectorAll('.ts-chip[data-ts]').forEach(el=>{
+    el.addEventListener('click',()=>seekAudio(el.dataset.ts));
+  });
+}
+
+async function renderDetailRaw(){
+  if(currentType==='podcast' && currentItem?.id){
+    try{
+      const{markdown}=await api(`/api/episodes/${currentItem.id}/note-raw`);
+      $('detail-body').innerHTML=`<div class="nwrap"><pre style="white-space:pre-wrap;font-size:12px;line-height:1.7;font-family:monospace;color:var(--text-dim)">${h(markdown)}</pre></div>`;
+      return;
+    }catch(e){
+      $('detail-body').innerHTML=`<div class="empty"><p style="color:var(--red)">${h(e.message)}</p></div>`;
+    }
+  } else {
+    $('detail-body').innerHTML=`<div class="empty"><p>YouTube 筆記無原始 MD</p></div>`;
   }
 }
 
+// ── Transcript ────────────────────────────────────────────────
 async function toggleTP(){
-  const panel=$('tp');
-  if(!panel.classList.contains('off')){panel.classList.add('off');return;}
-  panel.classList.remove('off');
-  const list=$('tp-list');
-  list.innerHTML='<div style="padding:10px;color:var(--text-muted);font-size:12px">載入中…</div>';
+  const panel=$('tp-panel');
+  if(panel.classList.contains('open')){panel.classList.remove('open');return;}
+  panel.classList.add('open');
+  $('tp-list').innerHTML='<div style="padding:10px;color:var(--text-muted);font-size:12px">載入中…</div>';
   try{
-    const data=await apiFetch(`/api/episodes/${currentEp.id}/transcript`);
-    list.innerHTML='';
+    const path=currentType==='podcast'
+      ? `/api/episodes/${currentItem.id}/transcript`
+      : `/api/youtube/videos/${currentItem.id}/transcript`;
+    const data=await api(path);
+    $('tp-list').innerHTML='';
     for(const seg of(data.segments||[])){
       const d=document.createElement('div');
       d.className='seg'; d.dataset.sec=seg.seconds;
       d.innerHTML=`<span class="seg-t">${h(seg.time)}</span><span class="seg-txt">${h(seg.text)}</span>`;
       d.addEventListener('click',()=>seekAudio(seg.time,seg.seconds));
-      list.appendChild(d);
+      $('tp-list').appendChild(d);
     }
   }catch(e){
-    list.innerHTML=`<div style="padding:10px;color:var(--red);font-size:12px">${h(e.message)}</div>`;
+    $('tp-list').innerHTML=`<div style="padding:10px;color:var(--red);font-size:12px">${h(e.message)}</div>`;
   }
 }
-$('tp-close').addEventListener('click',()=>$('tp').classList.add('off'));
 
+// ── Audio seek ────────────────────────────────────────────────
 function seekAudio(timeStr,seconds){
-  const aud=$('aud'),bar=$('audio-bar');
+  const aud=$('aud-bar'),bar=$('detail-audio');
   if(!aud.src||aud.src===location.href){
-    if(!currentEp) return;
-    aud.src=`/api/episodes/${currentEp.id}/audio`;
+    if(!currentItem||currentType!=='podcast') return;
+    aud.src=`/api/episodes/${currentItem.id}/audio`;
     bar.classList.add('on');
   }
   const s=seconds!==undefined?seconds:ts2s(timeStr);
@@ -432,25 +869,15 @@ function ts2s(t){
   return p.length===2?p[0]*60+p[1]:p[0]*3600+p[1]*60+p[2];
 }
 
-function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+// ── Inline markdown ───────────────────────────────────────────
 function inline(s){
   return s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
           .replace(/\*(.+?)\*/g,'<em>$1</em>')
           .replace(/`(.+?)`/g,'<code>$1</code>')
           .replace(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g,'<span style="color:var(--accent)">$1</span>');
 }
-function loading(on){$('loading').style.display=on?'block':'none'}
-function showEmpty(msg,sub=''){
-  $('content').innerHTML=`<div class="empty">
-    <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
-        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-    </svg>
-    <p>${h(msg)}</p>${sub?`<small>${h(sub)}</small>`:''}</div>`;
-}
-function showErr(msg){$('content').innerHTML=`<div class="empty"><p style="color:var(--red)">${h(msg)}</p></div>`}
+function detailLoading(on){$('detail-loading').style.display=on?'block':'none'}
 
-$('search').addEventListener('input',renderList);
 init();
 </script>
 </body>
