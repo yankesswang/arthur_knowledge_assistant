@@ -75,7 +75,12 @@ def generate_investment_note(data: dict, info: dict, pod_cfg: dict, today: str) 
     ]:
         val = tldr.get(key, "")
         if val:
-            lines.append(f"- **{label}**：{val}")
+            if isinstance(val, list):
+                lines.append(f"- **{label}**：")
+                for item in val:
+                    lines.append(f"    - {item}")
+            else:
+                lines.append(f"- **{label}**：{val}")
     lines.append("")
 
     # 節目資訊
@@ -181,13 +186,13 @@ def main():
         content = generate_investment_note(data, info, pod_cfg, today)
 
     safe_title = re.sub(r'[/\\:*?"<>|]', ' ', title_zh).strip()
-    safe_title = re.sub(r'\s+', ' ', safe_title)[:70]
-    note_path  = note_dir / f"{today} {safe_title}.md"
+    safe_title = re.sub(r'\s+', ' ', safe_title)[:120]
+    note_path  = note_dir / f"{safe_title}.md"
 
     # 避免覆蓋已存在的筆記
     if note_path.exists():
         ep = info.get("episode", "ep")
-        note_path = note_dir / f"{today} {safe_title} - {ep}.md"
+        note_path = note_dir / f"{safe_title} - {ep}.md"
 
     note_path.write_text(content, encoding="utf-8")
     (work_dir / "note_path.txt").write_text(str(note_path), encoding="utf-8")
