@@ -332,19 +332,38 @@ def start_download(body: dict):
     return {"job_id": job_id, "podcast_id": podcast_id, "episode": ep_norm}
 
 
+def _enrich_job(job: dict) -> dict:
+    """補上 title 欄位（從 info.json 取，供前端顯示用）"""
+    if job.get("title"):
+        return job
+    video_id = job.get("video_id", "")
+    if video_id:
+        from settings import YT_DATA_DIR
+        info_path = YT_DATA_DIR / video_id / "info.json"
+        if info_path.exists():
+            try:
+                title = json.loads(info_path.read_text()).get("title", "")
+                if title:
+                    return {**job, "title": title}
+            except Exception:
+                pass
+    return job
+
+
 @router.get("/api/jobs/{job_id}")
 def get_job(job_id: str):
     """查詢下載進度"""
     job = _jobs.get(job_id)
     if not job:
         raise HTTPException(404, f"找不到 job: {job_id}")
-    return job
+    return _enrich_job(job)
 
 
 @router.get("/api/jobs")
 def list_jobs():
     """列出所有 jobs（最新 20 個）"""
-    return sorted(_jobs.values(), key=lambda j: j["started_at"], reverse=True)[:20]
+    jobs = sorted(_jobs.values(), key=lambda j: j["started_at"], reverse=True)[:20]
+    return [_enrich_job(j) for j in jobs]
 
 
 
@@ -573,3 +592,16 @@ def highlight_episode(episode_id: str, body: dict):
         return {"status": "already_highlighted"}
     note_path.write_text(new_content, encoding="utf-8")
     return {"status": "ok"}
+
+
+@router.delete("/api/episodes/{episode_id}/note")
+def delete_episode_note(episode_id: str):
+    """刪除 Obsidian 筆記檔案"""
+    parts = episode_id.split("_", 1)
+    podcast_id    = parts[0]
+    episode_label = parts[1] if len(parts) == 2 else episode_id
+    note_path = find_note_for_episode(podcast_id, episode_label)
+    if not note_path:
+        raise HTTPException(404, "此集尚無筆記")
+    note_path.unlink()
+    return {"deleted": str(note_path)}

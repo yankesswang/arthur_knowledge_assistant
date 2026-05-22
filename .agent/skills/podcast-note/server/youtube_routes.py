@@ -378,12 +378,22 @@ def _yt_auto_process_once() -> int:
             _yt_remove_from_queue(video_id)
             continue
 
+        # try to find title from remote cache
+        video_title = ""
+        with _remote_cache_lock:
+            for cached in _remote_yt_cache.values():
+                match = next((v for v in cached if v.get("id") == video_id), None)
+                if match:
+                    video_title = match.get("title_zh") or match.get("title", "")
+                    break
+
         job_id = f"yt-auto-{video_id[:8]}-{str(uuid.uuid4())[:4]}"
         _jobs[job_id] = {
             "job_id": job_id,
             "type": "yt_auto_transcript",
             "video_id": video_id,
             "url": url,
+            "title": video_title,
             "status": "pending",
             "phase": "自動排隊中",
             "progress": 0,
@@ -658,6 +668,25 @@ def yt_highlight(video_id: str, body: dict):
     return {"status": "ok"}
 
 
+@router.delete("/api/youtube/videos/{video_id}/note")
+def yt_delete_note(video_id: str):
+    """刪除 Obsidian 筆記檔案"""
+    vid_dir = YT_DATA_DIR / video_id
+    note_ptr = vid_dir / "note_path.txt"
+    if not note_ptr.exists():
+        raise HTTPException(404, "此影片尚無筆記")
+    md_path = Path(note_ptr.read_text().strip())
+    if not md_path.exists():
+        raise HTTPException(404, "筆記檔案不存在")
+    md_path.unlink()
+    note_ptr.unlink()
+    # also remove analysis.json so it can be regenerated
+    analysis_path = vid_dir / "analysis.json"
+    if analysis_path.exists():
+        analysis_path.unlink()
+    return {"deleted": str(md_path)}
+
+
 @router.post("/api/youtube/videos/{video_id}/analyze")
 def yt_start_analyze(video_id: str):
     """觸發 claude -p 自動分析逐字稿 → 產生 analysis.json + Obsidian 筆記"""
@@ -830,12 +859,22 @@ def yt_add_to_queue(body: dict):
         with YT_QUEUE_FILE.open("a", encoding="utf-8") as f:
             f.write(url + "\n")
 
+    # try to find title from remote cache
+    setup_title = ""
+    with _remote_cache_lock:
+        for cached in _remote_yt_cache.values():
+            match = next((v for v in cached if v.get("id") == video_id), None)
+            if match:
+                setup_title = match.get("title_zh") or match.get("title", "")
+                break
+
     job_id = f"yt-setup-{video_id[:8]}-{str(uuid.uuid4())[:4]}"
     _jobs[job_id] = {
         "job_id":     job_id,
         "type":       "yt_setup",
         "video_id":   video_id,
         "url":        url,
+        "title":      setup_title,
         "status":     "pending",
         "phase":      "排隊中",
         "progress":   0,

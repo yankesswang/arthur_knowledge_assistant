@@ -39,7 +39,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:32px}
 .source-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .2s;position:relative}
 .source-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
-.source-card.expanded{border-color:var(--accent)}
+.source-card.expanded{border-color:var(--accent);overflow:visible}
 .card-art{width:100%;aspect-ratio:1;object-fit:cover;background:var(--surface2);display:block}
 .card-art-yt{width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--surface2);display:block}
 .card-body{padding:10px 12px 12px}
@@ -61,6 +61,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .month-chevron.open{transform:rotate(180deg)}
 .month-eps{display:none}
 .month-eps.open{display:block}
+.month-more-btn{display:block;width:100%;padding:10px 14px;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-dim);border:none;border-top:1px solid var(--border);cursor:pointer;text-align:center;transition:background .15s}
+.month-more-btn:hover{background:#3a3270}
 
 /* Episode row */
 .ep-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
@@ -176,18 +178,13 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 #detail-panel.fullscreen{width:100vw!important}
 #detail-expand{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:15px;padding:0 4px;flex-shrink:0;transition:color .15s}
 #detail-expand:hover{color:var(--text)}
+#detail-delete-note{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:15px;padding:0 4px;flex-shrink:0;transition:color .15s}
+#detail-delete-note:hover{color:var(--red)}
 
 /* Empty */
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:10px;color:var(--text-muted)}
 .empty p{font-size:14px}
 
-/* Download job toast */
-#job-toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:12px;z-index:500;min-width:240px;display:none}
-#job-toast.show{display:block}
-#job-toast .jt-title{font-weight:700;margin-bottom:4px}
-#job-toast .jt-phase{color:var(--text-dim)}
-#job-toast .jt-bar-wrap{height:3px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden}
-#job-toast .jt-bar{height:100%;background:var(--accent);transition:width .3s}
 
 /* Responsive */
 @media(max-width:600px){
@@ -245,6 +242,47 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .inbox-read-btn:hover{background:var(--green);color:#000}
 .inbox-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:200px;gap:8px;color:var(--text-muted)}
 .inbox-empty p{font-size:14px}
+
+/* ── Jobs Dashboard ── */
+#jobs-fab{position:fixed;bottom:24px;left:24px;z-index:400;width:42px;height:42px;border-radius:50%;background:var(--surface);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 4px 16px rgba(0,0,0,.3);transition:all .2s}
+#jobs-fab:hover{border-color:var(--accent);transform:scale(1.05)}
+#jobs-fab .fab-badge{position:absolute;top:-4px;right:-4px;background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:1px 4px;border-radius:8px;min-width:14px;text-align:center;display:none}
+#jobs-panel{position:fixed;bottom:78px;left:24px;z-index:400;width:340px;max-height:70vh;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.4);display:none;flex-direction:column;overflow:hidden}
+#jobs-panel.open{display:flex}
+#jobs-panel-head{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#jobs-panel-head span{font-size:12px;font-weight:700;color:var(--text-dim)}
+#jobs-panel-head button{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:0 2px}
+#jobs-panel-head button:hover{color:var(--text)}
+#jobs-list{overflow-y:auto;padding:6px 0;flex:1}
+#jobs-list::-webkit-scrollbar{width:4px}
+#jobs-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.job-row{padding:8px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+.job-row:last-child{border-bottom:none}
+.job-row:hover{background:var(--surface2)}
+.job-title{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between}
+.job-title-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.job-title-text:hover{color:var(--accent)}
+.job-log-btn{font-size:9px;color:var(--text-muted);margin-left:6px;flex-shrink:0;padding:1px 4px;border-radius:3px;border:1px solid transparent;transition:all .1s}
+.job-log-btn:hover{border-color:var(--border);color:var(--text)}
+.job-row.expanded .job-log-btn{border-color:var(--border);color:var(--text)}
+.job-meta{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-dim)}
+.job-phase{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.job-bar-wrap{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:5px;cursor:pointer}
+.job-bar{height:100%;border-radius:2px;transition:width .4s}
+.job-bar.running{background:var(--accent);animation:job-pulse 1.5s ease-in-out infinite}
+.job-bar.done{background:var(--green)}
+.job-bar.error{background:var(--red)}
+@keyframes job-pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.job-log{display:none;margin-top:6px;background:var(--bg);border-radius:4px;padding:6px 8px;max-height:160px;overflow-y:auto;font-size:10px;font-family:monospace;color:var(--text-dim);line-height:1.5}
+.job-log::-webkit-scrollbar{width:3px}
+.job-log::-webkit-scrollbar-thumb{background:var(--border)}
+.job-row.expanded .job-log{display:block}
+.job-type-badge{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;white-space:nowrap}
+.jt-transcript{background:#1a2535;color:#7eb8f7}
+.jt-analyze{background:var(--accent-dim);color:var(--accent)}
+.jt-download{background:#2a1f35;color:#c084fc}
+.jt-auto{background:#1f2a1f;color:#86efac}
+#jobs-empty{padding:24px;text-align:center;color:var(--text-muted);font-size:12px}
 
 /* ── Highlight mode ── */
 #hl-mode-btn.active{background:var(--yellow)!important;border-color:var(--yellow)!important;color:#000!important}
@@ -325,6 +363,7 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2499;outline:2px solid #fbb
         <div id="detail-title"></div>
         <div id="detail-meta"></div>
       </div>
+      <button id="detail-delete-note" title="刪除筆記" style="display:none">🗑</button>
       <button id="detail-expand" title="全螢幕">⛶</button>
       <button id="detail-close">✕</button>
     </div>
@@ -351,12 +390,22 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2499;outline:2px solid #fbb
   </div>
 </div>
 
-<!-- Job toast -->
-<div id="job-toast">
-  <div class="jt-title" id="jt-title"></div>
-  <div class="jt-phase" id="jt-phase"></div>
-  <div class="jt-bar-wrap"><div class="jt-bar" id="jt-bar" style="width:0%"></div></div>
+<!-- Jobs Dashboard FAB -->
+<div id="jobs-fab" title="Jobs Dashboard">
+  ⚙️
+  <span class="fab-badge" id="jobs-fab-badge"></span>
 </div>
+<div id="jobs-panel">
+  <div id="jobs-panel-head">
+    <span>Jobs</span>
+    <div style="display:flex;gap:6px">
+      <button id="jobs-clear-done" title="清除已完成">清除已完成</button>
+      <button onclick="$('jobs-panel').classList.remove('open')">✕</button>
+    </div>
+  </div>
+  <div id="jobs-list"><div id="jobs-empty">沒有進行中的任務</div></div>
+</div>
+
 
 <script>
 const $=id=>document.getElementById(id);
@@ -371,6 +420,8 @@ let inboxSort='pub_date'; // 'pub_date' | 'note_created'
 const analyzingIds=new Set(); // episodeId or 'yt:videoId' currently running
 const expandedCards=new Set();
 const expandedMonths=new Set(); // key: "cardId:monthKey"
+const visibleMonthCounts=new Map();
+const MONTH_BATCH=3;
 
 // ── Helpers ───────────────────────────────────────────────────
 function avatarPlaceholder(name){
@@ -397,7 +448,9 @@ async function api(path,opts){
 }
 function monthKey(dateStr){
   if(!dateStr) return '未知日期';
-  return dateStr.slice(0,7); // "YYYY-MM"
+  if(dateStr.length===8 && /^\d{8}$/.test(dateStr))
+    return dateStr.slice(0,4)+'-'+dateStr.slice(4,6); // YYYYMMDD → YYYY-MM
+  return dateStr.slice(0,7); // YYYY-MM-DD → YYYY-MM
 }
 function monthLabel(key){
   if(key==='未知日期') return '未知日期';
@@ -412,6 +465,24 @@ function groupByMonth(items, dateField='upload_date'){
   }
   // sort months desc
   return Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0]));
+}
+function visibleMonthCount(cardKey, totalMonths){
+  if(!expandedCards.has(cardKey)) return 0;
+  return Math.min(visibleMonthCounts.get(cardKey)||MONTH_BATCH, totalMonths);
+}
+function advanceChannelMonths(cardKey, totalMonths, renderFn){
+  if(totalMonths<=0) return;
+  const current=visibleMonthCount(cardKey, totalMonths);
+  if(!expandedCards.has(cardKey)){
+    for(const k of [...expandedMonths]) if(k.startsWith(cardKey+':')) expandedMonths.delete(k);
+    expandedCards.add(cardKey);
+    visibleMonthCounts.set(cardKey, Math.min(MONTH_BATCH, totalMonths));
+  }else if(current<totalMonths){
+    visibleMonthCounts.set(cardKey, Math.min(current+MONTH_BATCH, totalMonths));
+  }else{
+    return;
+  }
+  renderFn();
 }
 
 // ── Inbox ─────────────────────────────────────────────────────
@@ -613,17 +684,20 @@ function renderPodcastCards(){
     const filtered=q
       ? allEps.filter(e=>(e.title_zh||'').toLowerCase().includes(q)||(e.episode_label||'').toLowerCase().includes(q))
       : allEps;
+    const podKey=pod.id;
+    const monthCount=groupByMonth(filtered,'upload_date').length;
+    const visibleMonths=visibleMonthCount(podKey, monthCount);
 
     const wrap=document.createElement('div');
-    wrap.style.gridColumn=expandedCards.has(pod.id)?'1 / -1':'';
+    wrap.style.gridColumn=expandedCards.has(podKey)?'1 / -1':'';
 
     const card=document.createElement('div');
-    card.className='source-card'+(expandedCards.has(pod.id)?' expanded':'');
+    card.className='source-card'+(expandedCards.has(podKey)?' expanded':'');
     card.dataset.id=pod.id;
 
     const noteCount=allEps.filter(e=>e.has_note).length;
 
-    if(expandedCards.has(pod.id)){
+    if(expandedCards.has(podKey)){
       // expanded layout: horizontal header + episode list
       card.innerHTML=`
         <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;cursor:pointer" data-toggle="${pod.id}">
@@ -637,9 +711,9 @@ function renderPodcastCards(){
             </div>
           </div>
           <button class="ch-remove-btn" data-id="${h(pod.id)}" title="移除頻道"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
-          <span style="font-size:18px;color:var(--text-muted)">⌃</span>
+          <span style="font-size:18px;color:var(--text-muted)">${visibleMonths<monthCount?'+':'✓'}</span>
         </div>`;
-      const epContainer=buildPodEpList(pod, filtered);
+      const epContainer=buildPodEpList(pod, filtered, visibleMonths);
       card.appendChild(epContainer);
     } else {
       card.innerHTML=`
@@ -660,13 +734,16 @@ function renderPodcastCards(){
         removePodcast(id); return;
       }
       if(e.target.closest('[data-toggle]')){
-        expandedCards.delete(pod.id);
+        expandedCards.delete(podKey);
         renderPodcastCards(); return;
       }
       if(e.target.closest('.ep-row')||e.target.closest('.month-header')||
-         e.target.closest('.read-toggle')||e.target.closest('.ep-dl-btn')||e.target.closest('.ep-note-btn')) return;
-      if(!expandedCards.has(pod.id)){
-        expandedCards.add(pod.id);
+         e.target.closest('.read-toggle')||e.target.closest('.ep-dl-btn')||e.target.closest('.ep-note-btn')||
+         e.target.closest('.month-more-btn')) return;
+      if(!expandedCards.has(podKey)){
+        for(const k of [...expandedMonths]) if(k.startsWith(podKey+':')) expandedMonths.delete(k);
+        expandedCards.add(podKey);
+        visibleMonthCounts.set(podKey, Math.min(MONTH_BATCH, monthCount));
         renderPodcastCards();
       }
     });
@@ -676,32 +753,34 @@ function renderPodcastCards(){
   }
 }
 
-function buildPodEpList(pod, episodes){
+function buildPodEpList(pod, episodes, visibleMonths){
   const container=document.createElement('div');
   container.className='ep-container open';
 
   const months=groupByMonth(episodes,'upload_date');
+
   months.forEach(([mk, eps], idx)=>{
     const mkey=`${pod.id}:${mk}`;
-    const isOpen=idx===0 || expandedMonths.has(mkey); // first month open by default
+    const isVisible=idx<visibleMonths;
+    const isOpen=isVisible;
 
     const group=document.createElement('div');
     group.className='month-group';
+    if(!isVisible) return;
 
     const mhead=document.createElement('div');
     mhead.className='month-header';
     mhead.innerHTML=`<span class="month-label">${monthLabel(mk)}</span><span class="month-chevron${isOpen?' open':''}">▼</span>`;
+    const meps=document.createElement('div');
+    meps.className='month-eps'+(isOpen?' open':'');
+
     mhead.addEventListener('click',e=>{
       e.stopPropagation();
-      const meps=group.querySelector('.month-eps');
       const chev=mhead.querySelector('.month-chevron');
       const nowOpen=meps.classList.toggle('open');
       chev.classList.toggle('open',nowOpen);
       if(nowOpen) expandedMonths.add(mkey); else expandedMonths.delete(mkey);
     });
-
-    const meps=document.createElement('div');
-    meps.className='month-eps'+(isOpen?' open':'');
 
     for(const ep of eps){
       meps.appendChild(buildPodEpRow(ep, pod));
@@ -711,6 +790,19 @@ function buildPodEpList(pod, episodes){
     group.appendChild(meps);
     container.appendChild(group);
   });
+
+  if(visibleMonths < months.length){
+    const remaining=months.length-visibleMonths;
+    const moreBtn=document.createElement('button');
+    moreBtn.className='month-more-btn';
+    moreBtn.textContent=`展開更早 ${Math.min(MONTH_BATCH,remaining)} 個月（還有 ${remaining} 個月）`;
+    moreBtn.addEventListener('click',e=>{
+      e.stopPropagation();
+      visibleMonthCounts.set(pod.id, visibleMonths+MONTH_BATCH);
+      renderPodcastCards();
+    });
+    container.appendChild(moreBtn);
+  }
 
   return container;
 }
@@ -775,14 +867,17 @@ function renderYTCards(){
     const filtered=q
       ? allVids.filter(v=>(v.title_zh||v.title||'').toLowerCase().includes(q))
       : allVids;
+    const chKey='yt:'+ch.handle;
+    const monthCount=groupByMonth(filtered,'upload_date').length;
+    const visibleMonths=visibleMonthCount(chKey, monthCount);
 
     const wrap=document.createElement('div');
-    wrap.style.gridColumn=expandedCards.has('yt:'+ch.handle)?'1 / -1':'';
+    wrap.style.gridColumn=expandedCards.has(chKey)?'1 / -1':'';
 
     const card=document.createElement('div');
-    card.className='source-card'+(expandedCards.has('yt:'+ch.handle)?' expanded':'');
+    card.className='source-card'+(expandedCards.has(chKey)?' expanded':'');
 
-    if(expandedCards.has('yt:'+ch.handle)){
+    if(expandedCards.has(chKey)){
       card.innerHTML=`
         <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;cursor:pointer" data-toggle="yt:${h(ch.handle)}">
           <img class="yt-avatar-img" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--surface2)">
@@ -795,10 +890,10 @@ function renderYTCards(){
             </div>
           </div>
           <button class="ch-remove-btn" data-handle="${h(ch.handle)}" title="移除頻道"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
-          <span style="font-size:18px;color:var(--text-muted)">⌃</span>
+          <span style="font-size:18px;color:var(--text-muted)">${visibleMonths<monthCount?'+':'✓'}</span>
         </div>`;
       setImgSrc(card.querySelector('.yt-avatar-img'), ytImg(ch.avatar), avatarPlaceholder(ch.name||ch.handle));
-      const epContainer=buildYTEpList(ch, filtered);
+      const epContainer=buildYTEpList(ch, filtered, visibleMonths);
       card.appendChild(epContainer);
     } else {
       card.innerHTML=`
@@ -820,13 +915,16 @@ function renderYTCards(){
         removeYTChannel(handle); return;
       }
       if(e.target.closest('[data-toggle]')){
-        expandedCards.delete('yt:'+ch.handle);
+        expandedCards.delete(chKey);
         renderYTCards(); return;
       }
       if(e.target.closest('.ep-row')||e.target.closest('.month-header')||
-         e.target.closest('.read-toggle')||e.target.closest('.ep-dl-btn')||e.target.closest('.ep-note-btn')) return;
-      if(!expandedCards.has('yt:'+ch.handle)){
-        expandedCards.add('yt:'+ch.handle);
+         e.target.closest('.read-toggle')||e.target.closest('.ep-dl-btn')||e.target.closest('.ep-note-btn')||
+         e.target.closest('.month-more-btn')) return;
+      if(!expandedCards.has(chKey)){
+        for(const k of [...expandedMonths]) if(k.startsWith(chKey+':')) expandedMonths.delete(k);
+        expandedCards.add(chKey);
+        visibleMonthCounts.set(chKey, Math.min(MONTH_BATCH, monthCount));
         renderYTCards();
       }
     });
@@ -836,32 +934,34 @@ function renderYTCards(){
   }
 }
 
-function buildYTEpList(ch, videos){
+function buildYTEpList(ch, videos, visibleMonths){
   const container=document.createElement('div');
   container.className='ep-container open';
 
   const months=groupByMonth(videos,'upload_date');
+
   months.forEach(([mk,vids],idx)=>{
     const mkey=`yt:${ch.handle}:${mk}`;
-    const isOpen=idx===0||expandedMonths.has(mkey);
+    const isVisible=idx<visibleMonths;
+    const isOpen=isVisible;
 
     const group=document.createElement('div');
     group.className='month-group';
+    if(!isVisible) return;
 
     const mhead=document.createElement('div');
     mhead.className='month-header';
     mhead.innerHTML=`<span class="month-label">${monthLabel(mk)}</span><span class="month-chevron${isOpen?' open':''}">▼</span>`;
+    const meps=document.createElement('div');
+    meps.className='month-eps'+(isOpen?' open':'');
+
     mhead.addEventListener('click',e=>{
       e.stopPropagation();
-      const meps=group.querySelector('.month-eps');
       const chev=mhead.querySelector('.month-chevron');
       const nowOpen=meps.classList.toggle('open');
       chev.classList.toggle('open',nowOpen);
       if(nowOpen) expandedMonths.add(mkey); else expandedMonths.delete(mkey);
     });
-
-    const meps=document.createElement('div');
-    meps.className='month-eps'+(isOpen?' open':'');
 
     for(const v of vids){
       meps.appendChild(buildYTRow(v));
@@ -871,6 +971,19 @@ function buildYTEpList(ch, videos){
     group.appendChild(meps);
     container.appendChild(group);
   });
+
+  if(visibleMonths < months.length){
+    const remaining=months.length-visibleMonths;
+    const moreBtn=document.createElement('button');
+    moreBtn.className='month-more-btn';
+    moreBtn.textContent=`展開更早 ${Math.min(MONTH_BATCH,remaining)} 個月（還有 ${remaining} 個月）`;
+    moreBtn.addEventListener('click',e=>{
+      e.stopPropagation();
+      visibleMonthCounts.set('yt:'+ch.handle, visibleMonths+MONTH_BATCH);
+      renderYTCards();
+    });
+    container.appendChild(moreBtn);
+  }
 
   return container;
 }
@@ -1135,26 +1248,24 @@ async function addToYTQueue(url, btn){
   }
 }
 
-// ── Job toast ─────────────────────────────────────────────────
+// ── Job toast → replaced by dashboard ────────────────────────
 function showJobToast(jobId, title){
-  $('jt-title').textContent=title||'下載中';
-  $('jt-phase').textContent='準備中';
-  $('jt-bar').style.width='0%';
-  $('job-toast').classList.add('show');
+  refreshJobsDash();
+  startJobsDashPoll();
+  // auto-open dashboard so user sees it
+  $('jobs-panel').classList.add('open');
 
   if(jobPoll) clearInterval(jobPoll);
   jobPoll=setInterval(async()=>{
     try{
       const job=await api(`/api/jobs/${jobId}`);
-      $('jt-phase').textContent=job.phase||job.status;
-      $('jt-bar').style.width=(job.progress||0)+'%';
       if(job.status==='done'||job.status==='error'){
         clearInterval(jobPoll); jobPoll=null;
         api('/api/youtube/channels').then(updated=>{ytChannels=updated;renderYTCards();}).catch(()=>{});
         if(job.status==='done'){
           api('/api/inbox').then(items=>{inboxItems=items;renderInbox();}).catch(()=>{});
         }
-        setTimeout(()=>$('job-toast').classList.remove('show'),3000);
+        refreshJobsDash();
       }
     }catch(_){ clearInterval(jobPoll); jobPoll=null; }
   },1000);
@@ -1169,6 +1280,7 @@ async function openDetail(type, item, parent){
   $('detail-audio').classList.remove('on');
   setDetailView('note');
   updateCopyBtns();
+  dismissInboxByEp(item.ep_num||item.episode_label?.replace('EP',''), null);
 
   $('detail-title').textContent=item.title_zh||item.episode_label||item.id;
   $('detail-meta').textContent=[parent?.name||item._pod, item.upload_date].filter(Boolean).join(' · ');
@@ -1202,6 +1314,7 @@ async function openDetailYT(v){
   $('detail-audio').classList.remove('on');
   setDetailView('note');
   updateCopyBtns();
+  dismissInboxByEp(null, v.id);
 
   $('detail-title').textContent=v.title_zh||v.title||v.id;
   $('detail-meta').textContent=[v.channel, v.upload_date].filter(Boolean).join(' · ');
@@ -1286,7 +1399,31 @@ function updateCopyBtns(){
   $('copy-note-btn').style.display=hasNote?'':'none';
   $('copy-tp-btn').style.display=hasTp?'':'none';
   $('hl-mode-btn').style.display=hasNote&&currentView==='note'?'':'none';
+  $('detail-delete-note').style.display=hasNote?'':'none';
 }
+
+$('detail-delete-note').addEventListener('click',async()=>{
+  if(!currentItem) return;
+  const title=currentItem.title_zh||currentItem.episode_label||currentItem.id||'此筆記';
+  if(!confirm(`刪除「${title}」的筆記？此操作無法復原。`)) return;
+  const url=currentType==='podcast'
+    ? `/api/episodes/${encodeURIComponent(currentItem.id)}/note`
+    : `/api/youtube/videos/${encodeURIComponent(currentItem.id)}/note`;
+  try{
+    await api(url,{method:'DELETE'});
+    $('detail-overlay').classList.remove('open');
+    setHlMode(false); currentItem=null;
+    if(currentType==='podcast'){
+      const updated=await api('/api/podcasts');
+      podcasts=updated; renderPodcastCards();
+    }else{
+      const updated=await api('/api/youtube/channels');
+      ytChannels=updated; renderYTCards();
+    }
+    const items=await api('/api/inbox');
+    inboxItems=items; renderInbox();
+  }catch(e){ alert('刪除失敗：'+e.message); }
+});
 
 function setDetailView(v){
   currentView=v;
@@ -1674,6 +1811,144 @@ $('detail-body').addEventListener('mouseup',async e=>{
     console.warn('highlight err:', err.message, '| text:', text);
     if(!err.message.includes('找不到')&&!err.message.includes('422')) alert('Highlight 失敗：'+err.message);
   }
+});
+
+// ── Jobs Dashboard ───────────────────────────────────────────
+let _allJobs=[];
+let _jobsDashPoll=null;
+
+function _jobTypeInfo(job){
+  const t=job.type||'';
+  if(t==='yt_analyze')         return {label:'產生筆記',cls:'jt-analyze'};
+  if(t==='yt_setup')           return {label:'抓逐字稿',cls:'jt-transcript'};
+  if(t==='yt_auto_transcript') return {label:'自動逐字稿',cls:'jt-auto'};
+  if(job.podcast_id)           return {label:'Podcast',cls:'jt-download'};
+  return {label:'任務',cls:'jt-analyze'};
+}
+
+function _jobTitle(job){
+  if(job.episode) return `${job.podcast||job.podcast_id||''} ${job.episode}`.trim();
+  if(job.video_id){
+    for(const ch of ytChannels){
+      const v=(ch.videos||[]).find(v=>v.id===job.video_id);
+      if(v) return v.title_zh||v.title||job.video_id;
+    }
+    if(job.title) return job.title;
+    return job.video_id;
+  }
+  if(job.title) return job.title;
+  return job.job_id;
+}
+
+function _timeAgo(ts){
+  const s=Math.floor(Date.now()/1000-ts);
+  if(s<60) return `${s}s ago`;
+  if(s<3600) return `${Math.floor(s/60)}m ago`;
+  return `${Math.floor(s/3600)}h ago`;
+}
+
+const _expandedJobs=new Set();
+
+function renderJobsDash(){
+  const active=_allJobs.filter(j=>j.status==='pending'||j.status==='running');
+  const recent=_allJobs.filter(j=>j.status==='done'||j.status==='error')
+    .sort((a,b)=>(b.finished_at||0)-(a.finished_at||0)).slice(0,8);
+  const shown=[...active,...recent];
+
+  const badge=$('jobs-fab-badge');
+  if(active.length){badge.textContent=active.length;badge.style.display='block';}
+  else badge.style.display='none';
+
+  const list=$('jobs-list');
+  if(!shown.length){list.innerHTML='<div id="jobs-empty">沒有任務紀錄</div>';return;}
+
+  // preserve scroll position
+  const scrollTop=list.scrollTop;
+  list.innerHTML='';
+
+  for(const job of shown){
+    const{label,cls}=_jobTypeInfo(job);
+    const title=_jobTitle(job);
+    const pct=job.progress||0;
+    const isActive=job.status==='pending'||job.status==='running';
+    const barCls=isActive?'running':job.status==='done'?'done':'error';
+    const statusIcon=job.status==='done'?'✓ ':job.status==='error'?'✗ ':isActive?'⏳ ':'';
+    const ago=job.finished_at?_timeAgo(job.finished_at):'';
+    const isExpanded=_expandedJobs.has(job.job_id);
+    const logs=(job.log||[]).slice(-80); // last 80 lines
+
+    const canOpen=job.status==='done';
+    const row=document.createElement('div');
+    row.className='job-row'+(isExpanded?' expanded':'');
+    row.innerHTML=`
+      <div class="job-title">
+        <span class="job-title-text" style="${canOpen?'cursor:pointer':''}">${statusIcon}${h(title)}</span>
+        <span class="job-log-btn" title="查看 log">log</span>
+      </div>
+      <div class="job-meta">
+        <span class="job-type-badge ${cls}">${label}</span>
+        <span class="job-phase">${h(job.phase||job.status)}</span>
+        ${ago?`<span style="margin-left:auto">${ago}</span>`:`<span style="margin-left:auto">${pct}%</span>`}
+      </div>
+      <div class="job-bar-wrap"><div class="job-bar ${barCls}" style="width:${isActive?pct:100}%"></div></div>
+      <div class="job-log">${logs.length?logs.map(l=>h(l)).join('<br>'):'（尚無 log）'}</div>`;
+
+    // 點標題文字 → 開 detail panel
+    row.querySelector('.job-title-text').addEventListener('click',async e=>{
+      e.stopPropagation();
+      if(!canOpen) return;
+      $('jobs-panel').classList.remove('open');
+      if(job.video_id){
+        // find video in ytChannels
+        let v=null;
+        for(const ch of ytChannels){ v=(ch.videos||[]).find(v=>v.id===job.video_id); if(v) break; }
+        if(!v) v={id:job.video_id,title_zh:title,title,has_note:true,has_analysis:true,has_transcript:true,url:`https://www.youtube.com/watch?v=${job.video_id}`};
+        openDetailYT(v);
+      }else if(job.podcast_id){
+        const pod=podcasts.find(p=>p.id===job.podcast_id)||{id:job.podcast_id,name:job.podcast||job.podcast_id,episodes:[]};
+        const ep=(pod.episodes||[]).find(e=>e.episode_label===job.episode)||{
+          id:`${job.podcast_id}_${job.episode}`,title_zh:title,episode_label:job.episode,has_note:true,has_transcript:true,_pod:pod.name
+        };
+        openDetail('podcast',ep,pod);
+      }
+    });
+
+    // 點 log 按鈕 → 展開/收起 log
+    row.querySelector('.job-log-btn').addEventListener('click',e=>{
+      e.stopPropagation();
+      if(_expandedJobs.has(job.job_id)) _expandedJobs.delete(job.job_id);
+      else _expandedJobs.add(job.job_id);
+      renderJobsDash();
+    });
+
+    list.appendChild(row);
+  }
+  list.scrollTop=scrollTop;
+}
+
+async function refreshJobsDash(){
+  try{_allJobs=await api('/api/jobs');renderJobsDash();}catch(_){}
+}
+
+function startJobsDashPoll(){
+  if(_jobsDashPoll) return;
+  _jobsDashPoll=setInterval(async()=>{
+    const hasActive=_allJobs.some(j=>j.status==='pending'||j.status==='running');
+    const panelOpen=$('jobs-panel').classList.contains('open');
+    if(hasActive||panelOpen) await refreshJobsDash();
+    if(!hasActive&&!panelOpen){clearInterval(_jobsDashPoll);_jobsDashPoll=null;}
+  },2000);
+}
+
+$('jobs-fab').addEventListener('click',()=>{
+  $('jobs-panel').classList.toggle('open');
+  refreshJobsDash();
+  startJobsDashPoll();
+});
+
+$('jobs-clear-done')?.addEventListener('click',()=>{
+  _allJobs=_allJobs.filter(j=>j.status==='pending'||j.status==='running');
+  renderJobsDash();
 });
 
 // ── Resize & Fullscreen ───────────────────────────────────────
