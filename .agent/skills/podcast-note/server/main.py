@@ -4,6 +4,7 @@ Podcast Note Viewer — FastAPI backend
 資料來源：Obsidian 投資筆記（.md）+ data/episodes（音頻、逐字稿）
 """
 
+import contextlib
 import json
 import os
 import re
@@ -1796,6 +1797,39 @@ def get_note_raw(episode_id: str):
     if not note_path:
         raise HTTPException(404, "此集尚無筆記")
     return {"markdown": note_path.read_text(encoding="utf-8"), "path": str(note_path)}
+
+
+def _backfill_avatars():
+    """啟動時在背景補抓所有缺 avatar 的 YT 頻道。"""
+    if not YT_CHANNEL_CFG.exists():
+        return
+    cfg = json.loads(YT_CHANNEL_CFG.read_text())
+    missing = [ch for ch in cfg.get("channels", []) if not ch.get("avatar")]
+    if not missing:
+        return
+    def _run():
+        for ch in missing:
+            handle = ch.get("handle", "")
+            if not handle:
+                continue
+            avatar = _yt_fetch_channel_avatar(handle)
+            print(f"[avatar] {handle} → {'ok' if avatar else 'not found'}")
+    threading.Thread(target=_run, daemon=True).start()
+
+
+@contextlib.asynccontextmanager
+async def lifespan(_app):
+    _backfill_avatars()
+    yield
+
+app.router.lifespan_context = lifespan
+
+
+@app.post("/api/youtube/channels/refresh-avatars")
+def yt_refresh_avatars():
+    """手動觸發補抓所有缺 avatar 的頻道（背景執行）。"""
+    _backfill_avatars()
+    return {"status": "started"}
 
 
 if STATIC_DIR.exists():

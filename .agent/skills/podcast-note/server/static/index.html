@@ -28,8 +28,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 #nav-search svg{position:absolute;left:8px;top:50%;transform:translateY(-50%);opacity:.4;pointer-events:none}
 
 /* ── PAGE WRAPPER ── */
-#page{display:none;padding:24px 20px 60px;max-width:1200px;margin:0 auto}
-#page.active{display:block}
+.page{display:none;padding:24px 20px 60px;max-width:1200px;margin:0 auto}
+.page.active{display:block}
 
 /* ── CARDS GRID ── */
 .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:32px}
@@ -243,6 +243,12 @@ const expandedCards=new Set();
 const expandedMonths=new Set(); // key: "cardId:monthKey"
 
 // ── Helpers ───────────────────────────────────────────────────
+function avatarPlaceholder(name){
+  const initials=(name||'?').replace(/[^a-zA-Z一-鿿]/g,' ').trim().split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'?';
+  const hue=Math.abs([...name].reduce((a,c)=>a+c.charCodeAt(0),0))%360;
+  const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><rect width='80' height='80' fill='hsl(${hue},35%,25%)'/><text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='28' font-weight='700' fill='hsl(${hue},60%,75%)'>${initials}</text></svg>`;
+  return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+}
 const h=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 async function api(path,opts){
   const r=await fetch(path,opts);
@@ -280,6 +286,16 @@ async function init(){
   api('/api/youtube/channels').then(chs=>{
     ytChannels=chs;
     renderYTCards();
+    // 若有缺 avatar，背景補抓，8 秒後重新 render 一次
+    const missing=chs.filter(c=>c.handle&&!c.avatar);
+    if(missing.length){
+      api('/api/youtube/channels/refresh-avatars',{method:'POST'}).catch(()=>{});
+      setTimeout(()=>{
+        api('/api/youtube/channels').then(updated=>{
+          ytChannels=updated; renderYTCards();
+        }).catch(()=>{});
+      }, 8000);
+    }
   }).catch(()=>{});
 }
 
@@ -458,7 +474,7 @@ function renderYTCards(){
     if(expandedCards.has('yt:'+ch.handle)){
       card.innerHTML=`
         <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;cursor:pointer" data-toggle="yt:${h(ch.handle)}">
-          <img src="${h(ch.avatar)}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--surface2)" onerror="this.style.display='none'">
+          <img src="${h(ch.avatar||avatarPlaceholder(ch.name||ch.handle))}" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--surface2)">
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:700">${h(ch.name)}</div>
             <div style="font-size:11px;color:var(--text-dim);margin-top:2px">
@@ -473,7 +489,7 @@ function renderYTCards(){
       card.appendChild(epContainer);
     } else {
       card.innerHTML=`
-        <img class="card-art" src="${h(ch.avatar)}" alt="" style="border-radius:0;aspect-ratio:1;object-fit:cover;background:var(--surface2)" onerror="this.style.display='none'">
+        <img class="card-art" src="${h(ch.avatar||avatarPlaceholder(ch.name||ch.handle))}" alt="" style="border-radius:0;aspect-ratio:1;object-fit:cover;background:var(--surface2)">
         <div class="card-body">
           <div class="card-name">${h(ch.name||ch.handle)}</div>
           <div class="card-stats">
