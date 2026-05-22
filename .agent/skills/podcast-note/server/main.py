@@ -285,6 +285,13 @@ def build_episode_list() -> list[dict]:
 # { job_id: { status, podcast_id, episode, log, started_at } }
 _jobs: dict[str, dict] = {}
 
+# ── Remote episode cache (in-memory) ────────────────────────────────────────
+# podcast_id → list of remote episode dicts
+_remote_pod_cache: dict[str, list] = {}
+# yt handle → list of remote video dicts
+_remote_yt_cache: dict[str, list] = {}
+_remote_cache_lock = __import__("threading").Lock()
+
 DOWNLOAD_SH = SKILL_DIR / "scripts" / "download.sh"
 
 
@@ -545,27 +552,67 @@ def _run_download(job_id: str, podcast_id: str, episode: str):
 
 @app.get("/api/podcasters")
 def list_podcasters():
-    """按 podcaster 分組，回傳封面頁所需資料"""
-    cfg = load_config()
-    episodes = build_episode_list()
+    """按 podcaster 分組，合併本地 + 遠端集數後回傳"""
+    cfg      = load_config()
+    local_eps = build_episode_list()  # 本地已有的
 
     result = []
     for pod in cfg.get("podcasts", []):
-        pid = pod["id"]
-        pod_eps = [e for e in episodes if e["podcast_id"] == pid]
-        note_count       = sum(1 for e in pod_eps if e["has_note"])
-        transcript_count = sum(1 for e in pod_eps if e["has_transcript"])
+        pid      = pod["id"]
+        artwork  = pod.get("artwork", "")
+        local    = [e for e in local_eps if e["podcast_id"] == pid]
+        local_by_num = {e["ep_num"]: e for e in local if e["ep_num"]}
+
+        # 遠端快取（背景抓好的）
+        with _remote_cache_lock:
+            remote = list(_remote_pod_cache.get(pid, []))
+
+        # 合併：遠端為主，補上本地資訊
+        merged: list[dict] = []
+        seen_nums: set[str] = set()
+
+        for r in remote:
+            ep_num = r.get("ep_num", "")
+            local_ep = local_by_num.get(ep_num) if ep_num else None
+            merged.append({
+                "id":             local_ep["id"] if local_ep else f"{pid}_EP{ep_num or r['title'][:20]}",
+                "podcast_id":     pid,
+                "episode_label":  f"EP{ep_num}" if ep_num else "",
+                "ep_num":         ep_num,
+                "title_zh":       local_ep["title_zh"] if local_ep and local_ep.get("title_zh") else r["title"],
+                "upload_date":    local_ep["upload_date"] if local_ep and local_ep.get("upload_date") else r.get("date", ""),
+                "duration":       r.get("duration", ""),
+                "artwork":        r.get("artwork") or artwork,
+                "has_note":       bool(local_ep and local_ep.get("has_note")),
+                "has_transcript": bool(local_ep and local_ep.get("has_transcript")),
+                "has_audio":      bool(local_ep and local_ep.get("has_audio")),
+                "is_local":       local_ep is not None,
+                "episode_url":    r.get("episode_url", ""),
+                "_artwork":       artwork,
+                "_pod":           pod.get("name", pid),
+            })
+            if ep_num:
+                seen_nums.add(ep_num)
+
+        # 補上本地有但遠端清單沒有的（如 latest 或超出 limit 的舊集）
+        for local_ep in local:
+            if local_ep["ep_num"] not in seen_nums:
+                merged.append({**local_ep, "is_local": True, "duration": "", "episode_url": "", "_artwork": artwork, "_pod": pod.get("name", pid)})
+
+        # 按 ep_num 降序排列
+        merged.sort(key=lambda e: int(e["ep_num"]) if e["ep_num"].isdigit() else 0, reverse=True)
+
+        note_count = sum(1 for e in merged if e["has_note"])
         result.append({
-            "id":               pid,
-            "name":             pod.get("name", pid),
-            "artwork":          pod.get("artwork", ""),
-            "language":         pod.get("language", ""),
-            "note_type":        pod.get("note_type", ""),
-            "episode_count":    len(pod_eps),
-            "note_count":       note_count,
-            "transcript_count": transcript_count,
-            "latest_episode":   pod_eps[0] if pod_eps else None,
-            "episodes":         pod_eps,
+            "id":            pid,
+            "name":          pod.get("name", pid),
+            "artwork":       artwork,
+            "language":      pod.get("language", ""),
+            "note_type":     pod.get("note_type", ""),
+            "episode_count": len(merged),
+            "note_count":    note_count,
+            "remote_ready":  bool(remote),
+            "episodes":      merged,
         })
     return result
 
@@ -1499,29 +1546,71 @@ def yt_remote_videos(handle: str, limit: int = 30):
 
 @app.get("/api/youtube/channels")
 def yt_list_channels():
-    channels = _yt_load_channels()
-    videos   = _yt_scan_videos()
+    channels    = _yt_load_channels()
+    local_vids  = _yt_scan_videos()
+    local_by_id = {v["id"]: v for v in local_vids}
 
     result = []
     for ch in channels:
         handle = ch.get("handle", "")
         name   = ch.get("name", handle)
-        ch_videos = [v for v in videos if v["channel"].lower() == name.lower()
-                     or v["channel"].replace(" ", "").lower() == name.replace(" ", "").lower()]
+
+        # 遠端快取
+        with _remote_cache_lock:
+            remote = list(_remote_yt_cache.get(handle, []))
+
+        # 本地歸屬此頻道的影片
+        ch_local = [v for v in local_vids
+                    if v["channel"].lower() == name.lower()
+                    or v["channel"].replace(" ", "").lower() == name.replace(" ", "").lower()]
+        local_ch_ids = {v["id"] for v in ch_local}
+
+        # 合併
+        merged: list[dict] = []
+        seen_ids: set[str] = set()
+
+        for r in remote:
+            vid_id   = r["id"]
+            local_v  = local_by_id.get(vid_id)
+            merged.append({
+                "id":           vid_id,
+                "title":        r["title"],
+                "title_zh":     local_v["title_zh"] if local_v and local_v.get("title_zh") else r["title_zh"],
+                "channel":      name,
+                "upload_date":  local_v["upload_date"] if local_v and local_v.get("upload_date") else r["upload_date"],
+                "duration":     r["duration"],
+                "url":          r["url"],
+                "thumbnail":    r["thumbnail"],
+                "has_note":     bool(local_v and local_v.get("has_note")),
+                "has_analysis": bool(local_v and local_v.get("has_analysis")),
+                "has_transcript": bool(local_v and local_v.get("has_transcript")),
+                "is_local":     local_v is not None,
+                "is_processed": bool(local_v and local_v.get("is_processed")),
+            })
+            seen_ids.add(vid_id)
+
+        # 補上本地有但遠端沒覆蓋到的
+        for lv in ch_local:
+            if lv["id"] not in seen_ids:
+                merged.append({**lv, "is_local": True})
+
+        # 按日期降序
+        merged.sort(key=lambda v: v.get("upload_date", ""), reverse=True)
+
         result.append({
-            "handle":      handle,
-            "name":        name,
-            "enabled":     ch.get("enabled", True),
-            "limit":       ch.get("limit", 5),
-            "avatar":      ch.get("avatar", ""),
-            "video_count": len(ch_videos),
-            "note_count":  sum(1 for v in ch_videos if v["has_note"]),
-            "videos":      ch_videos,
+            "handle":       handle,
+            "name":         name,
+            "enabled":      ch.get("enabled", True),
+            "avatar":       ch.get("avatar", ""),
+            "video_count":  len(merged),
+            "note_count":   sum(1 for v in merged if v["has_note"]),
+            "remote_ready": bool(remote),
+            "videos":       merged,
         })
 
-    # videos not matched to any configured channel
+    # 其他頻道（本地有但未設定）
     known_names = {ch.get("name", "").lower() for ch in channels}
-    other_videos = [v for v in videos
+    other_videos = [v for v in local_vids
                     if v["channel"].lower() not in known_names
                     and v["channel"].replace(" ", "").lower() not in
                         {n.replace(" ", "") for n in known_names}]
@@ -1530,9 +1619,10 @@ def yt_list_channels():
             "handle":      "",
             "name":        "其他頻道",
             "enabled":     True,
-            "limit":       0,
+            "avatar":      "",
             "video_count": len(other_videos),
             "note_count":  sum(1 for v in other_videos if v["has_note"]),
+            "remote_ready": False,
             "videos":      other_videos,
         })
 
@@ -1799,6 +1889,133 @@ def get_note_raw(episode_id: str):
     return {"markdown": note_path.read_text(encoding="utf-8"), "path": str(note_path)}
 
 
+def _fetch_remote_pod_episodes(podcast_id: str, limit: int = 200) -> list:
+    """從 iTunes / RSS 拉全部集數，回傳 list of dicts。結果寫入 _remote_pod_cache。"""
+    pod = get_podcast_config(podcast_id)
+    if not pod:
+        return []
+    apple_id = pod.get("apple_id", "")
+    episodes = []
+    if apple_id:
+        try:
+            url = (f"https://itunes.apple.com/lookup?id={apple_id}"
+                   f"&media=podcast&entity=podcastEpisode&limit={limit}")
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=15) as r:
+                data = json.loads(r.read())
+            for item in data.get("results", []):
+                if item.get("kind") != "podcast-episode":
+                    continue
+                ms  = item.get("trackTimeMillis", 0)
+                dur = f"{ms//60000}:{(ms%60000)//1000:02d}" if ms else ""
+                title = item.get("trackName", "")
+                ep_m  = re.search(r'EP\.?\s*(\d+)', title, re.IGNORECASE)
+                episodes.append({
+                    "title":       title,
+                    "ep_num":      ep_m.group(1) if ep_m else "",
+                    "date":        item.get("releaseDate", "")[:10],
+                    "duration":    dur,
+                    "artwork":     item.get("artworkUrl160") or pod.get("artwork", ""),
+                    "episode_url": item.get("episodeUrl") or item.get("previewUrl") or "",
+                    "guid":        item.get("episodeGuid", ""),
+                })
+        except Exception:
+            pass
+    if not episodes:
+        try:
+            r = subprocess.run(
+                ["yt-dlp", "--flat-playlist", "--print",
+                 "%(playlist_index)s|%(title)s|%(upload_date)s|%(duration)s",
+                 pod["rss"]],
+                capture_output=True, text=True, timeout=40,
+            )
+            for line in r.stdout.strip().splitlines():
+                parts = line.split("|")
+                if len(parts) < 2:
+                    continue
+                ud    = parts[2].strip() if len(parts) > 2 else ""
+                dur_s = int(parts[3].strip()) if len(parts) > 3 and parts[3].strip().isdigit() else 0
+                title = parts[1].strip()
+                ep_m  = re.search(r'EP\.?\s*(\d+)', title, re.IGNORECASE)
+                episodes.append({
+                    "title":       title,
+                    "ep_num":      ep_m.group(1) if ep_m else "",
+                    "date":        f"{ud[:4]}-{ud[4:6]}-{ud[6:]}" if len(ud) == 8 else "",
+                    "duration":    f"{dur_s//60}:{dur_s%60:02d}" if dur_s else "",
+                    "artwork":     pod.get("artwork", ""),
+                    "episode_url": "",
+                    "guid":        "",
+                })
+        except Exception:
+            pass
+    with _remote_cache_lock:
+        _remote_pod_cache[podcast_id] = episodes
+    return episodes
+
+
+def _fetch_remote_yt_videos(handle: str, limit: int = 50) -> list:
+    """用 yt-dlp 拉 YT 頻道影片清單，寫入 _remote_yt_cache。"""
+    if not handle.startswith("@"):
+        handle = "@" + handle
+    try:
+        r = subprocess.run(
+            ["yt-dlp", "--flat-playlist", "--playlist-items", f"1-{limit}",
+             "--print", "%(id)s|%(title)s|%(upload_date)s|%(duration)s",
+             f"https://www.youtube.com/{handle}/videos"],
+            capture_output=True, text=True, timeout=40,
+        )
+    except Exception:
+        return []
+    videos = []
+    for line in r.stdout.strip().splitlines():
+        parts = line.split("|")
+        if len(parts) < 2:
+            continue
+        video_id = parts[0].strip()
+        title    = parts[1].strip()
+        ud       = parts[2].strip() if len(parts) > 2 else ""
+        dur_raw  = parts[3].strip() if len(parts) > 3 else ""
+        try:
+            dur_s = int(float(dur_raw)) if dur_raw and dur_raw not in ("NA", "") else 0
+        except ValueError:
+            dur_s = 0
+        videos.append({
+            "id":          video_id,
+            "title":       title,
+            "title_zh":    title,
+            "upload_date": f"{ud[:4]}-{ud[4:6]}-{ud[6:]}" if len(ud) == 8 else "",
+            "duration":    f"{dur_s//60}:{dur_s%60:02d}" if dur_s else "",
+            "url":         f"https://www.youtube.com/watch?v={video_id}",
+            "thumbnail":   f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg",
+        })
+    with _remote_cache_lock:
+        _remote_yt_cache[handle] = videos
+    return videos
+
+
+def _prefetch_all_remote():
+    """Server 啟動時背景預抓所有頻道/podcast 的遠端清單。"""
+    cfg = load_config()
+    for pod in cfg.get("podcasts", []):
+        try:
+            _fetch_remote_pod_episodes(pod["id"])
+            print(f"[remote] podcast {pod['id']} fetched")
+        except Exception as e:
+            print(f"[remote] podcast {pod['id']} error: {e}")
+
+    if YT_CHANNEL_CFG.exists():
+        yt_cfg = json.loads(YT_CHANNEL_CFG.read_text())
+        for ch in yt_cfg.get("channels", []):
+            handle = ch.get("handle", "")
+            if not handle:
+                continue
+            try:
+                _fetch_remote_yt_videos(handle)
+                print(f"[remote] yt {handle} fetched")
+            except Exception as e:
+                print(f"[remote] yt {handle} error: {e}")
+
+
 def _backfill_avatars():
     """啟動時在背景補抓所有缺 avatar 的 YT 頻道。"""
     if not YT_CHANNEL_CFG.exists():
@@ -1817,12 +2034,10 @@ def _backfill_avatars():
     threading.Thread(target=_run, daemon=True).start()
 
 
-@contextlib.asynccontextmanager
-async def lifespan(_app):
-    _backfill_avatars()
-    yield
-
-app.router.lifespan_context = lifespan
+@app.on_event("startup")
+async def on_startup():
+    threading.Thread(target=_backfill_avatars, daemon=True).start()
+    threading.Thread(target=_prefetch_all_remote, daemon=True).start()
 
 
 @app.post("/api/youtube/channels/refresh-avatars")

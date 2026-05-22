@@ -286,17 +286,29 @@ async function init(){
   api('/api/youtube/channels').then(chs=>{
     ytChannels=chs;
     renderYTCards();
-    // 若有缺 avatar，背景補抓，8 秒後重新 render 一次
-    const missing=chs.filter(c=>c.handle&&!c.avatar);
-    if(missing.length){
+    // 若 remote 尚未就緒（背景還在抓），15 秒後重抓一次
+    const needRefresh=chs.some(c=>!c.remote_ready);
+    if(needRefresh){
+      setTimeout(()=>{
+        api('/api/youtube/channels').then(updated=>{ytChannels=updated;renderYTCards();}).catch(()=>{});
+      }, 15000);
+    }
+    // 若有缺 avatar，觸發補抓
+    const missingAvatar=chs.filter(c=>c.handle&&!c.avatar);
+    if(missingAvatar.length){
       api('/api/youtube/channels/refresh-avatars',{method:'POST'}).catch(()=>{});
       setTimeout(()=>{
-        api('/api/youtube/channels').then(updated=>{
-          ytChannels=updated; renderYTCards();
-        }).catch(()=>{});
+        api('/api/youtube/channels').then(updated=>{ytChannels=updated;renderYTCards();}).catch(()=>{});
       }, 8000);
     }
   }).catch(()=>{});
+
+  // Podcast 同樣：若 remote 未就緒，15 秒後重抓
+  setTimeout(()=>{
+    if(podcasts.some(p=>!p.remote_ready)){
+      api('/api/podcasts').then(updated=>{podcasts=updated;renderPodcastCards();}).catch(()=>{});
+    }
+  }, 15000);
 }
 
 // ── Nav tabs ──────────────────────────────────────────────────
@@ -422,30 +434,37 @@ function buildPodEpList(pod, episodes){
 function buildPodEpRow(ep, pod){
   const epNum=ep.ep_num||'';
   const rs=readStatus[epNum]||'unread';
+  const isLocal=ep.is_local||ep.has_audio||ep.has_transcript||ep.has_note;
   const row=document.createElement('div');
-  row.className='ep-row'+(rs==='read'?' read':'');
+  row.className='ep-row'+(rs==='read'?' read':'')+(isLocal?'':' no-note');
   row.dataset.epid=ep.id;
 
+  const dlLabel=isLocal?'↓ 再下載':'↓ 下載';
+  const dlClass=isLocal?'ep-dl-btn done':'ep-dl-btn';
+
   row.innerHTML=`
-    <img class="ep-thumb sq" src="${h(ep._artwork||pod.artwork)}" onerror="this.style.display='none'">
+    <img class="ep-thumb sq" src="${h(ep._artwork||ep.artwork||pod.artwork)}" onerror="this.style.display='none'">
     <div class="ep-info">
       <div class="ep-title">${h(ep.title_zh||ep.episode_label||ep.id)}</div>
       <div class="ep-meta">
-        <span>${h(ep.episode_label||'')}</span>
+        ${ep.episode_label?`<span>${h(ep.episode_label)}</span>`:''}
         ${ep.upload_date?`<span>${h(ep.upload_date)}</span>`:''}
-        <span class="badge ${ep.has_note?'badge-note':'badge-nonote'}">${ep.has_note?'筆記':'無筆記'}</span>
+        ${ep.duration?`<span>${h(ep.duration)}</span>`:''}
+        ${ep.has_note?`<span class="badge badge-note">筆記</span>`:''}
+        ${ep.has_transcript?`<span class="badge badge-note">逐字稿</span>`:''}
+        ${!isLocal?`<span class="badge badge-new">未下載</span>`:''}
       </div>
     </div>
-    <button class="read-toggle" data-epnum="${h(epNum)}">${rs==='read'?'已讀':'未讀'}</button>
-    <button class="ep-dl-btn" data-podid="${h(pod.id)}" data-epnum="${h(epNum)}" data-title="${h(ep.title_zh||ep.episode_label||'')}">↓ 下載</button>`;
+    ${isLocal||!epNum?`<button class="read-toggle" data-epnum="${h(epNum)}">${rs==='read'?'已讀':'未讀'}</button>`:''}
+    <button class="${dlClass}" data-podid="${h(pod.id)}" data-epnum="${h(epNum)}" data-title="${h(ep.title_zh||ep.episode_label||'')}">${dlLabel}</button>`;
 
-  row.querySelector('.read-toggle').addEventListener('click',e=>{
+  row.querySelector('.read-toggle')?.addEventListener('click',e=>{
     e.stopPropagation();
     toggleRead(epNum, row, e.target);
   });
   row.querySelector('.ep-dl-btn').addEventListener('click',e=>{
     e.stopPropagation();
-    startDownload(pod.id, epNum, ep.title_zh||ep.episode_label||epNum, e.target);
+    startDownload(pod.id, epNum||'latest', ep.title_zh||ep.episode_label||epNum, e.target);
   });
   row.addEventListener('click',()=>{
     if(ep.has_note) openDetail('podcast', ep, pod);
@@ -558,8 +577,9 @@ function buildYTEpList(ch, videos){
 
 function buildYTRow(v){
   const rs=readStatus[v.id]||'unread';
+  const isLocal=v.is_local||v.has_local||v.has_analysis||v.has_note;
   const row=document.createElement('div');
-  row.className='ep-row'+(rs==='read'?' read':'');
+  row.className='ep-row'+(rs==='read'?' read':'')+(isLocal?'':' no-note');
 
   row.innerHTML=`
     <img class="ep-thumb" src="${h(v.thumbnail)}" onerror="this.style.display='none'">
@@ -568,24 +588,23 @@ function buildYTRow(v){
       <div class="ep-meta">
         ${v.upload_date?`<span>${h(v.upload_date)}</span>`:''}
         ${v.duration?`<span>${h(v.duration)}</span>`:''}
-        <span class="badge ${v.has_note?'badge-note':'badge-nonote'}">${v.has_note?'筆記':'無筆記'}</span>
-        ${!v.has_local?`<span class="badge badge-new">未下載</span>`:''}
+        ${v.has_note?`<span class="badge badge-note">筆記</span>`:''}
+        ${!isLocal?`<span class="badge badge-new">未處理</span>`:''}
       </div>
     </div>
     <button class="read-toggle" data-vid="${h(v.id)}">${rs==='read'?'已讀':'未讀'}</button>
-    ${!v.has_analysis?`<button class="ep-dl-btn" data-vid="${h(v.id)}" data-url="${h(v.url)}">↓ 處理</button>`:''}`;
+    <button class="ep-dl-btn${v.has_analysis?' done':''}" data-vid="${h(v.id)}" data-url="${h(v.url)}">
+      ${v.has_analysis?'✓ 已處理':'↓ 處理'}
+    </button>`;
 
   row.querySelector('.read-toggle').addEventListener('click',e=>{
     e.stopPropagation();
     toggleReadYT(v.id, row, e.target);
   });
-  const dlBtn=row.querySelector('.ep-dl-btn');
-  if(dlBtn){
-    dlBtn.addEventListener('click',e=>{
-      e.stopPropagation();
-      addToYTQueue(v.url, dlBtn);
-    });
-  }
+  row.querySelector('.ep-dl-btn').addEventListener('click',e=>{
+    e.stopPropagation();
+    if(!v.has_analysis) addToYTQueue(v.url, e.target);
+  });
   row.addEventListener('click',()=>{
     if(v.has_note||v.has_analysis) openDetailYT(v);
   });
