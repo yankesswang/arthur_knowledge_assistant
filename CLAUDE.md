@@ -21,6 +21,12 @@ Arthur 的 Obsidian 知識管理 + 投資筆記 + 內容創作 AI 助理。
 
 ---
 
+## Git 規範
+
+- commit message 不加 `Co-Authored-By` 行
+
+---
+
 ## 全域規範（所有任務共用，各 instruction 不重複）
 
 ### 檔名規則
