@@ -1,0 +1,19 @@
+# Audio & large media
+*.mp3
+*.mp4
+*.wav
+*.m4a
+
+# Transcript data (large, generated)
+.agent/skills/podcast-note/data/episodes/*/transcript.txt
+.agent/skills/podcast-note/data/episodes/*/transcript.json
+.agent/skills/podcast-note/data/episodes/*/analysis.json
+.agent/skills/podcast-note/data/episodes/*/audio.*
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Temp
+.DS_Store

@@ -1,0 +1,6 @@
+export EPISODE_MP3="/home/trx50/Project/arthur_knowledge_assistant/.agent/skills/podcast-note/data/episodes/macromicrom_epAfter Meeting EP. 199｜台韓股市大超車，AI 浪潮才剛開始而已/audio.mp3"
+export EPISODE_TITLE="After Meeting EP. 199｜台韓股市大超車，AI 浪潮才剛開始而已"
+export EPISODE_DATE="2026-05-16"
+export WORK_DIR="/home/trx50/Project/arthur_knowledge_assistant/.agent/skills/podcast-note/data/episodes/macromicrom_epAfter Meeting EP. 199｜台韓股市大超車，AI 浪潮才剛開始而已"
+export PODCAST_ID="macromicrom"
+export LANG_CODE="zh"
