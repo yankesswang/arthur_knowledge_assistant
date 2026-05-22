@@ -15,5 +15,15 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Runtime data
+logs/
+gallery-dl/
+video_transcript/
+.claude/scheduled_tasks.lock
+.agent/skills/transcript-note/data/transcripts/
+scripts/hardware_event_logger.py
+scripts/lmstudio_crash_test.py
+translate_gemini.py
+
 # Temp
 .DS_Store
