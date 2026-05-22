@@ -12,7 +12,8 @@ with open(f"{work_dir}/analysis.json") as f:
 
 note_title    = os.path.splitext(os.path.basename(note_path))[0]
 category      = data.get("reading_list_category", "").split("|")[0].strip()
-reading_list  = "/home/trx50/Documents/arthurwang_DB/待看影片與Podcast清單.md"
+_vault = os.environ.get("VAULT_ROOT", os.path.join(os.path.expanduser("~"), "Documents", "arthurwang_DB"))
+reading_list  = os.environ.get("READING_LIST_PATH", os.path.join(_vault, "待看影片與Podcast清單.md"))
 
 # ── Compute this week's Monday–Sunday (week starts Monday) ──────────────────
 today   = date.today()

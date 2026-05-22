@@ -36,7 +36,9 @@ insights = data.get("key_insights", [])
 has_vtt  = os.path.exists(f"{work_dir}/condensed.txt") and \
     not open(f"{work_dir}/condensed.txt").read().startswith("[Description")
 
-short = note_path.replace("/home/trx50/Documents/arthurwang_DB/", "")
+import os as _os
+vault = _os.environ.get("VAULT_ROOT", _os.path.join(_os.path.expanduser("~"), "Documents", "arthurwang_DB"))
+short = note_path.replace(vault + "/", "")
 print(f"\n✓ Note:      {short}")
 print(f"✓ Sections:  {len(sections)}")
 print(f"✓ Insights:  {len(insights)}")

@@ -1,3 +1,6 @@
+# Local env (machine-specific)
+.env
+
 # Audio & large media
 *.mp3
 *.mp4

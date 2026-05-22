@@ -6,7 +6,8 @@ from datetime import date
 work_dir      = os.environ["WORK_DIR"]
 yt_url        = os.environ["YT_URL"]
 video_id      = os.environ["VIDEO_ID"]
-NOTE_ROOT     = "/home/trx50/Documents/arthurwang_DB/影片筆記"
+_vault = os.environ.get("VAULT_ROOT", os.path.join(os.path.expanduser("~"), "Documents", "arthurwang_DB"))
+NOTE_ROOT     = os.environ.get("YT_NOTE_DIR", os.path.join(_vault, "影片筆記"))
 
 with open(f"{work_dir}/analysis.json") as f: data = json.load(f)
 with open(f"{work_dir}/info.json")     as f: info = json.load(f)

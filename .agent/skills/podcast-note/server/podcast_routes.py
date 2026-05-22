@@ -135,7 +135,8 @@ def add_podcaster(body: dict):
     language  = (body.get("language") or "zh").strip()
     note_type = (body.get("note_type") or "investment").strip()
 
-    vault_root     = cfg.get("vault_root", "/home/trx50/Documents/arthurwang_DB")
+    import os as _os
+    vault_root     = cfg.get("vault_root", _os.environ.get("VAULT_ROOT", str(Path.home() / "Documents" / "arthurwang_DB")))
     podcast_root   = cfg.get("podcast_root", f"{vault_root}/Podcast")
     safe_name      = re.sub(r'[/\\:*?"<>|]', ' ', name).strip()
 

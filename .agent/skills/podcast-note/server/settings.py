@@ -13,9 +13,10 @@ YT_DATA_DIR = YT_SKILL_DIR / "data" / "transcripts"
 YT_QUEUE_FILE = YT_SKILL_DIR / "data" / "queue.txt"
 YT_PROC_FILE = YT_SKILL_DIR / "data" / "processed_ids.txt"
 YT_CHANNEL_CFG = YT_SKILL_DIR / "config" / "channels.json"
-YT_NOTE_DIR = Path("/home/trx50/Documents/arthurwang_DB/影片筆記")
 
-READING_LIST_PATH = Path(os.environ.get("READING_LIST_PATH", "/home/trx50/Documents/arthurwang_DB/待看影片與Podcast清單.md"))
+_VAULT_ROOT = os.environ.get("VAULT_ROOT", str(Path.home() / "Documents" / "arthurwang_DB"))
+YT_NOTE_DIR = Path(os.environ.get("YT_NOTE_DIR", f"{_VAULT_ROOT}/影片筆記"))
+READING_LIST_PATH = Path(os.environ.get("READING_LIST_PATH", f"{_VAULT_ROOT}/待看影片與Podcast清單.md"))
 INBOX_PATH = SKILL_DIR / "data" / "inbox.json"
 CACHE_DB_PATH = SKILL_DIR / "data" / "server_cache.sqlite3"
 
