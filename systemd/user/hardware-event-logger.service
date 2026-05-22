@@ -1,0 +1,16 @@
+[Unit]
+Description=Hardware event logger for sudden reset diagnosis
+After=default.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/trx50/Project/arthur_knowledge_assistant
+ExecStart=/usr/bin/python3 /home/trx50/Project/arthur_knowledge_assistant/scripts/hardware_event_logger.py --output-root /home/trx50/Project/arthur_knowledge_assistant/logs/hardware-event-log --interval 5 --detail-interval 60
+Restart=always
+RestartSec=10
+Nice=10
+StandardOutput=append:/home/trx50/Project/arthur_knowledge_assistant/logs/hardware-event-log/service.out.log
+StandardError=append:/home/trx50/Project/arthur_knowledge_assistant/logs/hardware-event-log/service.err.log
+
+[Install]
+WantedBy=default.target
