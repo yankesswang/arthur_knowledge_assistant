@@ -228,6 +228,23 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .ach-add:disabled{opacity:.5;cursor:default}
 #add-ch-hint{padding:20px;text-align:center;color:var(--text-muted);font-size:13px}
 
+/* ── Whisper confirm modal ── */
+#whisper-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:350;backdrop-filter:blur(3px);align-items:center;justify-content:center}
+#whisper-modal.open{display:flex}
+#whisper-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:min(420px,95vw);display:flex;flex-direction:column;overflow:hidden}
+#whisper-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+#whisper-head h2{font-size:14px;font-weight:700}
+#whisper-head button{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:0 4px}
+#whisper-head button:hover{color:var(--text)}
+#whisper-body{padding:18px;font-size:13px;line-height:1.6;color:var(--text)}
+#whisper-body p+p{margin-top:8px}
+#whisper-warn{font-size:12px;color:var(--text-dim)}
+#whisper-actions{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+#whisper-cancel-btn{padding:7px 16px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;font-size:12px;transition:border-color .15s}
+#whisper-cancel-btn:hover{border-color:var(--text-dim)}
+#whisper-confirm-btn{padding:7px 16px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:12px;font-weight:600;transition:opacity .15s}
+#whisper-confirm-btn:hover{opacity:.85}
+
 /* ── Inbox ── */
 .inbox-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;transition:all .15s}
 .inbox-item:hover{border-color:var(--accent)}
@@ -259,12 +276,17 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .job-row{padding:8px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
 .job-row:last-child{border-bottom:none}
 .job-row:hover{background:var(--surface2)}
+.job-row-inner{display:flex;gap:10px;align-items:flex-start}
+.job-thumb{width:72px;height:40px;object-fit:cover;border-radius:4px;flex-shrink:0;background:var(--border)}
+.job-row-body{flex:1;min-width:0}
 .job-title{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between}
 .job-title-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .job-title-text:hover{color:var(--accent)}
 .job-log-btn{font-size:9px;color:var(--text-muted);margin-left:6px;flex-shrink:0;padding:1px 4px;border-radius:3px;border:1px solid transparent;transition:all .1s}
 .job-log-btn:hover{border-color:var(--border);color:var(--text)}
 .job-row.expanded .job-log-btn{border-color:var(--border);color:var(--text)}
+.job-dismiss-btn{font-size:10px;color:var(--text-muted);margin-left:4px;flex-shrink:0;padding:1px 5px;border-radius:3px;cursor:pointer;transition:color .15s}
+.job-dismiss-btn:hover{color:#e05;}
 .job-meta{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-dim)}
 .job-phase{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .job-bar-wrap{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:5px;cursor:pointer}
@@ -354,6 +376,24 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2499;outline:2px solid #fbb
   </div>
 </div>
 
+<!-- Whisper confirm modal -->
+<div id="whisper-modal">
+  <div id="whisper-box">
+    <div id="whisper-head">
+      <h2>找不到 CC 字幕</h2>
+      <button onclick="cancelWhisper()">✕</button>
+    </div>
+    <div id="whisper-body">
+      <p id="whisper-msg">這支影片沒有 CC 字幕。</p>
+      <p id="whisper-warn">改用 Whisper 本地轉錄需要<strong>下載音頻</strong>並執行 faster-whisper，1 小時影片約需 10–30 分鐘（GPU）或更久（CPU）。</p>
+    </div>
+    <div id="whisper-actions">
+      <button id="whisper-cancel-btn" onclick="cancelWhisper()">取消</button>
+      <button id="whisper-confirm-btn" onclick="confirmWhisper()">使用 Whisper 轉錄</button>
+    </div>
+  </div>
+</div>
+
 <!-- Detail overlay -->
 <div id="detail-overlay">
   <div id="detail-panel">
@@ -400,6 +440,7 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2499;outline:2px solid #fbb
     <span>Jobs</span>
     <div style="display:flex;gap:6px">
       <button id="jobs-clear-done" title="清除已完成">清除已完成</button>
+      <button id="jobs-clear-all" title="清除全部">清除全部</button>
       <button onclick="$('jobs-panel').classList.remove('open')">✕</button>
     </div>
   </div>
@@ -413,6 +454,7 @@ const $=id=>document.getElementById(id);
 let podcasts=[], ytChannels=[], readStatus={}, currentView='note';
 let currentItem=null, currentType=null; // 'podcast' | 'yt'
 let jobPoll=null;
+let _whisperVideoId=null, _whisperJobId=null;
 let ytRefreshPoll=null;
 let ytJobRefreshPoll=null;
 let inboxItems=[];
@@ -587,12 +629,13 @@ $('inbox-clear-all')?.addEventListener('click',async()=>{
 
 // ── Init ──────────────────────────────────────────────────────
 async function init(){
-  const[pods,rs,inbox]=await Promise.all([
+  const[pods,rs,ytrs,inbox]=await Promise.all([
     api('/api/podcasts').catch(()=>[]),
     api('/api/reading-status').catch(()=>({})),
+    api('/api/youtube/read-status').catch(()=>({})),
     api('/api/inbox').catch(()=>[]),
   ]);
-  podcasts=pods; readStatus=rs; inboxItems=inbox;
+  podcasts=pods; readStatus={...rs,...ytrs}; inboxItems=inbox;
   renderPodcastCards();
   renderInbox();
 
@@ -993,7 +1036,7 @@ function buildYTRow(v){
   const isLocal=v.is_local||v.has_local||v.has_analysis||v.has_note;
   const hasDone=v.has_analysis||v.has_transcript;
   const actionText=v.has_note?'✓ 有筆記':(v.has_transcript?'✓ 逐字稿':'↓ 處理');
-  const showNoteBtn=v.has_transcript&&!v.has_note;
+  const showNoteBtn=!v.has_note;
   const isAnalyzing=analyzingIds.has('yt:'+v.id);
   const row=document.createElement('div');
   row.className='ep-row'+(rs==='read'?' read':'')+(isLocal?'':' no-note');
@@ -1031,9 +1074,7 @@ function buildYTRow(v){
     e.stopPropagation();
     if(!hasDone) addToYTQueue(v.url, e.target);
   });
-  row.addEventListener('click',()=>{
-    if(v.has_note||v.has_analysis||v.has_transcript) openDetailYT(v);
-  });
+  row.addEventListener('click',()=>{ openDetailYT(v); });
   return row;
 }
 
@@ -1067,10 +1108,14 @@ async function toggleRead(epNum, row, btn){
 
 async function toggleReadYT(videoId, row, btn){
   const isRead=row.classList.contains('read');
+  const newStatus=isRead?'unread':'read';
   row.classList.toggle('read',!isRead);
   btn.textContent=isRead?'未讀':'已讀';
-  readStatus[videoId]=isRead?'unread':'read';
+  readStatus[videoId]=newStatus;
   if(!isRead) dismissInboxByEp(null, videoId);
+  try{
+    await api(`/api/youtube/read-status/${encodeURIComponent(videoId)}/${newStatus}`,{method:'POST'});
+  }catch(e){ console.warn('已讀狀態儲存失敗',e); }
 }
 
 // ── Download ──────────────────────────────────────────────────
@@ -1098,6 +1143,7 @@ async function startAnalyzeFromDetailYT(v){
     const{job_id}=await api(`/api/youtube/videos/${encodeURIComponent(v.id)}/analyze`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({title:v.title_zh||v.title||''}),
     });
     showJobToast(job_id, v.title_zh||v.title||'產生 YT 筆記');
     const checkDone=setInterval(async()=>{
@@ -1112,7 +1158,15 @@ async function startAnalyzeFromDetailYT(v){
             const updated=await api('/api/youtube/channels');
             ytChannels=updated; renderYTCards();
           }catch(_){}
-        }else if(job.status==='error'){
+        }else if(job.status==='waiting'&&job.phase==='awaiting_whisper_confirm'){
+          clearInterval(checkDone);
+          if($('detail-analyze-btn')){
+            $('detail-analyze-btn').textContent='✨ 產生筆記';
+            $('detail-analyze-btn').classList.remove('running');
+            $('detail-analyze-btn').disabled=false;
+          }
+          showWhisperConfirm(v.id, job_id, v.title_zh||v.title||'');
+        }else if(job.status==='error'||job.status==='cancelled'){
           clearInterval(checkDone);
           if($('detail-analyze-btn')){
             $('detail-analyze-btn').textContent='✨ 產生筆記';
@@ -1136,6 +1190,7 @@ async function startAnalyzeYT(videoId, title, btn){
     const{job_id}=await api(`/api/youtube/videos/${encodeURIComponent(videoId)}/analyze`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({title:title||''}),
     });
     showJobToast(job_id, title||'產生 YT 筆記');
     const checkDone=setInterval(async()=>{
@@ -1146,11 +1201,16 @@ async function startAnalyzeYT(videoId, title, btn){
           analyzingIds.delete(key);
           const updated=await api('/api/youtube/channels');
           ytChannels=updated; renderYTCards();
-        }else if(job.status==='error'){
+        }else if(job.status==='waiting'&&job.phase==='awaiting_whisper_confirm'){
           clearInterval(checkDone);
           analyzingIds.delete(key);
           renderYTCards();
-          alert('產生筆記失敗，請查看 job log');
+          showWhisperConfirm(videoId, job_id, title||'');
+        }else if(job.status==='error'||job.status==='cancelled'){
+          clearInterval(checkDone);
+          analyzingIds.delete(key);
+          renderYTCards();
+          if(job.status==='error') alert('產生筆記失敗，請查看 job log');
         }
       }catch(_){ clearInterval(checkDone); }
     },2000);
@@ -1280,7 +1340,6 @@ async function openDetail(type, item, parent){
   $('detail-audio').classList.remove('on');
   setDetailView('note');
   updateCopyBtns();
-  dismissInboxByEp(item.ep_num||item.episode_label?.replace('EP',''), null);
 
   $('detail-title').textContent=item.title_zh||item.episode_label||item.id;
   $('detail-meta').textContent=[parent?.name||item._pod, item.upload_date].filter(Boolean).join(' · ');
@@ -1314,7 +1373,6 @@ async function openDetailYT(v){
   $('detail-audio').classList.remove('on');
   setDetailView('note');
   updateCopyBtns();
-  dismissInboxByEp(null, v.id);
 
   $('detail-title').textContent=v.title_zh||v.title||v.id;
   $('detail-meta').textContent=[v.channel, v.upload_date].filter(Boolean).join(' · ');
@@ -1325,16 +1383,12 @@ async function openDetailYT(v){
     currentItem._note=note;
     renderDetailNote();
   }catch(e){
-    if(v.has_transcript){
-      $('detail-body').innerHTML=`<div class="empty" style="gap:14px">
-        <p>此影片已有逐字稿，尚未產生分析筆記</p>
-        <button id="detail-analyze-btn" class="ep-note-btn" style="font-size:12px;padding:6px 16px">✨ 產生筆記</button>
-      </div>`;
-      $('detail-analyze-btn').addEventListener('click',()=>startAnalyzeFromDetailYT(v));
-      setTimeout(()=>{ if(!$('tp-panel').classList.contains('open')) toggleTP(); },0);
-    }else{
-      $('detail-body').innerHTML=`<div class="empty"><p style="color:var(--red)">${h(e.message)}</p></div>`;
-    }
+    $('detail-body').innerHTML=`<div class="empty" style="gap:14px">
+      <p>${v.has_transcript?'此影片已有逐字稿，尚未產生分析筆記':'尚未產生分析筆記'}</p>
+      <button id="detail-analyze-btn" class="ep-note-btn" style="font-size:12px;padding:6px 16px">✨ 產生筆記</button>
+    </div>`;
+    $('detail-analyze-btn').addEventListener('click',()=>startAnalyzeFromDetailYT(v));
+    if(v.has_transcript) setTimeout(()=>{ if(!$('tp-panel').classList.contains('open')) toggleTP(); },0);
   }
   finally{ detailLoading(false); }
 }
@@ -1815,6 +1869,8 @@ $('detail-body').addEventListener('mouseup',async e=>{
 
 // ── Jobs Dashboard ───────────────────────────────────────────
 let _allJobs=[];
+const _dismissedJobIds=new Set(JSON.parse(localStorage.getItem('dismissedJobIds')||'[]'));
+function _saveDismissed(){ localStorage.setItem('dismissedJobIds',JSON.stringify([..._dismissedJobIds])); }
 let _jobsDashPoll=null;
 
 function _jobTypeInfo(job){
@@ -1822,6 +1878,8 @@ function _jobTypeInfo(job){
   if(t==='yt_analyze')         return {label:'產生筆記',cls:'jt-analyze'};
   if(t==='yt_setup')           return {label:'抓逐字稿',cls:'jt-transcript'};
   if(t==='yt_auto_transcript') return {label:'自動逐字稿',cls:'jt-auto'};
+  if(t==='pod_download')       return {label:'下載 + 轉錄',cls:'jt-download'};
+  if(t==='pod_analyze')        return {label:'產生筆記',cls:'jt-analyze'};
   if(job.podcast_id)           return {label:'Podcast',cls:'jt-download'};
   return {label:'任務',cls:'jt-analyze'};
 }
@@ -1848,6 +1906,43 @@ function _timeAgo(ts){
 }
 
 const _expandedJobs=new Set();
+
+// ── Whisper confirm modal ────────────────────────────────────────────────────
+function showWhisperConfirm(videoId, jobId, title){
+  _whisperVideoId=videoId; _whisperJobId=jobId;
+  if(title) $('whisper-msg').textContent=`「${title}」沒有 CC 字幕。`;
+  $('whisper-modal').classList.add('open');
+}
+
+async function confirmWhisper(){
+  if(!_whisperVideoId) return;
+  $('whisper-confirm-btn').disabled=true;
+  $('whisper-confirm-btn').textContent='啟動中…';
+  try{
+    await api(`/api/youtube/videos/${encodeURIComponent(_whisperVideoId)}/confirm-whisper`,{method:'POST'});
+    $('whisper-modal').classList.remove('open');
+    if(_whisperJobId) showJobToast(_whisperJobId,'Whisper 轉錄中');
+  }catch(e){
+    alert('失敗：'+e.message);
+  }finally{
+    $('whisper-confirm-btn').disabled=false;
+    $('whisper-confirm-btn').textContent='使用 Whisper 轉錄';
+    _whisperVideoId=null; _whisperJobId=null;
+  }
+}
+
+async function cancelWhisper(){
+  const vid=_whisperVideoId;
+  $('whisper-modal').classList.remove('open');
+  _whisperVideoId=null; _whisperJobId=null;
+  if(vid){
+    try{ await api(`/api/youtube/videos/${encodeURIComponent(vid)}/cancel-whisper`,{method:'POST'}); }catch(_){}
+  }
+}
+
+$('whisper-modal').addEventListener('click',e=>{
+  if(e.target===$('whisper-modal')) cancelWhisper();
+});
 
 function renderJobsDash(){
   const active=_allJobs.filter(j=>j.status==='pending'||j.status==='running');
@@ -1880,18 +1975,39 @@ function renderJobsDash(){
     const canOpen=job.status==='done';
     const row=document.createElement('div');
     row.className='job-row'+(isExpanded?' expanded':'');
+    const waitingPhase=job.status==='waiting';
+    const effectivePct=waitingPhase?job.progress||0:pct;
+    const phaseText=waitingPhase?'等待確認':(job.phase||job.status);
+
+    // 縮圖：YT 影片用 video_id 建構，否則留空
+    let thumbUrl='';
+    if(job.video_id){
+      // 先找 ytChannels 裡有沒有 thumbnail，找不到就用 YouTube CDN
+      let found=null;
+      for(const ch of ytChannels){ found=(ch.videos||[]).find(v=>v.id===job.video_id); if(found) break; }
+      thumbUrl=found?.thumbnail
+        ? ytImg(found.thumbnail)
+        : `/api/proxy-image?url=${encodeURIComponent(`https://img.youtube.com/vi/${job.video_id}/mqdefault.jpg`)}`;
+    }
+
     row.innerHTML=`
-      <div class="job-title">
-        <span class="job-title-text" style="${canOpen?'cursor:pointer':''}">${statusIcon}${h(title)}</span>
-        <span class="job-log-btn" title="查看 log">log</span>
-      </div>
-      <div class="job-meta">
-        <span class="job-type-badge ${cls}">${label}</span>
-        <span class="job-phase">${h(job.phase||job.status)}</span>
-        ${ago?`<span style="margin-left:auto">${ago}</span>`:`<span style="margin-left:auto">${pct}%</span>`}
-      </div>
-      <div class="job-bar-wrap"><div class="job-bar ${barCls}" style="width:${isActive?pct:100}%"></div></div>
-      <div class="job-log">${logs.length?logs.map(l=>h(l)).join('<br>'):'（尚無 log）'}</div>`;
+      <div class="job-row-inner">
+        ${thumbUrl?`<img class="job-thumb" src="${thumbUrl}" onerror="this.style.display='none'">`:''}
+        <div class="job-row-body">
+          <div class="job-title">
+            <span class="job-title-text" style="${canOpen?'cursor:pointer':''}">${statusIcon}${h(title)}</span>
+            <span class="job-log-btn" title="查看 log">log</span>
+            <span class="job-dismiss-btn" title="移除">✕</span>
+          </div>
+          <div class="job-meta">
+            <span class="job-type-badge ${cls}">${label}</span>
+            <span class="job-phase">${h(phaseText)}</span>
+            ${ago?`<span style="margin-left:auto">${ago}</span>`:`<span style="margin-left:auto">${effectivePct}%</span>`}
+          </div>
+          <div class="job-bar-wrap"><div class="job-bar ${barCls}" style="width:${(isActive||waitingPhase)?effectivePct:100}%"></div></div>
+          <div class="job-log">${logs.length?logs.map(l=>h(l)).join('<br>'):'（尚無 log）'}</div>
+        </div>
+      </div>`;
 
     // 點標題文字 → 開 detail panel
     row.querySelector('.job-title-text').addEventListener('click',async e=>{
@@ -1921,13 +2037,26 @@ function renderJobsDash(){
       renderJobsDash();
     });
 
+    // 點 ✕ → 從列表移除（記住，避免 poll 抓回來）
+    row.querySelector('.job-dismiss-btn').addEventListener('click',e=>{
+      e.stopPropagation();
+      _dismissedJobIds.add(job.job_id);
+      _saveDismissed();
+      _allJobs=_allJobs.filter(j=>j.job_id!==job.job_id);
+      renderJobsDash();
+    });
+
     list.appendChild(row);
   }
   list.scrollTop=scrollTop;
 }
 
 async function refreshJobsDash(){
-  try{_allJobs=await api('/api/jobs');renderJobsDash();}catch(_){}
+  try{
+    const jobs=await api('/api/jobs');
+    _allJobs=jobs.filter(j=>!_dismissedJobIds.has(j.job_id));
+    renderJobsDash();
+  }catch(_){}
 }
 
 function startJobsDashPoll(){
@@ -1940,14 +2069,30 @@ function startJobsDashPoll(){
   },2000);
 }
 
-$('jobs-fab').addEventListener('click',()=>{
+$('jobs-fab').addEventListener('click',e=>{
+  e.stopPropagation();
   $('jobs-panel').classList.toggle('open');
   refreshJobsDash();
   startJobsDashPoll();
 });
 
+$('jobs-panel').addEventListener('click',e=>e.stopPropagation());
+
+document.addEventListener('click',()=>{
+  $('jobs-panel').classList.remove('open');
+});
+
 $('jobs-clear-done')?.addEventListener('click',()=>{
+  _allJobs.forEach(j=>{ if(j.status!=='pending'&&j.status!=='running') _dismissedJobIds.add(j.job_id); });
+  _saveDismissed();
   _allJobs=_allJobs.filter(j=>j.status==='pending'||j.status==='running');
+  renderJobsDash();
+});
+
+$('jobs-clear-all')?.addEventListener('click',()=>{
+  _allJobs.forEach(j=>_dismissedJobIds.add(j.job_id));
+  _saveDismissed();
+  _allJobs=[];
   renderJobsDash();
 });
 

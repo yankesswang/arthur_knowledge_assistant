@@ -168,7 +168,18 @@
       "Write(/home/trx50/Documents/arthurwang_DB/Podcast/**)",
       "Read(/home/trx50/Documents/arthurwang_DB/Podcast/**)",
       "Read(/home/trx50/Project/arthur_knowledge_assistant/.agent/skills/podcast-note/**)",
-      "Bash(nvidia-smi --query-gpu=*)"
+      "Bash(nvidia-smi --query-gpu=*)",
+      "Bash(/usr/bin/env rg *)",
+      "mcp__codegraph__codegraph_files",
+      "Bash(pkill -f \"python3.10 main.py\")",
+      "Bash(kill 53680)",
+      "Bash(lsof -tiTCP:7654 -sTCP:LISTEN)",
+      "Bash(VAULT_ROOT=/Users/yankesswang/Documents/arthurwang_DB bash run.sh)",
+      "Bash(xargs kill -9)",
+      "Bash(awk '{print $5, $9}')",
+      "Bash(git --git-dir=/Users/yankesswang/.git config --get remote.origin.url)",
+      "Bash(git --git-dir=/Users/yankesswang/.git log --oneline -5)",
+      "Bash(git --git-dir=/Users/yankesswang/.git status)"
     ],
     "additionalDirectories": [
       "/Users/yankesswang/Documents/arthurwang_DB",

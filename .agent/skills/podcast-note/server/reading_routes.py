@@ -7,6 +7,7 @@ import urllib.request
 
 from fastapi import APIRouter, HTTPException
 
+from cache_store import get_yt_read_status, set_yt_read_status
 from config_store import load_config
 from podcast_services import build_episode_list
 from settings import INBOX_PATH, READING_LIST_PATH
@@ -217,3 +218,23 @@ def mark_unread(ep_num: str):
 
     READING_LIST_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return {"ep_num": ep_num, "status": "unread"}
+
+
+# ── YouTube 已讀狀態（SQLite）──────────────────────────────────────
+
+@router.get("/api/youtube/read-status")
+def yt_get_read_status():
+    """回傳所有 YouTube 影片的已讀狀態 {video_id: 'read'|'unread'}"""
+    return get_yt_read_status()
+
+
+@router.post("/api/youtube/read-status/{video_id}/read")
+def yt_mark_read(video_id: str):
+    set_yt_read_status(video_id, "read")
+    return {"video_id": video_id, "status": "read"}
+
+
+@router.post("/api/youtube/read-status/{video_id}/unread")
+def yt_mark_unread(video_id: str):
+    set_yt_read_status(video_id, "unread")
+    return {"video_id": video_id, "status": "unread"}

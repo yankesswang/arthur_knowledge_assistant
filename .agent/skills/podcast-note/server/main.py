@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from cache_store import init_cache_db
 from podcast_routes import router as podcast_router
 from reading_routes import router as reading_router
-from remote import _prefetch_all_remote
+from remote import _prefetch_all_remote, preload_yt_db_cache
 from settings import SERVER_HOST, SERVER_PORT, STATIC_DIR
 from youtube_routes import router as youtube_router, start_youtube_auto_transcript_worker
 from youtube_services import _backfill_avatars
@@ -29,6 +29,7 @@ app.include_router(youtube_router)
 @app.on_event("startup")
 async def on_startup():
     init_cache_db()
+    preload_yt_db_cache()  # 同步：把 DB 快取載入記憶體，第一個 request 不用等
     threading.Thread(target=_backfill_avatars, daemon=True).start()
     threading.Thread(target=_prefetch_all_remote, daemon=True).start()
     start_youtube_auto_transcript_worker()

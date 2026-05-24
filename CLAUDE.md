@@ -227,6 +227,36 @@ Arthur 的 Obsidian 知識管理 + 投資筆記 + 內容創作 AI 助理。
 
 ---
 
+## Scripts 索引
+
+| 腳本 | 觸發關鍵字 | 功能 |
+|------|-----------|------|
+| `scripts/check_reading_list.py` | 斷連、清單檢查、wikilink 壞掉、找筆記、URL 查詢 | 掃描 `待閱讀清單.md` 的 wikilink，找出 vault 內缺失的筆記 |
+
+### check_reading_list.py
+
+**三種用法：**
+
+```bash
+# 快速掃描（~0.1 秒）— 只比對檔名
+python3 scripts/check_reading_list.py
+
+# 含 Spotlight 二次比對（~1 分鐘）— 找出改過名但內容對應的筆記
+python3 scripts/check_reading_list.py --check-urls
+
+# 查單一 URL（~0.2 秒）— 確認 vault 是否已有這篇文章
+python3 scripts/check_reading_list.py --url "https://..."
+
+# 只印終端，不寫檔
+python3 scripts/check_reading_list.py --dry-run
+```
+
+**輸出：** 自動覆寫 `待閱讀清單斷連筆記.md`（vault 根目錄）
+
+**詳細說明：** `scripts/check_reading_list_doc.md`
+
+---
+
 ## Instructions 資料夾結構
 
 ```

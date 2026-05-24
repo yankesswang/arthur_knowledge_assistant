@@ -33,8 +33,21 @@ port_pids() {
   fi
 }
 
+read_pids() {
+  # portable replacement for mapfile — works on bash 3.2 (macOS) and bash 4+ (Linux)
+  local _arr_name="$1"
+  local line
+  local _result=()
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && _result+=("$line")
+  done < <(port_pids | sort -u)
+  # use ${_result[@]+"${_result[@]}"} to safely handle empty array under set -u
+  eval "${_arr_name}=(\${_result[@]+\"\${_result[@]}\"})"
+}
+
 stop_port_listener() {
-  mapfile -t pids < <(port_pids | sort -u)
+  local pids=()
+  read_pids pids
   if ((${#pids[@]} == 0)); then
     return
   fi
@@ -43,8 +56,9 @@ stop_port_listener() {
   echo "Stopping existing listener..."
   kill "${pids[@]}" 2>/dev/null || true
 
-  for _ in {1..20}; do
-    mapfile -t remaining < <(port_pids | sort -u)
+  local i remaining=()
+  for ((i=0; i<20; i++)); do
+    read_pids remaining
     if ((${#remaining[@]} == 0)); then
       echo "Port $PORT released."
       return

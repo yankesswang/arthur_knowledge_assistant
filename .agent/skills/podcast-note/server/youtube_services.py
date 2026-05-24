@@ -4,6 +4,7 @@ import json
 import re
 import subprocess
 import threading
+import time
 import urllib.request
 from pathlib import Path
 
@@ -68,10 +69,13 @@ def _yt_read_obsidian_note(md_path: str) -> dict:
                     fm[kv.group(1)] = kv.group(2)
         tags = re.findall(r'  - (.+)', m.group(1) if m else "")
         tags = [t for t in tags if t not in ("影片筆記", "YouTube", "逐字稿筆記")]
+        source = fm.get("source", "")
+        if _extract_video_id(source):
+            source = ""  # source 是 URL 而非頻道名
         return {
             "title":      fm.get("title", ""),
-            "channel":    fm.get("source", ""),
-            "date":       fm.get("date", ""),
+            "channel":    source or fm.get("channel", ""),
+            "date":       fm.get("date", "") or fm.get("created", ""),
             "topic":      fm.get("topic", ""),
             "tags":       tags,
         }
@@ -79,83 +83,157 @@ def _yt_read_obsidian_note(md_path: str) -> dict:
         return {}
 
 
-def _yt_scan_videos() -> list[dict]:
-    """Scan data/transcripts/ and match with Obsidian notes."""
-    videos = []
-    if not YT_DATA_DIR.exists():
-        return videos
+def _yt_extract_id_from_note(path: Path) -> str:
+    """從 Obsidian .md 的 frontmatter url:/source: 或 body 取 YouTube video ID。"""
+    try:
+        text = path.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return ""
+    fm_m = re.match(r'^---\n(.*?)\n---', text, re.DOTALL)
+    if fm_m:
+        for field in ("url", "source"):
+            m = re.search(rf'^{field}:\s*"?([^"\n]+)"?\s*$', fm_m.group(1), re.MULTILINE)
+            if m:
+                vid = _extract_video_id(m.group(1).strip())
+                if vid:
+                    return vid
+    m = re.search(r'(?:youtube\.com/watch\?.*?v=|youtu\.be/)([A-Za-z0-9_-]{11})', text)
+    return m.group(1) if m else ""
 
+
+def _yt_entry_from_obsidian_note(path: Path, video_id: str, processed: set) -> dict:
+    """從 Obsidian .md 建構與 _yt_scan_videos() 相容的 video entry dict。"""
+    meta = _yt_read_obsidian_note(str(path))
+    title = meta.get("title", "") or path.stem
+    channel = meta.get("channel", "")
+    if not channel and path.parent.name not in ("影片筆記", "未分類"):
+        channel = path.parent.name
+    upload_date = _yt_format_upload_date(meta.get("date", "").replace("-", "") or "")
+    return {
+        "id":                video_id,
+        "title_zh":          title,
+        "channel":           channel,
+        "upload_date":       upload_date,
+        "has_analysis":      False,
+        "has_transcript":    False,
+        "transcript_source": "none",
+        "has_note":          True,
+        "note_path":         str(path),
+        "url":               f"https://www.youtube.com/watch?v={video_id}",
+        "thumbnail":         f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg",
+        "topic":             meta.get("topic", ""),
+        "tags":              meta.get("tags", []),
+        "reading_list_category": "",
+        "is_processed":      video_id in processed,
+    }
+
+
+def _yt_find_obsidian_note(video_id: str) -> Path | None:
+    """在 YT_NOTE_DIR 中找含有指定 video ID 的 .md 檔。"""
+    if not YT_NOTE_DIR.exists():
+        return None
+    for md_path in YT_NOTE_DIR.glob("**/*.md"):
+        if _yt_extract_id_from_note(md_path) == video_id:
+            return md_path
+    return None
+
+
+_obsidian_index_cache: dict[str, Path] = {}
+_obsidian_index_ts: float = 0.0
+_OBSIDIAN_INDEX_TTL = 120.0  # seconds
+
+
+def _yt_build_obsidian_index() -> dict[str, Path]:
+    """掃描 YT_NOTE_DIR，建立 video_id → Path 索引，TTL 120s 快取避免每次 poll 都重掃。"""
+    global _obsidian_index_cache, _obsidian_index_ts
+    now = time.monotonic()
+    if _obsidian_index_cache and now - _obsidian_index_ts < _OBSIDIAN_INDEX_TTL:
+        return _obsidian_index_cache
+    index: dict[str, Path] = {}
+    if YT_NOTE_DIR.exists():
+        for md_path in YT_NOTE_DIR.glob("**/*.md"):
+            vid = _yt_extract_id_from_note(md_path)
+            if vid:
+                index[vid] = md_path
+    _obsidian_index_cache = index
+    _obsidian_index_ts = now
+    return index
+
+
+def _yt_scan_videos() -> list[dict]:
+    """掃描 data/transcripts/ 以及 Obsidian 影片筆記資料夾，合併成完整影片列表。"""
+    videos: list[dict] = []
+    seen_ids: set[str] = set()
     processed = _yt_load_processed()
 
-    for vid_dir in sorted(YT_DATA_DIR.iterdir(), reverse=True):
-        if not vid_dir.is_dir():
+    # 預先建立 Obsidian 索引，避免在 loop 內重複掃檔
+    obsidian_index = _yt_build_obsidian_index()
+
+    # 1. 掃本地 transcript data 目錄
+    if YT_DATA_DIR.exists():
+        for vid_dir in sorted(YT_DATA_DIR.iterdir(), reverse=True):
+            if not vid_dir.is_dir():
+                continue
+            video_id = vid_dir.name
+
+            info_path      = vid_dir / "info.json"
+            analysis_path  = vid_dir / "analysis.json"
+            condensed_path = vid_dir / "condensed.txt"
+            note_ptr_path  = vid_dir / "note_path.txt"
+
+            info     = json.loads(info_path.read_text())     if info_path.exists()     else {}
+            analysis = json.loads(analysis_path.read_text()) if analysis_path.exists() else {}
+
+            # 優先讀 note_path.txt，其次查 Obsidian 索引
+            note_path = None
+            note_meta = {}
+            if note_ptr_path.exists():
+                candidate = note_ptr_path.read_text().strip()
+                if Path(candidate).exists():
+                    note_path = candidate
+                    note_meta = _yt_read_obsidian_note(candidate)
+
+            if note_path is None and video_id in obsidian_index:
+                note_path = str(obsidian_index[video_id])
+                note_meta = _yt_read_obsidian_note(note_path)
+
+            # transcript source
+            src_path = vid_dir / "transcript_source.txt"
+            transcript_source = src_path.read_text().strip() if src_path.exists() else (
+                "cc" if condensed_path.exists() else "none"
+            )
+            if condensed_path.exists() and transcript_source == "none":
+                first = condensed_path.read_text(encoding="utf-8", errors="ignore")[:30]
+                transcript_source = "description" if "[Description" in first else "cc"
+
+            seen_ids.add(video_id)
+            videos.append({
+                "id":                video_id,
+                "title_zh":          (analysis.get("title_zh") or note_meta.get("title") or info.get("title", video_id)),
+                "channel":           info.get("channel") or note_meta.get("channel", ""),
+                "upload_date":       info.get("upload_date") or note_meta.get("date", ""),
+                "has_analysis":      analysis_path.exists(),
+                "has_transcript":    condensed_path.exists() and transcript_source in ("cc", "whisper"),
+                "transcript_source": transcript_source,
+                "has_note":          note_path is not None,
+                "note_path":         note_path,
+                "url":               f"https://www.youtube.com/watch?v={video_id}",
+                "thumbnail":         f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg",
+                "topic":             analysis.get("topic") or note_meta.get("topic", ""),
+                "tags":              analysis.get("tags") or note_meta.get("tags", []),
+                "reading_list_category": analysis.get("reading_list_category", ""),
+                "is_processed":      video_id in processed,
+            })
+
+    # 2. 補上只有 Obsidian 筆記、沒有本地 data 目錄的影片
+    for video_id, md_path in sorted(obsidian_index.items(),
+                                    key=lambda kv: kv[1].stat().st_mtime, reverse=True):
+        if video_id in seen_ids:
             continue
-        video_id = vid_dir.name
-
-        info_path      = vid_dir / "info.json"
-        analysis_path  = vid_dir / "analysis.json"
-        condensed_path = vid_dir / "condensed.txt"
-        note_ptr_path  = vid_dir / "note_path.txt"   # migration script 建立的指標
-
-        info     = json.loads(info_path.read_text())     if info_path.exists()     else {}
-        analysis = json.loads(analysis_path.read_text()) if analysis_path.exists() else {}
-
-        # 優先讀 note_path.txt 指向的 Obsidian 筆記
-        note_path   = None
-        note_meta   = {}
-        if note_ptr_path.exists():
-            candidate = note_ptr_path.read_text().strip()
-            if Path(candidate).exists():
-                note_path = candidate
-                note_meta = _yt_read_obsidian_note(candidate)
-
-        # fallback: 掃 YT_NOTE_DIR（舊邏輯）
-        if note_path is None and YT_NOTE_DIR.exists():
-            for md in YT_NOTE_DIR.glob("**/*.md"):
-                try:
-                    if video_id in md.read_text(encoding="utf-8", errors="ignore"):
-                        note_path = str(md)
-                        note_meta = _yt_read_obsidian_note(note_path)
-                        break
-                except Exception:
-                    pass
-
-        # title: analysis > obsidian note > info.json
-        title_zh    = (analysis.get("title_zh")
-                       or note_meta.get("title")
-                       or info.get("title", video_id))
-        channel     = info.get("channel") or note_meta.get("channel", "")
-        upload_date = info.get("upload_date") or note_meta.get("date", "")
-        topic       = analysis.get("topic") or note_meta.get("topic", "")
-        tags = analysis.get("tags") or note_meta.get("tags", [])
-
-        # transcript source: "cc" | "whisper" | "description" | "none"
-        src_path = vid_dir / "transcript_source.txt"
-        transcript_source = src_path.read_text().strip() if src_path.exists() else (
-            "cc" if condensed_path.exists() else "none"
-        )
-        # condensed.txt starting with "[Description" means description-only fallback
-        if condensed_path.exists() and transcript_source == "none":
-            first = condensed_path.read_text(encoding="utf-8", errors="ignore")[:30]
-            transcript_source = "description" if "[Description" in first else "cc"
-
-        videos.append({
-            "id":               video_id,
-            "title_zh":         title_zh,
-            "channel":          channel,
-            "upload_date":      upload_date,
-            "has_analysis":     analysis_path.exists(),
-            "has_transcript":   condensed_path.exists() and transcript_source in ("cc", "whisper"),
-            "transcript_source": transcript_source,
-            "has_note":         note_path is not None,
-            "note_path":        note_path,
-            "url":              f"https://www.youtube.com/watch?v={video_id}",
-            "thumbnail":        f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg",
-            "topic":            topic,
-            "tags":             tags,
-            "reading_list_category": analysis.get("reading_list_category", ""),
-            "is_processed":     video_id in processed,
-        })
+        entry = _yt_entry_from_obsidian_note(md_path, video_id, processed)
+        if entry:
+            seen_ids.add(video_id)
+            videos.append(entry)
 
     return videos
 
@@ -169,11 +247,25 @@ def _yt_parse_note(video_id: str) -> dict:
     analysis = json.loads(analysis_path.read_text()) if analysis_path.exists() else {}
     info     = json.loads(info_path.read_text())     if info_path.exists()     else {}
 
-    # 若沒有 analysis.json，從 Obsidian .md 建構等效資料
+    # 優先讀 note_path.txt 指向的 .md
     if not analysis and note_ptr_path.exists():
         md_path = note_ptr_path.read_text().strip()
         if Path(md_path).exists():
             analysis = _yt_build_analysis_from_md(md_path, video_id)
+
+    # fallback：掃 Obsidian vault
+    if not analysis:
+        obsidian_note = _yt_find_obsidian_note(video_id)
+        if obsidian_note:
+            analysis = _yt_build_analysis_from_md(str(obsidian_note), video_id)
+            if not info:
+                meta = _yt_read_obsidian_note(str(obsidian_note))
+                info = {
+                    "channel":     meta.get("channel", ""),
+                    "duration":    "",
+                    "upload_date": _yt_format_upload_date(meta.get("date", "").replace("-", "") or ""),
+                    "title":       meta.get("title", video_id),
+                }
 
     return {
         "title_zh":     analysis.get("title_zh") or info.get("title", video_id),

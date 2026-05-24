@@ -11,7 +11,7 @@ import urllib.request
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 
 from reading_routes import _load_inbox, _save_inbox
@@ -39,6 +39,7 @@ from youtube_services import (
     _yt_fetch_channel_avatar,
     _yt_fetch_channel_id,
     _yt_fetch_rss_dates,
+    _yt_find_obsidian_note,
     _yt_is_placeholder_avatar,
     _yt_load_channels,
     _yt_load_processed,
@@ -110,6 +111,7 @@ def _run_yt_setup(job: dict, url: str, video_id: str) -> None:
         env=os.environ.copy(),
         cwd=str(YT_SKILL_DIR),
     )
+    assert proc.stdout is not None
     for line in proc.stdout:
         line = line.rstrip()
         if not line:
@@ -172,7 +174,7 @@ def _run_yt_whisper(job: dict, url: str, video_id: str) -> None:
             env=env,
             cwd=str(YT_SKILL_DIR),
         )
-
+        assert proc.stdout is not None
         segment_count = 0
         for line in proc.stdout:
             line = line.rstrip()
@@ -617,11 +619,12 @@ def yt_list_videos():
 @router.get("/api/youtube/videos/{video_id}/note")
 def yt_get_note(video_id: str):
     vid_dir = YT_DATA_DIR / video_id
-    has_analysis  = (vid_dir / "analysis.json").exists()
-    has_note_ptr  = (vid_dir / "note_path.txt").exists() and Path(
+    has_analysis = (vid_dir / "analysis.json").exists()
+    has_note_ptr = (vid_dir / "note_path.txt").exists() and Path(
         (vid_dir / "note_path.txt").read_text().strip()
     ).exists()
-    if not has_analysis and not has_note_ptr:
+    has_obsidian = _yt_find_obsidian_note(video_id) is not None
+    if not has_analysis and not has_note_ptr and not has_obsidian:
         raise HTTPException(404, "此影片尚無分析結果")
     return _yt_parse_note(video_id)
 
@@ -635,6 +638,9 @@ def yt_get_note_raw(video_id: str):
         md_path = Path(note_ptr.read_text().strip())
         if md_path.exists():
             return {"markdown": md_path.read_text(encoding="utf-8"), "path": str(md_path)}
+    obsidian_note = _yt_find_obsidian_note(video_id)
+    if obsidian_note:
+        return {"markdown": obsidian_note.read_text(encoding="utf-8"), "path": str(obsidian_note)}
     raise HTTPException(404, "此影片尚無 Obsidian 筆記檔案")
 
 
@@ -648,11 +654,17 @@ def yt_highlight(video_id: str, body: dict):
         raise HTTPException(400, "缺少 text")
     vid_dir = YT_DATA_DIR / video_id
     note_ptr = vid_dir / "note_path.txt"
-    if not note_ptr.exists():
+    md_path = None
+    if note_ptr.exists():
+        candidate = Path(note_ptr.read_text().strip())
+        if candidate.exists():
+            md_path = candidate
+    if md_path is None:
+        obsidian_note = _yt_find_obsidian_note(video_id)
+        if obsidian_note:
+            md_path = obsidian_note
+    if md_path is None:
         raise HTTPException(404, "此影片尚無筆記")
-    md_path = Path(note_ptr.read_text().strip())
-    if not md_path.exists():
-        raise HTTPException(404, "筆記檔案不存在")
     content = md_path.read_text(encoding="utf-8")
     if remove:
         if f"=={text}==" not in content:
@@ -673,14 +685,20 @@ def yt_delete_note(video_id: str):
     """刪除 Obsidian 筆記檔案"""
     vid_dir = YT_DATA_DIR / video_id
     note_ptr = vid_dir / "note_path.txt"
-    if not note_ptr.exists():
+    md_path = None
+    if note_ptr.exists():
+        candidate = Path(note_ptr.read_text().strip())
+        if candidate.exists():
+            md_path = candidate
+    if md_path is None:
+        obsidian_note = _yt_find_obsidian_note(video_id)
+        if obsidian_note:
+            md_path = obsidian_note
+    if md_path is None:
         raise HTTPException(404, "此影片尚無筆記")
-    md_path = Path(note_ptr.read_text().strip())
-    if not md_path.exists():
-        raise HTTPException(404, "筆記檔案不存在")
     md_path.unlink()
-    note_ptr.unlink()
-    # also remove analysis.json so it can be regenerated
+    if note_ptr.exists():
+        note_ptr.unlink()
     analysis_path = vid_dir / "analysis.json"
     if analysis_path.exists():
         analysis_path.unlink()
@@ -688,7 +706,7 @@ def yt_delete_note(video_id: str):
 
 
 @router.post("/api/youtube/videos/{video_id}/analyze")
-def yt_start_analyze(video_id: str):
+async def yt_start_analyze(video_id: str, request: Request):
     """觸發 claude -p 自動分析逐字稿 → 產生 analysis.json + Obsidian 筆記"""
     vid_dir = YT_DATA_DIR / video_id
 
@@ -696,11 +714,20 @@ def yt_start_analyze(video_id: str):
     if not analyze_script.exists():
         raise HTTPException(500, f"找不到 analyze.py：{analyze_script}")
 
+    # 接收前端傳來的 title_zh，避免 fallback 讀 info.json 英文標題
+    body_title = ""
+    try:
+        body = await request.json()
+        body_title = body.get("title", "") if isinstance(body, dict) else ""
+    except Exception:
+        pass
+
     job_id = f"yt-{video_id[:8]}-{str(uuid.uuid4())[:4]}"
     _jobs[job_id] = {
         "job_id":     job_id,
         "type":       "yt_analyze",
         "video_id":   video_id,
+        "title":      body_title,
         "status":     "pending",
         "phase":      "排隊中",
         "progress":   0,
@@ -712,15 +739,41 @@ def yt_start_analyze(video_id: str):
         job = _jobs[job_id]
         job["status"] = "running"
         job["phase"]  = "準備逐字稿"
+        url = f"https://www.youtube.com/watch?v={video_id}"
 
         def log(line):
             job["log"].append(line)
 
         try:
-            _ensure_yt_transcript(job, f"https://www.youtube.com/watch?v={video_id}", video_id)
+            if not _has_usable_yt_transcript(video_id):
+                # Step 1: try CC subtitles
+                job["phase"] = "抓取 CC 字幕"
+                _run_yt_setup(job, url, video_id)
+
+                if not _has_usable_yt_transcript(video_id):
+                    # No CC — pause and wait for user to confirm Whisper
+                    event = threading.Event()
+                    job["_whisper_event"]    = event
+                    job["_whisper_confirmed"] = None
+                    job["status"] = "waiting"
+                    job["phase"]  = "awaiting_whisper_confirm"
+
+                    confirmed = event.wait(timeout=600)   # 10 分鐘逾時
+
+                    if not confirmed or not job.get("_whisper_confirmed"):
+                        job["status"] = "cancelled"
+                        job["phase"]  = "已取消（無字幕）"
+                        job["finished_at"] = time.time()
+                        return
+
+                    # User confirmed — run Whisper
+                    job["status"] = "running"
+                    _run_yt_whisper(job, url, video_id)
+
+                    if not _has_usable_yt_transcript(video_id):
+                        raise RuntimeError("Whisper 轉錄完成但無可用逐字稿")
 
             job["phase"]    = "分析中"
-            job["progress"] = max(job.get("progress", 0), 65)
             proc = subprocess.Popen(
                 ["python3.10", str(analyze_script), video_id],
                 stdout=subprocess.PIPE,
@@ -730,6 +783,7 @@ def yt_start_analyze(video_id: str):
                 env=os.environ.copy(),
                 cwd=str(YT_SKILL_DIR),
             )
+            assert proc.stdout is not None
             for line in proc.stdout:
                 line = line.rstrip()
                 if not line:
@@ -738,9 +792,8 @@ def yt_start_analyze(video_id: str):
                     parts = line.split(":", 2)
                     if len(parts) >= 2:
                         try:
-                            # YT analyze runs after transcript (which ends at ~65%), so remap 5-95 → 65-98
                             raw = int(parts[1])
-                            job["progress"] = max(job.get("progress", 0), 65 + int(raw * 0.33))
+                            job["progress"] = max(job.get("progress", 0), raw)
                         except ValueError:
                             pass
                         if len(parts) >= 3:
@@ -808,6 +861,40 @@ def yt_start_analyze(video_id: str):
     t.start()
 
     return {"job_id": job_id, "video_id": video_id}
+
+
+@router.post("/api/youtube/videos/{video_id}/confirm-whisper")
+def yt_confirm_whisper(video_id: str):
+    """使用者確認使用 Whisper 轉錄，解除 awaiting_whisper_confirm 等待。"""
+    waiting = next(
+        (j for j in _jobs.values()
+         if j.get("video_id") == video_id
+         and j.get("status") == "waiting"
+         and j.get("phase") == "awaiting_whisper_confirm"),
+        None,
+    )
+    if not waiting:
+        raise HTTPException(404, "找不到等待確認的 job")
+    waiting["_whisper_confirmed"] = True
+    waiting["_whisper_event"].set()
+    return {"ok": True}
+
+
+@router.post("/api/youtube/videos/{video_id}/cancel-whisper")
+def yt_cancel_whisper(video_id: str):
+    """使用者取消，中止 awaiting_whisper_confirm 等待。"""
+    waiting = next(
+        (j for j in _jobs.values()
+         if j.get("video_id") == video_id
+         and j.get("status") == "waiting"
+         and j.get("phase") == "awaiting_whisper_confirm"),
+        None,
+    )
+    if not waiting:
+        raise HTTPException(404, "找不到等待確認的 job")
+    waiting["_whisper_confirmed"] = False
+    waiting["_whisper_event"].set()
+    return {"ok": True}
 
 
 @router.get("/api/youtube/videos/{video_id}/transcript")

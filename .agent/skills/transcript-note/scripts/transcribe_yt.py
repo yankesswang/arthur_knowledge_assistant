@@ -201,6 +201,11 @@ def main():
     (work_dir / "transcript_source.txt").write_text("whisper")
     print("transcript_source → whisper")
 
+    # 5. 刪除音頻（轉錄完不再需要）
+    if audio_path.exists():
+        audio_path.unlink()
+        print(f"✓ 音頻已刪除：{audio_path.name}")
+
 
 if __name__ == "__main__":
     main()

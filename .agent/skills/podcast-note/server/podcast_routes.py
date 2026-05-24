@@ -319,6 +319,7 @@ def start_download(body: dict):
     job_id = str(uuid.uuid4())[:8]
     _jobs[job_id] = {
         "job_id":     job_id,
+        "type":       "pod_download",
         "podcast_id": podcast_id,
         "episode":    ep_norm,
         "status":     "pending",
@@ -333,21 +334,21 @@ def start_download(body: dict):
 
 
 def _enrich_job(job: dict) -> dict:
-    """補上 title 欄位（從 info.json 取，供前端顯示用）"""
-    if job.get("title"):
-        return job
-    video_id = job.get("video_id", "")
-    if video_id:
-        from settings import YT_DATA_DIR
-        info_path = YT_DATA_DIR / video_id / "info.json"
-        if info_path.exists():
-            try:
-                title = json.loads(info_path.read_text()).get("title", "")
-                if title:
-                    return {**job, "title": title}
-            except Exception:
-                pass
-    return job
+    """補上 title 欄位（從 info.json 取，供前端顯示用），並過濾不可序列化的私有欄位。"""
+    out = {k: v for k, v in job.items() if not k.startswith("_")}
+    if not out.get("title"):
+        video_id = out.get("video_id", "")
+        if video_id:
+            from settings import YT_DATA_DIR
+            info_path = YT_DATA_DIR / video_id / "info.json"
+            if info_path.exists():
+                try:
+                    title = json.loads(info_path.read_text()).get("title", "")
+                    if title:
+                        out["title"] = title
+                except Exception:
+                    pass
+    return out
 
 
 @router.get("/api/jobs/{job_id}")
@@ -454,6 +455,7 @@ def analyze_episode(episode_id: str):
     job_id = str(uuid.uuid4())[:8]
     _jobs[job_id] = {
         "job_id":     job_id,
+        "type":       "pod_analyze",
         "podcast_id": podcast_id,
         "episode":    episode_label,
         "status":     "pending",
@@ -475,6 +477,7 @@ def analyze_episode(episode_id: str):
             stdout=sp.PIPE, stderr=sp.STDOUT, bufsize=1, text=True,
             env={**os.environ, "PODCAST_ID": podcast_id},
         )
+        assert proc.stdout is not None
         for line in proc.stdout:
             line = line.rstrip()
             if not line:

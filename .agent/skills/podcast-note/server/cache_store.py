@@ -43,7 +43,33 @@ def init_cache_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_youtube_video_cache_handle_pos
                 ON youtube_video_cache(handle, position);
+
+            CREATE TABLE IF NOT EXISTS youtube_read_status (
+                video_id TEXT PRIMARY KEY,
+                status TEXT NOT NULL DEFAULT 'unread',
+                updated_at REAL NOT NULL
+            );
             """
+        )
+
+
+def get_yt_read_status() -> dict[str, str]:
+    init_cache_db()
+    with _connect() as conn:
+        rows = conn.execute("SELECT video_id, status FROM youtube_read_status").fetchall()
+    return {row["video_id"]: row["status"] for row in rows}
+
+
+def set_yt_read_status(video_id: str, status: str) -> None:
+    init_cache_db()
+    with _connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO youtube_read_status(video_id, status, updated_at)
+            VALUES(?, ?, ?)
+            ON CONFLICT(video_id) DO UPDATE SET status=excluded.status, updated_at=excluded.updated_at
+            """,
+            (video_id, status, time.time()),
         )
 
 

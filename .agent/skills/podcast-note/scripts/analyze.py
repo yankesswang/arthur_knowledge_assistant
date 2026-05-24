@@ -201,6 +201,7 @@ def main():
     )
 
     seen_assistant = False
+    seen_tokens = False
     write_count = 0
     bash_count = 0
     for line in proc.stdout:
@@ -220,12 +221,11 @@ def main():
             if not seen_assistant:
                 seen_assistant = True
                 print("PROGRESS:15:分析逐字稿中", flush=True)
-            # stream output_tokens as rough progress 15→65
+            # 第一次有 output_tokens 時報一次 30%，不再跟著 token 數跳
             usage = ev.get("message", {}).get("usage", {})
-            out_tokens = usage.get("output_tokens", 0)
-            if out_tokens:
-                p = min(65, 15 + int(out_tokens / 120))
-                print(f"PROGRESS:{p}:分析中（{out_tokens} tokens）", flush=True)
+            if not seen_tokens and usage.get("output_tokens", 0) > 0:
+                seen_tokens = True
+                print("PROGRESS:30:分析中", flush=True)
             # detect tool_use inside content
             for block in ev.get("message", {}).get("content", []) or []:
                 if isinstance(block, dict) and block.get("type") == "tool_use":
