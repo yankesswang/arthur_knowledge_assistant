@@ -15,6 +15,16 @@ from pathlib import Path
 
 SKILL_DIR = Path(__file__).parent.parent
 CONFIG_PATH = SKILL_DIR / "config" / "podcasts.json"
+OUTPUT_SETTINGS_PATH = SKILL_DIR / "data" / "output_settings.json"
+
+
+def get_output_settings() -> dict:
+    if OUTPUT_SETTINGS_PATH.exists():
+        try:
+            return json.loads(OUTPUT_SETTINGS_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {"mode": "obsidian", "folder_path": "~/Documents/AlphaNote"}
 
 
 def load_config(podcast_id: str) -> dict:
@@ -177,7 +187,13 @@ def main():
     today      = date.today().isoformat()
     title_zh   = data.get("title_zh", info.get("title", "Unknown"))
     note_type  = data.get("note_type", "investment")
-    note_dir   = Path(pod_cfg.get("note_dir", "/home/trx50/Documents/arthurwang_DB/投資"))
+
+    output_cfg = get_output_settings()
+    if output_cfg.get("mode") == "folder":
+        note_dir = Path(output_cfg["folder_path"]).expanduser()
+        note_dir.mkdir(parents=True, exist_ok=True)
+    else:
+        note_dir = Path(pod_cfg.get("note_dir", "/home/trx50/Documents/arthurwang_DB/投資"))
 
     if note_type == "investment":
         content = generate_investment_note(data, info, pod_cfg, today)

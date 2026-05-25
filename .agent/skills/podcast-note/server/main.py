@@ -15,6 +15,7 @@ from podcast_routes import router as podcast_router
 from reading_routes import router as reading_router
 from remote import _prefetch_all_remote, preload_yt_db_cache
 from settings import SERVER_HOST, SERVER_PORT, STATIC_DIR
+from settings_routes import router as settings_router
 from youtube_routes import router as youtube_router, start_youtube_auto_transcript_worker
 from youtube_services import _backfill_avatars
 
@@ -24,6 +25,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 app.include_router(podcast_router)
 app.include_router(reading_router)
 app.include_router(youtube_router)
+app.include_router(settings_router)
 
 
 @app.on_event("startup")

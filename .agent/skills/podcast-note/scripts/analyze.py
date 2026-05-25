@@ -17,11 +17,26 @@ import subprocess
 import sys
 from pathlib import Path
 
-SKILL_DIR    = Path(__file__).parent.parent
-SKILL_MD     = SKILL_DIR / "SKILL.md"
-CONFIG_PATH  = SKILL_DIR / "config" / "podcasts.json"
-PROJECT_ROOT = SKILL_DIR.parent.parent
-INSTRUCTIONS = PROJECT_ROOT / "instructions" / "note-investment.md"
+SKILL_DIR      = Path(__file__).parent.parent
+SKILL_MD       = SKILL_DIR / "SKILL.md"
+CONFIG_PATH    = SKILL_DIR / "config" / "podcasts.json"
+PROJECT_ROOT   = SKILL_DIR.parent.parent
+INSTRUCTIONS   = PROJECT_ROOT / "instructions" / "note-investment.md"
+CUSTOM_PROMPT  = SKILL_DIR / "data" / "custom_prompt.md"
+TRANSCRIPTION_SETTINGS_PATH = SKILL_DIR / "data" / "transcription_settings.json"
+
+LANG_LABELS = {"zh": "繁體中文", "en": "English", "auto": "（依逐字稿語言自動判斷）"}
+
+
+def get_analysis_language() -> str:
+    """從 transcription_settings.json 讀取語言設定，fallback 到 zh。"""
+    try:
+        if TRANSCRIPTION_SETTINGS_PATH.exists():
+            cfg = json.loads(TRANSCRIPTION_SETTINGS_PATH.read_text(encoding="utf-8"))
+            return cfg.get("language", "zh")
+    except Exception:
+        pass
+    return "zh"
 
 
 def get_podcast_config(podcast_id: str) -> dict:
@@ -100,10 +115,22 @@ def build_prompt(work_dir: Path, podcast_id: str, clean_transcript: str) -> str:
     pod      = get_podcast_config(podcast_id)
     pod_name = pod.get("name", podcast_id)
     note_dir = pod.get("note_dir", str(PROJECT_ROOT / "data"))
-    lang     = pod.get("language", "zh")
 
-    skill_md      = SKILL_MD.read_text(encoding="utf-8")
-    note_instr    = INSTRUCTIONS.read_text(encoding="utf-8") if INSTRUCTIONS.exists() else ""
+    # Language: transcription_settings.json > podcasts.json > fallback zh
+    lang = get_analysis_language()
+    if lang == "auto":
+        lang = pod.get("language", "zh")
+    lang_label = LANG_LABELS.get(lang, lang)
+
+    skill_md   = SKILL_MD.read_text(encoding="utf-8")
+    # Custom prompt takes priority over default note-investment.md
+    if CUSTOM_PROMPT.exists():
+        _custom = CUSTOM_PROMPT.read_text(encoding="utf-8").strip()
+        note_instr = _custom if _custom else (INSTRUCTIONS.read_text(encoding="utf-8") if INSTRUCTIONS.exists() else "")
+    elif INSTRUCTIONS.exists():
+        note_instr = INSTRUCTIONS.read_text(encoding="utf-8")
+    else:
+        note_instr = ""
 
     return f"""你正在執行 podcast-note skill，模式：--transcript（從 Step 3 開始）。
 
@@ -113,6 +140,7 @@ def build_prompt(work_dir: Path, podcast_id: str, clean_transcript: str) -> str:
 - WORK_DIR: {work_dir}
 - NOTE_DIR: {note_dir}
 - LANGUAGE: {lang}
+- OUTPUT_LANGUAGE: {lang_label}（筆記輸出語言，標題、摘要、章節內容均使用此語言）
 
 ## 投資筆記格式規範（note-investment.md）
 

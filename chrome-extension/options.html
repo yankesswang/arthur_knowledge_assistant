@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>AlphaNote — 設定</title>
+<style>
+:root {
+  --bg: #0f1117; --surface: #1a1d27; --surface2: #22253a;
+  --border: #2e3145; --accent: #7c6af7; --text: #e2e4f0;
+  --text-dim: #8b8fa8; --green: #4ade80; --red: #f87171;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  padding: 32px;
+  max-width: 700px;
+}
+h1 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.subtitle {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 28px;
+}
+.field { margin-bottom: 20px; }
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 6px;
+}
+input[type="number"],
+input[type="text"] {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+input:focus { border-color: var(--accent); }
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Menlo', monospace;
+  line-height: 1.6;
+  outline: none;
+  resize: vertical;
+  min-height: 320px;
+}
+textarea:focus { border-color: var(--accent); }
+.hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+.btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.btn {
+  padding: 9px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #6b5ce7; }
+.btn-secondary {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: #2a2d45; }
+.btn-danger {
+  background: rgba(248,113,113,.12);
+  color: var(--red);
+  border: 1px solid rgba(248,113,113,.2);
+}
+.btn-danger:hover { background: rgba(248,113,113,.2); }
+.status-msg {
+  margin-top: 14px;
+  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  display: none;
+}
+.status-msg.ok { background: rgba(74,222,128,.08); color: var(--green); display: block; }
+.status-msg.err { background: rgba(248,113,113,.08); color: var(--red); display: block; }
+hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+.section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 14px;
+}
+.prompt-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.prompt-meta label { margin-bottom: 0; }
+.custom-badge {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 700;
+  background: rgba(124,106,247,.15);
+  color: var(--accent);
+  display: none;
+}
+.custom-badge.visible { display: inline-block; }
+</style>
+</head>
+<body>
+<h1>🎙 AlphaNote</h1>
+<div class="subtitle">Chrome Extension 設定（進階）— 也可直接在 Side Panel 內的⚙ 開啟設定</div>
+
+<div class="section-title">Server 連線</div>
+
+<div class="field">
+  <label>Server Port</label>
+  <input type="number" id="serverPort" value="7654" min="1024" max="65535">
+  <div class="hint">本地 FastAPI server 的 port，預設 7654</div>
+</div>
+
+<hr>
+
+<div class="section-title">Obsidian 整合</div>
+
+<div class="field">
+  <label>Vault 名稱</label>
+  <input type="text" id="vaultName" value="arthurwang_DB" placeholder="arthurwang_DB">
+  <div class="hint">用於產生 obsidian:// 連結開啟筆記</div>
+</div>
+
+<div class="btn-row">
+  <button class="btn btn-primary" id="saveBtn">儲存設定</button>
+  <button class="btn btn-secondary" id="testBtn">測試連線</button>
+</div>
+<div class="status-msg" id="statusMsg"></div>
+
+<hr>
+
+<div class="section-title">筆記輸出</div>
+
+<div class="field">
+  <label>輸出模式</label>
+  <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+    <label style="display:flex;align-items:center;gap:10px;text-transform:none;letter-spacing:0;font-weight:400;font-size:13px;color:var(--text);cursor:pointer;">
+      <input type="radio" name="outputMode" value="obsidian" id="modeObsidian" style="width:auto;accent-color:var(--accent);">
+      Obsidian Vault（使用 podcasts.json 設定的 note_dir）
+    </label>
+    <label style="display:flex;align-items:center;gap:10px;text-transform:none;letter-spacing:0;font-weight:400;font-size:13px;color:var(--text);cursor:pointer;">
+      <input type="radio" name="outputMode" value="folder" id="modeFolder" style="width:auto;accent-color:var(--accent);">
+      自訂資料夾（不需 Obsidian）
+    </label>
+  </div>
+</div>
+
+<div class="field" id="folderPathField" style="display:none;">
+  <label>資料夾路徑</label>
+  <input type="text" id="folderPath" value="~/Documents/AlphaNote" placeholder="~/Documents/AlphaNote">
+  <div class="hint">筆記會以 .md 格式存入此資料夾，可用 VS Code、Typora、Logseq 開啟。</div>
+</div>
+
+<div class="btn-row">
+  <button class="btn btn-primary" id="saveOutputBtn">儲存輸出設定</button>
+</div>
+<div class="status-msg" id="outputStatusMsg"></div>
+
+<hr>
+
+<div class="section-title">分析 Prompt</div>
+
+<div class="field">
+  <div class="prompt-meta">
+    <label>System Prompt</label>
+    <span class="custom-badge" id="customBadge">已自訂</span>
+  </div>
+  <textarea id="promptEditor" placeholder="載入中..."></textarea>
+  <div class="hint">預設為 note-investment.md 的內容。修改後按「儲存 Prompt」即生效，下次分析時 Claude 會使用這份 prompt。</div>
+</div>
+
+<div class="btn-row">
+  <button class="btn btn-primary" id="savePromptBtn">儲存 Prompt</button>
+  <button class="btn btn-secondary" id="reloadPromptBtn">重新載入</button>
+  <button class="btn btn-danger" id="resetPromptBtn">恢復預設</button>
+</div>
+<div class="status-msg" id="promptStatusMsg"></div>
+
+<script src="options.js"></script>
+</body>
+</html>

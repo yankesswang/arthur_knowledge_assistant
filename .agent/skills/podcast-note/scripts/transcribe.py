@@ -13,6 +13,9 @@ import sys
 import time
 from pathlib import Path
 
+SKILL_DIR = Path(__file__).parent.parent
+TRANSCRIPTION_SETTINGS_PATH = SKILL_DIR / "data" / "transcription_settings.json"
+
 CUDNN_LIB = Path.home() / ".local/lib/python3.10/site-packages/nvidia/cudnn/lib"
 
 
@@ -77,6 +80,52 @@ def transcribe(audio_path: str, model_size: str, language: str | None, device: s
     return entries, info
 
 
+def get_transcription_settings() -> dict:
+    if TRANSCRIPTION_SETTINGS_PATH.exists():
+        try:
+            return json.loads(TRANSCRIPTION_SETTINGS_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {"mode": "local", "openai_api_key": "", "whisper_model": "medium"}
+
+
+def transcribe_api(audio_path: str, language: str | None) -> list[dict]:
+    """Whisper API（OpenAI）轉錄，回傳與本地模式相同格式的 entries。"""
+    cfg = get_transcription_settings()
+    api_key = cfg.get("openai_api_key") or os.environ.get("OPENAI_API_KEY", "")
+    if not api_key:
+        raise RuntimeError("Whisper API 模式需要 OpenAI API key，請到設定頁填入。")
+
+    try:
+        from openai import OpenAI
+    except ImportError:
+        raise RuntimeError("請先安裝 openai：pip install openai")
+
+    client = OpenAI(api_key=api_key)
+    print(f"送出 Whisper API 請求：{audio_path}", flush=True)
+    t0 = time.time()
+
+    with open(audio_path, "rb") as f:
+        kwargs = {"model": "whisper-1", "response_format": "verbose_json", "timestamp_granularities": ["segment"]}
+        if language and language != "auto":
+            kwargs["language"] = language
+        result = client.audio.transcriptions.create(file=f, **kwargs)
+
+    elapsed = time.time() - t0
+    print(f"Whisper API 完成（{elapsed:.1f}s）", flush=True)
+
+    entries = []
+    for seg in result.segments:
+        entries.append({
+            "start": round(seg.start, 3),
+            "end": round(seg.end, 3),
+            "text": seg.text.strip(),
+        })
+        print(f"  [{seg.start:7.1f}s] {seg.text.strip()[:80]}", flush=True)
+
+    return entries
+
+
 def write_txt(entries, out_path):
     lines = []
     for e in entries:
@@ -98,7 +147,6 @@ def write_json(entries, info, out_path):
     print(f"逐字稿 JSON：{out_path}")
 
 
-SKILL_DIR = Path(__file__).parent.parent
 CONFIG_PATH = SKILL_DIR / "config" / "podcasts.json"
 
 
@@ -118,9 +166,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("work_dir", help="工作目錄（含 audio.mp3）")
     parser.add_argument("--lang", default="zh", help="語言（預設 zh）")
-    parser.add_argument("--model", default="medium", choices=["tiny", "base", "small", "medium", "large-v2", "large-v3"])
+    parser.add_argument("--model", default="", choices=["", "tiny", "base", "small", "medium", "large-v2", "large-v3"])
     parser.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
     parser.add_argument("--episode", default="", help="集數標籤（如 EP663），用於逐字稿檔名")
+    parser.add_argument("--mode", default="", choices=["", "local", "api"], help="轉錄模式（覆蓋設定檔）")
     args = parser.parse_args()
 
     work_dir = Path(args.work_dir)
@@ -129,11 +178,24 @@ def main():
         print(f"ERROR: 找不到 audio.* 在 {work_dir}", file=sys.stderr)
         sys.exit(1)
 
-    setup_cudnn()
-    device = detect_device() if args.device == "auto" else args.device
-    print(f"使用裝置：{device}")
+    cfg = get_transcription_settings()
+    mode = args.mode or cfg.get("mode", "local")
+    print(f"轉錄模式：{mode}", flush=True)
 
-    entries, info = transcribe(str(audio_file), args.model, args.lang, device)
+    if mode == "api":
+        entries = transcribe_api(str(audio_file), args.lang if args.lang != "zh" else None)
+        # build minimal info-like object for write_json
+        class _Info:
+            language = "unknown"
+            language_probability = 0.0
+            duration = 0.0
+        info = _Info()
+    else:
+        setup_cudnn()
+        device = detect_device() if args.device == "auto" else args.device
+        model = args.model or cfg.get("whisper_model", "medium")
+        print(f"使用裝置：{device}", flush=True)
+        entries, info = transcribe(str(audio_file), model, args.lang, device)
 
     # work_dir 內的 transcript（供後續分析用）
     write_txt(entries, work_dir / "transcript.txt")
