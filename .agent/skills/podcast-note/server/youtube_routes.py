@@ -22,6 +22,7 @@ from settings import (
     YT_AUTO_TRANSCRIPT_START_DELAY_SECONDS,
     YT_CHANNEL_CFG,
     YT_DATA_DIR,
+    YT_REMOTE_LIMIT,
     YT_QUEUE_FILE,
     YT_SKILL_DIR,
 )
@@ -59,6 +60,8 @@ _yt_worker_lock = threading.Lock()
 _yt_auto_worker_started = False
 _yt_active_ids: set[str] = set()
 _yt_auto_failed_ids: set[str] = set()
+_yt_search_cache: dict[tuple[str, int], tuple[float, list[dict]]] = {}
+_YT_SEARCH_CACHE_TTL_SECONDS = 300
 
 
 def _yt_transcript_source(video_id: str) -> str:
@@ -296,6 +299,44 @@ def _parse_auto_limit(channel_limit) -> int | None:
     return None if limit <= 0 else limit
 
 
+def _parse_display_limit(value) -> int | None:
+    raw = str(value).strip().lower()
+    if raw in ("", "none", "all", "0", "-1"):
+        return None
+    try:
+        limit = int(raw)
+    except ValueError:
+        return 50
+    return None if limit <= 0 else limit
+
+
+def _yt_channel_display_limit(handle: str) -> int | None:
+    display_limit = YT_REMOTE_LIMIT
+    if YT_CHANNEL_CFG.exists():
+        try:
+            cfg = json.loads(YT_CHANNEL_CFG.read_text())
+            channel = next((c for c in cfg.get("channels", []) if c.get("handle") == handle), None)
+            if channel:
+                display_limit = channel.get("display_limit", YT_REMOTE_LIMIT)
+        except Exception:
+            pass
+    return _parse_display_limit(display_limit)
+
+
+def _yt_start_remote_refresh(handle: str) -> None:
+    with _remote_cache_lock:
+        if handle in _remote_yt_loading:
+            return
+
+    def _run():
+        try:
+            _fetch_remote_yt_videos(handle, _yt_channel_display_limit(handle))
+        except Exception as e:
+            print(f"[yt-refresh] {handle} error: {e}")
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
 def _yt_auto_enqueue_channel_candidates() -> int:
     urls: list[str] = []
     for ch in _yt_load_channels():
@@ -526,37 +567,39 @@ def yt_list_channels():
             remote_loading = handle in _remote_yt_loading
             details_ready = handle in _remote_yt_details_ready
 
-        needs_db_backfill = (
-            not remote
-            or not details_ready
-            or any(not v.get("upload_date") or not v.get("duration") for v in remote)
+        cached_remote, meta = _load_remote_yt_cache_from_db(handle)
+        cached_by_id = {v["id"]: v for v in cached_remote}
+        if not remote:
+            remote = cached_remote
+            remote_loading = False
+        elif cached_remote:
+            merged_remote = []
+            seen_remote_ids = set()
+            for r in remote:
+                cached = cached_by_id.get(r.get("id", ""))
+                if cached:
+                    # Prefer DB metadata because the in-memory cache can lag after
+                    # a background detail refresh completes.
+                    r = {
+                        **r,
+                        "upload_date": cached.get("upload_date", "") or r.get("upload_date", ""),
+                        "duration": cached.get("duration", "") or r.get("duration", ""),
+                        "title_zh": r.get("title_zh") or cached.get("title_zh") or cached.get("title", ""),
+                    }
+                merged_remote.append(r)
+                if r.get("id"):
+                    seen_remote_ids.add(r["id"])
+            for cached in cached_remote:
+                if cached.get("id") not in seen_remote_ids:
+                    merged_remote.append(cached)
+            remote = merged_remote
+        missing_meta_count = sum(
+            1 for v in remote
+            if not v.get("upload_date") or not v.get("duration")
         )
-        if needs_db_backfill:
-            cached_remote, meta = _load_remote_yt_cache_from_db(handle)
-            cached_by_id = {v["id"]: v for v in cached_remote}
-            if not remote:
-                remote = cached_remote
-                remote_loading = False
-            elif cached_remote:
-                merged_remote = []
-                seen_remote_ids = set()
-                for r in remote:
-                    cached = cached_by_id.get(r.get("id", ""))
-                    if cached:
-                        r = {
-                            **r,
-                            "upload_date": r.get("upload_date") or cached.get("upload_date", ""),
-                            "duration": r.get("duration") or cached.get("duration", ""),
-                            "title_zh": r.get("title_zh") or cached.get("title_zh") or cached.get("title", ""),
-                        }
-                    merged_remote.append(r)
-                    if r.get("id"):
-                        seen_remote_ids.add(r["id"])
-                for cached in cached_remote:
-                    if cached.get("id") not in seen_remote_ids:
-                        merged_remote.append(cached)
-                remote = merged_remote
-            details_ready = details_ready or bool(meta.get("details_ready"))
+        details_ready = (details_ready or bool(meta.get("details_ready"))) and missing_meta_count == 0
+        if remote and missing_meta_count:
+            _yt_start_remote_refresh(handle)
 
         # 本地歸屬此頻道的影片
         ch_local = [v for v in local_vids
@@ -605,6 +648,7 @@ def yt_list_channels():
             "remote_ready": bool(remote),
             "remote_loading": remote_loading,
             "dates_ready":   bool(remote) and details_ready,
+            "missing_date_count": sum(1 for v in merged if not v.get("upload_date")),
             "videos":       merged,
         })
 
@@ -1000,9 +1044,14 @@ def yt_search_channels(q: str, limit: int = 8):
     """用 yt-dlp 搜尋 YouTube 頻道，回傳去重的頻道清單（含頭像、handle）"""
     if not q or len(q.strip()) < 2:
         raise HTTPException(400, "搜尋關鍵字太短")
+    query = q.strip()
+    cache_key = (query.casefold(), limit)
+    cached = _yt_search_cache.get(cache_key)
+    if cached and time.time() - cached[0] < _YT_SEARCH_CACHE_TTL_SECONDS:
+        return cached[1]
     try:
         r = subprocess.run(
-            ["yt-dlp", f"ytsearch{limit * 3}:{q.strip()}",
+            ["yt-dlp", f"ytsearch{limit * 3}:{query}",
              "--flat-playlist",
              "--print", "%(channel)s|%(channel_id)s|%(uploader_id)s"],
             capture_output=True, text=True, timeout=20,
@@ -1038,6 +1087,7 @@ def yt_search_channels(q: str, limit: int = 8):
         if len(results) >= limit:
             break
 
+    _yt_search_cache[cache_key] = (time.time(), results)
     return results
 
 
@@ -1074,6 +1124,7 @@ def yt_add_channel(body: dict):
         "handle":     handle,
         "name":       name or handle.lstrip("@"),
         "limit":      5,
+        "display_limit": YT_REMOTE_LIMIT,
         "enabled":    True,
         **({"channel_id": channel_id} if channel_id else {}),
         **({"avatar":     avatar}     if avatar     else {}),
@@ -1084,12 +1135,10 @@ def yt_add_channel(body: dict):
 
     def _prime_new_channel():
         try:
-            limit = _parse_auto_limit(new_ch.get("limit", 5))
-            videos = _fetch_remote_yt_videos(handle, limit)
-            _yt_append_queue_urls([v["url"] for v in videos if v.get("url")])
-            _yt_auto_process_once()
+            display_limit = _parse_display_limit(new_ch.get("display_limit", YT_REMOTE_LIMIT))
+            _fetch_remote_yt_videos(handle, display_limit)
         except Exception as e:
-            print(f"[yt-auto] new channel {handle} error: {e}")
+            print(f"[yt-prime] new channel {handle} error: {e}")
 
     threading.Thread(target=_prime_new_channel, daemon=True).start()
     return new_ch
@@ -1108,6 +1157,16 @@ def yt_remove_channel(handle: str):
     cfg["channels"] = new_list
     YT_CHANNEL_CFG.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
     return {"deleted": handle}
+
+
+@router.post("/api/youtube/channels/{handle}/refresh")
+def yt_refresh_channel(handle: str):
+    """Force-refresh one channel's remote video list, ignoring cached short lists."""
+    handle = urllib.parse.unquote(handle)
+    if not handle.startswith("@"):
+        handle = "@" + handle
+    _yt_start_remote_refresh(handle)
+    return {"status": "started", "handle": handle}
 
 
 @router.get("/api/proxy-image")

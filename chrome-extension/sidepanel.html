@@ -151,6 +151,34 @@ html, body {
 .tb-btn:hover        { background: var(--surface2); color: var(--text); }
 .tb-btn:focus-visible{ outline: 2px solid var(--accent); outline-offset: 1px; }
 
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,.02);
+}
+.zoom-btn {
+  min-width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+#zoom-label {
+  min-width: 38px;
+  height: 24px;
+  padding: 0 5px;
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 600;
+  font-family: 'Space Grotesk', sans-serif;
+  cursor: pointer;
+}
+
 /* ── Main area ───────────────────────────────────────────────────────── */
 #main {
   height: calc(100% - 46px);
@@ -163,6 +191,7 @@ iframe {
   height: 100%;
   border: none;
   display: block;
+  transform-origin: top left;
 }
 
 /* Offline state */
@@ -840,6 +869,12 @@ iframe {
     <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
     分析影片
   </button>
+
+  <div class="zoom-controls" aria-label="介面縮放">
+    <button class="tb-btn zoom-btn" id="zoom-out-btn" aria-label="縮小介面">−</button>
+    <button class="tb-btn" id="zoom-label" aria-label="重設介面縮放">100%</button>
+    <button class="tb-btn zoom-btn" id="zoom-in-btn" aria-label="放大介面">+</button>
+  </div>
 
   <button class="tb-btn" id="popout-btn" aria-label="在新分頁開啟">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

@@ -196,6 +196,14 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .page-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:20px}
 .add-ch-btn{padding:6px 14px;border-radius:6px;background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
 .add-ch-btn:hover{background:var(--accent);color:#fff}
+.toolbar-label{font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px}
+.sort-select{height:30px;padding:0 30px 0 10px;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:12px;font-weight:600;outline:none;cursor:pointer}
+.sort-select:hover{border-color:var(--accent)}
+.sort-select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(124,106,247,.18)}
+.mini-actions{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:7px}
+.mini-action{font-size:10px;padding:2px 7px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text-dim);cursor:pointer;transition:all .15s;white-space:nowrap}
+.mini-action:hover{border-color:var(--accent);color:var(--accent)}
+.mini-action.running{border-color:var(--blue);color:var(--blue);cursor:default}
 .ch-remove-btn{padding:4px 6px;border-radius:4px;border:1px solid transparent;background:transparent;color:var(--text-muted);cursor:pointer;transition:all .15s;flex-shrink:0;display:flex;align-items:center}
 .ch-remove-btn:hover{border-color:var(--red);color:var(--red)}
 .card-remove{position:absolute;top:6px;right:6px;z-index:2;background:rgba(15,17,23,.78);border-color:var(--border)}
@@ -320,9 +328,9 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2499;outline:2px solid #fbb
   <h1>🎙 Notes</h1>
   <button class="nav-tab nav-tab-yt active" data-page="youtube">YouTube</button>
   <button class="nav-tab" data-page="podcast">Podcast</button>
-  <button class="nav-tab" data-page="inbox">
-    待讀
-    <span id="inbox-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:4px;vertical-align:middle"></span>
+  <button class="nav-tab" data-page="notes">
+    Notes
+    <span id="notes-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:4px;vertical-align:middle"></span>
   </button>
   <div id="nav-search">
     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="11" cy="11" r="8" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke-width="2" stroke-linecap="round"/></svg>
@@ -340,23 +348,41 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2499;outline:2px solid #fbb
 
 <!-- YouTube page -->
 <div id="page-youtube" class="page active">
-  <div class="page-toolbar">
+  <div class="page-toolbar" style="justify-content:space-between">
     <button class="add-ch-btn" onclick="openAddChannel('yt')">+ 新增 YouTube 頻道</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <label class="toolbar-label" for="yt-channel-sort">排序</label>
+      <select id="yt-channel-sort" class="sort-select">
+        <option value="added_desc">新增時間：新到舊</option>
+        <option value="added_asc">新增時間：舊到新</option>
+        <option value="note_desc">筆記數量：多到少</option>
+        <option value="note_asc">筆記數量：少到多</option>
+        <option value="video_desc">影片數量：多到少</option>
+        <option value="latest_video_desc">最新影片：新到舊</option>
+        <option value="name_asc">名稱：A 到 Z</option>
+      </select>
+    </div>
   </div>
   <div id="yt-cards" class="cards-grid"></div>
 </div>
 
 <!-- Inbox page -->
-<div id="page-inbox" class="page">
+<div id="page-notes" class="page">
   <div class="page-toolbar" style="justify-content:space-between">
-    <span style="font-size:13px;font-weight:700;color:var(--text-dim)">待閱讀筆記</span>
+    <span style="font-size:13px;font-weight:700;color:var(--text-dim)">所有筆記</span>
     <div style="display:flex;gap:6px;align-items:center">
-      <button class="dvbtn inbox-sort-btn active" data-sort="pub_date" title="依發布日期排序">📅 發布</button>
-      <button class="dvbtn inbox-sort-btn" data-sort="note_created" title="依筆記建立時間排序">✏️ 筆記</button>
-      <button id="inbox-clear-all" class="add-ch-btn" style="background:transparent;border-color:var(--border);color:var(--text-muted);margin-left:6px">全部清除</button>
+      <label class="toolbar-label" for="notes-sort">排序</label>
+      <select id="notes-sort" class="sort-select">
+        <option value="updated_desc">最新更新：新到舊</option>
+        <option value="updated_asc">最新更新：舊到新</option>
+        <option value="pub_desc">發布日期：新到舊</option>
+        <option value="title_asc">標題：A 到 Z</option>
+        <option value="type_asc">類型：Podcast / YouTube</option>
+      </select>
+      <button id="notes-refresh" class="add-ch-btn" style="background:transparent;border-color:var(--border);color:var(--text-muted);margin-left:6px">重新整理</button>
     </div>
   </div>
-  <div id="inbox-list"></div>
+  <div id="notes-list"></div>
 </div>
 
 <!-- Add channel modal -->
@@ -458,12 +484,13 @@ let _whisperVideoId=null, _whisperJobId=null;
 let ytRefreshPoll=null;
 let ytJobRefreshPoll=null;
 let inboxItems=[];
-let inboxSort='pub_date'; // 'pub_date' | 'note_created'
+let notesSort='updated_desc'; // updated_desc | updated_asc | pub_desc | title_asc | type_asc
+let ytChannelSort='added_desc';
 const analyzingIds=new Set(); // episodeId or 'yt:videoId' currently running
 const expandedCards=new Set();
 const expandedMonths=new Set(); // key: "cardId:monthKey"
 const visibleMonthCounts=new Map();
-const MONTH_BATCH=3;
+const MONTH_BATCH=999;
 
 // ── Helpers ───────────────────────────────────────────────────
 function avatarPlaceholder(name){
@@ -482,6 +509,23 @@ function ytImg(url){
 function setImgSrc(el, primary, fallback){
   el.onerror=()=>{ el.onerror=null; el.src=fallback; };
   el.src=primary||fallback;
+}
+function ytChannelUrl(handle){
+  return `https://www.youtube.com/${String(handle||'').startsWith('@')?handle:'@'+handle}`;
+}
+async function copyText(text){
+  try{
+    await navigator.clipboard.writeText(text);
+  }catch(_){
+    const ta=document.createElement('textarea');
+    ta.value=text;
+    ta.style.position='fixed';
+    ta.style.left='-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
 }
 async function api(path,opts){
   const r=await fetch(path,opts);
@@ -502,6 +546,7 @@ function monthLabel(key){
 function groupByMonth(items, dateField='upload_date'){
   const groups={};
   for(const it of items){
+    if(!it[dateField]) continue;
     const k=monthKey(it[dateField]||'');
     (groups[k]||(groups[k]=[])).push(it);
   }
@@ -527,47 +572,135 @@ function advanceChannelMonths(cardKey, totalMonths, renderFn){
   renderFn();
 }
 
-// ── Inbox ─────────────────────────────────────────────────────
-// sort button listeners
-document.querySelectorAll('.inbox-sort-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    inboxSort=btn.dataset.sort;
-    document.querySelectorAll('.inbox-sort-btn').forEach(b=>b.classList.toggle('active',b.dataset.sort===inboxSort));
-    renderInbox();
-  });
+// ── Notes ────────────────────────────────────────────────────
+$('notes-sort')?.addEventListener('change',e=>{
+  notesSort=e.target.value;
+  renderInbox();
 });
 
-function updateInboxBadge(){
-  const badge=$('inbox-badge');
-  if(inboxItems.length){
-    badge.textContent=inboxItems.length;
+$('yt-channel-sort')?.addEventListener('change',e=>{
+  ytChannelSort=e.target.value;
+  renderYTCards();
+});
+
+function _buildNotesItems(){
+  const inboxById=new Map((inboxItems||[]).map(item=>[item.id,item]));
+  const items=[];
+
+  for(const pod of podcasts){
+    for(const ep of (pod.episodes||[])){
+      if(!(ep.has_note||ep.has_analysis)) continue;
+      const noteMeta=inboxById.get(`pod:${ep.id}`) || inboxById.get(ep.id) || {};
+      items.push({
+        id: ep.id,
+        type: 'podcast',
+        podcast_id: pod.id,
+        title: ep.title_zh||ep.episode_label||ep.id,
+        podcast: pod.name,
+        episode: ep.episode_label||ep.ep_num||'',
+        pub_date: ep.upload_date||ep.pub_date||'',
+        note_created: noteMeta.note_created||0,
+        note_path: noteMeta.note_path||'',
+        thumbnail: pod.artwork||'',
+        artwork: pod.artwork||'',
+        has_note: !!ep.has_note,
+        has_analysis: !!ep.has_analysis,
+        has_transcript: !!ep.has_transcript,
+        _pod: pod.name,
+        _source: pod.name,
+      });
+    }
+  }
+
+  for(const ch of ytChannels){
+    for(const v of (ch.videos||[])){
+      if(!(v.has_note||v.has_analysis)) continue;
+      const noteMeta=inboxById.get(`yt:${v.id}`) || inboxById.get(v.id) || {};
+      items.push({
+        id: v.id,
+        type: 'yt',
+        video_id: v.id,
+        title: v.title_zh||v.title||v.id,
+        channel: ch.name||ch.handle,
+        pub_date: v.upload_date||'',
+        note_created: noteMeta.note_created||0,
+        note_path: noteMeta.note_path||'',
+        thumbnail: v.thumbnail||'',
+        url: v.url||`https://www.youtube.com/watch?v=${v.id}`,
+        has_note: !!v.has_note,
+        has_analysis: !!v.has_analysis,
+        has_transcript: !!v.has_transcript,
+      });
+    }
+  }
+
+  return items;
+}
+
+function updateNotesBadge(items){
+  const badge=$('notes-badge');
+  const count=(items||[]).length;
+  if(count){
+    badge.textContent=count;
     badge.style.display='inline';
   }else{
     badge.style.display='none';
   }
 }
 
+function parseDateStamp(value){
+  if(typeof value==='number' && Number.isFinite(value)) return value;
+  if(!value) return 0;
+  const ts=Date.parse(value);
+  return Number.isFinite(ts) ? Math.floor(ts/1000) : 0;
+}
+
 function renderInbox(){
-  updateInboxBadge();
-  const el=$('inbox-list');
+  const notes=_buildNotesItems();
+  updateNotesBadge(notes);
+  const el=$('notes-list');
   if(!el) return;
-  if(!inboxItems.length){
-    el.innerHTML='<div class="inbox-empty"><p>沒有待閱讀的筆記</p></div>';
+  if(!notes.length){
+    el.innerHTML='<div class="inbox-empty"><p>沒有筆記</p></div>';
     return;
   }
-  const sorted=[...inboxItems].sort((a,b)=>{
-    const va=inboxSort==='note_created'?(a.note_created||0):(a.pub_date||'');
-    const vb=inboxSort==='note_created'?(b.note_created||0):(b.pub_date||'');
-    return va>vb?-1:va<vb?1:0;
+  const q=$('search-input').value.trim().toLowerCase();
+  const filtered=q
+    ? notes.filter(n=>
+        (n.title||'').toLowerCase().includes(q) ||
+        (n.podcast||'').toLowerCase().includes(q) ||
+        (n.channel||'').toLowerCase().includes(q)
+      )
+    : notes;
+  if(!filtered.length){
+    el.innerHTML='<div class="inbox-empty"><p>沒有符合的筆記</p></div>';
+    return;
+  }
+  const sorted=[...filtered].sort((a,b)=>{
+    if(notesSort==='title_asc'){
+      return (a.title||a.episode||a.video_id||'').localeCompare(b.title||b.episode||b.video_id||'', 'zh-Hant');
+    }
+    if(notesSort==='type_asc'){
+      const typeCmp=(a.type||'').localeCompare(b.type||'');
+      if(typeCmp) return typeCmp;
+    }
+    const va=notesSort==='updated_desc'||notesSort==='updated_asc'
+      ? Math.max(parseDateStamp(a.note_created), parseDateStamp(a.pub_date))
+      : parseDateStamp(a.pub_date);
+    const vb=notesSort==='updated_desc'||notesSort==='updated_asc'
+      ? Math.max(parseDateStamp(b.note_created), parseDateStamp(b.pub_date))
+      : parseDateStamp(b.pub_date);
+    if(va===vb) return (a.title||'').localeCompare(b.title||'', 'zh-Hant');
+    return notesSort==='updated_asc' ? va-vb : vb-va;
   });
   el.innerHTML='';
   for(const item of sorted){
     const isYT=item.type==='yt';
     const thumb=isYT
       ? ytImg(item.thumbnail||`https://img.youtube.com/vi/${item.video_id}/mqdefault.jpg`)
-      : (item.artwork||'');
+      : (item.thumbnail||item.artwork||'');
     const typeLabel=isYT?'YouTube':'Podcast';
-    const meta=[isYT?item.channel:item.podcast, item.episode, item.date].filter(Boolean).join(' · ');
+    const meta=[isYT?item.channel:item.podcast, item.episode].filter(Boolean).join(' · ');
 
     const row=document.createElement('div');
     row.className='inbox-item';
@@ -584,47 +717,48 @@ function renderInbox(){
           ${item.note_created?`<span title="筆記建立時間">✏️ ${new Date(item.note_created*1000).toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'})}</span>`:''}
         </div>
       </div>
-      <button class="inbox-read-btn" data-id="${h(item.id)}">✓ 已閱</button>`;
+      <button class="inbox-read-btn" data-id="${h(item.id)}">開啟</button>`;
 
     // 點標題 → 開 detail
     row.querySelector('.inbox-title').addEventListener('click',()=>{
       if(isYT){
         const v={id:item.video_id, title_zh:item.title, title:item.title, channel:item.channel,
-                 url:item.url, thumbnail:item.thumbnail, has_note:!!item.note_path,
-                 has_analysis:!!item.note_path, has_transcript:true};
+                 url:item.url, thumbnail:item.thumbnail, has_note:!!item.note_path||item.has_note,
+                 has_analysis:!!item.note_path||item.has_analysis, has_transcript:true};
         openDetailYT(v);
       }else{
-        const pod=podcasts.find(p=>p.id===item.podcast_id)||{name:item.podcast};
+        const pod=podcasts.find(p=>p.id===item.podcast_id)||podcasts.find(p=>p.name===item.podcast)||{name:item.podcast};
         const ep={id:`${item.podcast_id}_${item.episode}`, title_zh:item.title,
-                  episode_label:item.episode, has_note:!!item.note_path,
+                  episode_label:item.episode, has_note:!!item.note_path||item.has_note,
+                  has_analysis:!!item.note_path||item.has_analysis,
                   has_transcript:true, _pod:pod.name};
         openDetail('podcast', ep, pod);
       }
     });
 
-    // 已閱 → dismiss
     row.querySelector('.inbox-read-btn').addEventListener('click',async e=>{
       e.stopPropagation();
-      const id=e.target.dataset.id;
-      try{
-        await api(`/api/inbox/${encodeURIComponent(id)}/dismiss`,{method:'POST'});
-        inboxItems=inboxItems.filter(i=>i.id!==id);
-        renderInbox();
-      }catch(err){ alert('失敗：'+err.message); }
+      row.querySelector('.inbox-title').click();
     });
 
     el.appendChild(row);
   }
 }
 
-$('inbox-clear-all')?.addEventListener('click',async()=>{
-  if(!inboxItems.length) return;
-  if(!confirm(`清除全部 ${inboxItems.length} 筆待閱讀？`)) return;
+$('notes-refresh')?.addEventListener('click',async()=>{
   try{
-    await api('/api/inbox/dismiss-all',{method:'POST'});
-    inboxItems=[];
+    const [pods,chs,items]=await Promise.all([
+      api('/api/podcasts').catch(()=>podcasts),
+      api('/api/youtube/channels').catch(()=>ytChannels),
+      api('/api/inbox').catch(()=>inboxItems),
+    ]);
+    podcasts=pods;
+    ytChannels=chs;
+    inboxItems=items;
+    renderPodcastCards();
+    renderYTCards();
     renderInbox();
-  }catch(err){ alert('失敗：'+err.message); }
+  }catch(err){ alert('更新失敗：'+err.message); }
 });
 
 // ── Init ──────────────────────────────────────────────────────
@@ -663,7 +797,7 @@ async function init(){
 }
 
 function startYTPollIfNeeded(){
-  if(!ytChannels.some(c=>c.handle&&(!c.remote_ready||c.remote_loading||!c.dates_ready))){
+  if(!ytChannels.some(c=>c.handle&&(!c.remote_ready||c.remote_loading||!c.dates_ready||(c.missing_date_count||0)>0))){
     if(ytRefreshPoll){clearInterval(ytRefreshPoll);ytRefreshPoll=null;}
     return;
   }
@@ -674,7 +808,7 @@ function startYTPollIfNeeded(){
     api('/api/youtube/channels').then(updated=>{
       ytChannels=updated;
       renderYTCards();
-      if(!updated.some(c=>c.handle&&(!c.remote_ready||c.remote_loading||!c.dates_ready))||attempts>=120){
+      if(!updated.some(c=>c.handle&&(!c.remote_ready||c.remote_loading||!c.dates_ready||(c.missing_date_count||0)>0))||attempts>=120){
         clearInterval(ytRefreshPoll);
         ytRefreshPoll=null;
       }
@@ -704,16 +838,19 @@ function startYTJobRefreshPoll(){
 }
 
 // ── Nav tabs ──────────────────────────────────────────────────
+function showPage(page){
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  $(`page-${page}`)?.classList.add('active');
+}
+
 document.querySelectorAll('.nav-tab').forEach(btn=>{
   btn.addEventListener('click',()=>{
-    document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-    $(`page-${btn.dataset.page}`).classList.add('active');
+    showPage(btn.dataset.page);
   });
 });
 $('search-input').addEventListener('input',()=>{
-  renderPodcastCards(); renderYTCards();
+  renderPodcastCards(); renderYTCards(); renderInbox();
 });
 
 // ── PODCAST CARDS ─────────────────────────────────────────────
@@ -899,19 +1036,49 @@ function buildPodEpRow(ep, pod){
   return row;
 }
 
+function latestChannelVideoDate(ch){
+  return (ch.videos||[]).reduce((latest,v)=>{
+    const date=v.upload_date||'';
+    return date>latest?date:latest;
+  }, '');
+}
+
+function sortedYTChannels(){
+  return ytChannels
+    .map((ch,index)=>({ch,index}))
+    .sort((a,b)=>{
+      if(ytChannelSort==='added_asc') return a.index-b.index;
+      if(ytChannelSort==='note_desc') return (b.ch.note_count||0)-(a.ch.note_count||0) || a.index-b.index;
+      if(ytChannelSort==='note_asc') return (a.ch.note_count||0)-(b.ch.note_count||0) || a.index-b.index;
+      if(ytChannelSort==='video_desc') return (b.ch.video_count||0)-(a.ch.video_count||0) || a.index-b.index;
+      if(ytChannelSort==='latest_video_desc'){
+        const av=latestChannelVideoDate(a.ch);
+        const bv=latestChannelVideoDate(b.ch);
+        return bv.localeCompare(av) || a.index-b.index;
+      }
+      if(ytChannelSort==='name_asc'){
+        return (a.ch.name||a.ch.handle||'').localeCompare(b.ch.name||b.ch.handle||'', 'zh-Hant') || a.index-b.index;
+      }
+      return b.index-a.index; // added_desc: API/config order, newest added last
+    })
+    .map(({ch})=>ch);
+}
+
 // ── YOUTUBE CARDS ─────────────────────────────────────────────
 function renderYTCards(){
   const q=$('search-input').value.trim().toLowerCase();
   const container=$('yt-cards');
   container.innerHTML='';
 
-  for(const ch of ytChannels){
+  for(const ch of sortedYTChannels()){
     const allVids=ch.videos||[];
     const filtered=q
       ? allVids.filter(v=>(v.title_zh||v.title||'').toLowerCase().includes(q))
       : allVids;
+    const datedFiltered=filtered.filter(v=>v.upload_date);
+    const hiddenMissingDate=filtered.length-datedFiltered.length;
     const chKey='yt:'+ch.handle;
-    const monthCount=groupByMonth(filtered,'upload_date').length;
+    const monthCount=groupByMonth(datedFiltered,'upload_date').length;
     const visibleMonths=visibleMonthCount(chKey, monthCount);
 
     const wrap=document.createElement('div');
@@ -930,13 +1097,19 @@ function renderYTCards(){
               <span class="stat-note">${ch.note_count} 篇筆記</span>
               <span style="margin:0 4px;color:var(--text-muted)">·</span>
               <span class="stat-total">${ch.video_count} 支影片</span>
+              ${hiddenMissingDate>0?`<span style="margin-left:8px;color:var(--yellow)">補日期中 ${hiddenMissingDate}</span>`:''}
+            </div>
+            <div class="mini-actions">
+              <button class="mini-action channel-action" data-action="open-channel" data-handle="${h(ch.handle)}">開頻道</button>
+              <button class="mini-action channel-action" data-action="copy-name" data-name="${h(ch.name||ch.handle)}">複製名稱</button>
+              <button class="mini-action channel-action" data-action="refresh-channel" data-handle="${h(ch.handle)}">重抓列表</button>
             </div>
           </div>
           <button class="ch-remove-btn" data-handle="${h(ch.handle)}" title="移除頻道"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
           <span style="font-size:18px;color:var(--text-muted)">${visibleMonths<monthCount?'+':'✓'}</span>
         </div>`;
       setImgSrc(card.querySelector('.yt-avatar-img'), ytImg(ch.avatar), avatarPlaceholder(ch.name||ch.handle));
-      const epContainer=buildYTEpList(ch, filtered, visibleMonths);
+      const epContainer=buildYTEpList(ch, datedFiltered, visibleMonths, hiddenMissingDate);
       card.appendChild(epContainer);
     } else {
       card.innerHTML=`
@@ -947,12 +1120,23 @@ function renderYTCards(){
           <div class="card-stats">
             <span class="stat-note">${ch.note_count} 篇筆記</span>
             <span class="stat-total">${ch.video_count} 支</span>
+            ${hiddenMissingDate>0?`<span style="color:var(--yellow)">補日期中 ${hiddenMissingDate}</span>`:''}
+          </div>
+          <div class="mini-actions">
+            <button class="mini-action channel-action" data-action="open-channel" data-handle="${h(ch.handle)}">開頻道</button>
+            <button class="mini-action channel-action" data-action="copy-name" data-name="${h(ch.name||ch.handle)}">複製</button>
           </div>
         </div>`;
       setImgSrc(card.querySelector('.yt-avatar-img'), ytImg(ch.avatar), avatarPlaceholder(ch.name||ch.handle));
     }
 
     card.addEventListener('click',e=>{
+      const actionBtn=e.target.closest('.channel-action');
+      if(actionBtn){
+        e.stopPropagation();
+        handleChannelAction(actionBtn);
+        return;
+      }
       if(e.target.closest('.ch-remove-btn')){
         const handle=e.target.closest('.ch-remove-btn').dataset.handle;
         removeYTChannel(handle); return;
@@ -963,7 +1147,7 @@ function renderYTCards(){
       }
       if(e.target.closest('.ep-row')||e.target.closest('.month-header')||
          e.target.closest('.read-toggle')||e.target.closest('.ep-dl-btn')||e.target.closest('.ep-note-btn')||
-         e.target.closest('.month-more-btn')) return;
+         e.target.closest('.month-more-btn')||e.target.closest('.mini-action')) return;
       if(!expandedCards.has(chKey)){
         for(const k of [...expandedMonths]) if(k.startsWith(chKey+':')) expandedMonths.delete(k);
         expandedCards.add(chKey);
@@ -977,11 +1161,20 @@ function renderYTCards(){
   }
 }
 
-function buildYTEpList(ch, videos, visibleMonths){
+function buildYTEpList(ch, videos, visibleMonths, hiddenMissingDate=0){
   const container=document.createElement('div');
   container.className='ep-container open';
 
   const months=groupByMonth(videos,'upload_date');
+
+  if(!months.length && hiddenMissingDate>0){
+    const loading=document.createElement('div');
+    loading.className='month-more-btn';
+    loading.style.cursor='default';
+    loading.textContent=`正在補齊 ${hiddenMissingDate} 支影片日期，完成後會自動加入列表`;
+    container.appendChild(loading);
+    return container;
+  }
 
   months.forEach(([mk,vids],idx)=>{
     const mkey=`yt:${ch.handle}:${mk}`;
@@ -1026,6 +1219,14 @@ function buildYTEpList(ch, videos, visibleMonths){
       renderYTCards();
     });
     container.appendChild(moreBtn);
+  }
+
+  if(hiddenMissingDate>0){
+    const loading=document.createElement('div');
+    loading.className='month-more-btn';
+    loading.style.cursor='default';
+    loading.textContent=`還有 ${hiddenMissingDate} 支影片正在補日期，完成後會自動加入月份`;
+    container.appendChild(loading);
   }
 
   return container;
@@ -1076,6 +1277,43 @@ function buildYTRow(v){
   });
   row.addEventListener('click',()=>{ openDetailYT(v); });
   return row;
+}
+
+async function handleChannelAction(btn){
+  const action=btn.dataset.action;
+  if(action==='open-channel'){
+    window.open(ytChannelUrl(btn.dataset.handle), '_blank', 'noopener');
+    return;
+  }
+  if(action==='copy-name'){
+    const old=btn.textContent;
+    await copyText(btn.dataset.name||'');
+    btn.textContent='已複製';
+    setTimeout(()=>{btn.textContent=old;},1200);
+    return;
+  }
+  if(action==='refresh-channel'){
+    const handle=btn.dataset.handle;
+    btn.disabled=true;
+    btn.classList.add('running');
+    btn.textContent='重抓中…';
+    try{
+      await api(`/api/youtube/channels/${encodeURIComponent(handle)}/refresh`,{method:'POST'});
+      setTimeout(async()=>{
+        try{
+          const updated=await api('/api/youtube/channels');
+          ytChannels=updated;
+          renderYTCards();
+          startYTPollIfNeeded();
+        }catch(_){}
+      },2500);
+    }catch(e){
+      alert('重抓失敗：'+e.message);
+      btn.disabled=false;
+      btn.classList.remove('running');
+      btn.textContent='重抓列表';
+    }
+  }
 }
 
 // ── Read toggle ───────────────────────────────────────────────
@@ -1669,6 +1907,13 @@ function closeAddChannel(){
   clearTimeout(_addChTimer);
 }
 
+function finishAddChannel(mode){
+  closeAddChannel();
+  $('add-ch-q').value='';
+  $('add-ch-results').innerHTML='<div id="add-ch-hint">輸入關鍵字開始搜尋</div>';
+  showPage(mode==='yt'?'youtube':'podcast');
+}
+
 $('add-ch-modal').addEventListener('click',e=>{
   if(e.target===$('add-ch-modal')) closeAddChannel();
 });
@@ -1684,8 +1929,12 @@ $('add-ch-q').addEventListener('input',()=>{
     $('add-ch-results').innerHTML='<div id="add-ch-hint">輸入關鍵字開始搜尋</div>';
     return;
   }
+  if(q.length<2){
+    $('add-ch-results').innerHTML='<div id="add-ch-hint">至少輸入 2 個字再搜尋</div>';
+    return;
+  }
   $('add-ch-results').innerHTML='<div id="add-ch-hint">搜尋中…</div>';
-  _addChTimer=setTimeout(()=>_doAddChSearch(q), 350);
+  _addChTimer=setTimeout(()=>_doAddChSearch(q), 500);
 });
 
 async function _doAddChSearch(q){
@@ -1727,8 +1976,23 @@ function _renderAddChResults(results, mode){
       <div class="ach-info">
         <div class="ach-name">${h(r.name||r.handle||'')}</div>
         <div class="ach-sub">${sub}</div>
+        ${mode==='yt'?`<div class="mini-actions">
+          <button class="mini-action ach-open" type="button">開頻道</button>
+          <button class="mini-action ach-copy" type="button">複製名稱</button>
+        </div>`:''}
       </div>
       <button class="ach-add"${alreadyAdded?' disabled':''}>${alreadyAdded?'已新增':'+ 新增'}</button>`;
+    item.querySelector('.ach-open')?.addEventListener('click',e=>{
+      e.stopPropagation();
+      window.open(ytChannelUrl(r.handle), '_blank', 'noopener');
+    });
+    item.querySelector('.ach-copy')?.addEventListener('click',async e=>{
+      e.stopPropagation();
+      const old=e.target.textContent;
+      await copyText(r.name||r.handle||'');
+      e.target.textContent='已複製';
+      setTimeout(()=>{e.target.textContent=old;},1200);
+    });
     if(!alreadyAdded){
       item.querySelector('.ach-add').addEventListener('click',e=>{
         e.stopPropagation();
@@ -1752,6 +2016,7 @@ async function _confirmAddChannel(r, mode, btn){
       btn.textContent='✓ 已新增';
       const updated=await api('/api/youtube/channels');
       ytChannels=updated; renderYTCards(); startYTPollIfNeeded();
+      finishAddChannel('yt');
     }else{
       await api('/api/podcasters',{
         method:'POST',
@@ -1761,6 +2026,7 @@ async function _confirmAddChannel(r, mode, btn){
       btn.textContent='✓ 已新增';
       const updated=await api('/api/podcasts');
       podcasts=updated; renderPodcastCards();
+      finishAddChannel('podcast');
     }
   }catch(e){
     btn.disabled=false;

@@ -5,6 +5,9 @@ const offlineMsg = document.getElementById('offline-msg');
 const statusDot  = document.getElementById('status-dot');
 const statusText = document.getElementById('status-text');
 const ytBtn      = document.getElementById('yt-btn');
+const zoomOutBtn = document.getElementById('zoom-out-btn');
+const zoomInBtn  = document.getElementById('zoom-in-btn');
+const zoomLabel  = document.getElementById('zoom-label');
 
 // ── i18n ──────────────────────────────────────────────────────────────────────
 
@@ -95,6 +98,7 @@ const I18N = {
 I18N.auto = I18N.zh; // auto fallback
 
 let currentLang = 'zh';
+let uiZoom = 1;
 
 function applyLang(lang) {
   currentLang = lang in I18N ? lang : 'zh';
@@ -167,6 +171,9 @@ async function init() {
   const res = await sendBg({ type: 'GET_SERVER_URL' });
   if (res?.url) serverUrl = res.url;
 
+  const stored = await chrome.storage.local.get({ uiZoom: 1 });
+  applyUiZoom(stored.uiZoom || 1);
+
   await checkAndLoad();
   pollYouTubeTab();
 
@@ -178,9 +185,33 @@ async function init() {
   document.getElementById('popout-btn').addEventListener('click', popout);
   document.getElementById('settings-btn').addEventListener('click', openSettings);
   document.getElementById('retry-btn').addEventListener('click', checkAndLoad);
+  zoomOutBtn.addEventListener('click', () => setUiZoom(uiZoom - 0.1));
+  zoomInBtn.addEventListener('click', () => setUiZoom(uiZoom + 0.1));
+  zoomLabel.addEventListener('click', () => setUiZoom(1));
   ytBtn.addEventListener('click', analyzeCurrentVideo);
 
   initSettingsDrawer();
+}
+
+// ── UI zoom ──────────────────────────────────────────────────────────────────
+
+function clampZoom(value) {
+  return Math.min(1.5, Math.max(0.7, Math.round(value * 10) / 10));
+}
+
+function applyUiZoom(value) {
+  uiZoom = clampZoom(value);
+  frame.style.transform = `scale(${uiZoom})`;
+  frame.style.width = `${100 / uiZoom}%`;
+  frame.style.height = `${100 / uiZoom}%`;
+  zoomLabel.textContent = `${Math.round(uiZoom * 100)}%`;
+  zoomOutBtn.disabled = uiZoom <= 0.7;
+  zoomInBtn.disabled = uiZoom >= 1.5;
+}
+
+async function setUiZoom(value) {
+  applyUiZoom(value);
+  await chrome.storage.local.set({ uiZoom });
 }
 
 // ── Server health ─────────────────────────────────────────────────────────────

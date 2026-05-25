@@ -6,6 +6,8 @@ import subprocess
 import threading
 import time
 import urllib.request
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from cache_store import load_cached_youtube_videos, save_cached_youtube_videos
@@ -14,6 +16,7 @@ from settings import (
     YT_DATA_DIR,
     YT_DETAIL_BATCH_SIZE,
     YT_DETAIL_LIMIT,
+    YT_DETAIL_WORKERS,
     YT_NOTE_DIR,
     YT_PROC_FILE,
     YT_QUEUE_FILE,
@@ -21,7 +24,7 @@ from settings import (
 from state import _remote_cache_lock, _remote_yt_cache, _remote_yt_details_ready, _remote_yt_loading
 
 YT_FLAT_VIDEO_PRINT = "%(id)s\t%(title)s\t%(upload_date)s\t%(duration)s\t%(duration_string)s"
-YT_VIDEO_DETAIL_PRINT = "%(id)s\t%(upload_date)s\t%(duration)s\t%(duration_string)s"
+YT_VIDEO_DETAIL_PRINT = "%(id)s\t%(upload_date)s\t%(duration)s\t%(duration_string)s\t%(timestamp)s\t%(release_timestamp)s"
 YT_PLACEHOLDER_AVATAR = "https://img.youtube.com/vi/_placeholder/default.jpg"
 
 # ── YouTube helpers ─────────────────────────────────────────────────────────
@@ -468,6 +471,16 @@ def _yt_format_upload_date(raw: str) -> str:
     return ""
 
 
+def _yt_format_timestamp_date(raw: str) -> str:
+    raw = (raw or "").strip()
+    if not raw or raw == "NA":
+        return ""
+    try:
+        return datetime.utcfromtimestamp(int(float(raw))).strftime("%Y-%m-%d")
+    except (ValueError, OSError, OverflowError):
+        return ""
+
+
 def _yt_format_duration(raw: str) -> str:
     raw = (raw or "").strip()
     if not raw or raw == "NA":
@@ -507,8 +520,8 @@ def _yt_parse_flat_video_line(line: str, rss_dates: dict[str, str] | None = None
     }
 
 
-def _yt_fetch_video_details(video_ids: list[str]) -> dict[str, dict]:
-    """Fetch per-video metadata for dates/durations that flat playlist omits."""
+def _yt_fetch_video_details_batch(video_ids: list[str]) -> dict[str, dict]:
+    """Fetch one batch of per-video metadata for dates/durations that flat playlist omits."""
     ids = [vid for vid in video_ids if vid]
     if not ids:
         return {}
@@ -536,11 +549,39 @@ def _yt_fetch_video_details(video_ids: list[str]) -> dict[str, dict]:
         raw_date = parts[1].strip() if len(parts) > 1 else ""
         raw_duration = parts[2].strip() if len(parts) > 2 else ""
         raw_duration_string = parts[3].strip() if len(parts) > 3 else ""
+        raw_timestamp = parts[4].strip() if len(parts) > 4 else ""
+        raw_release_timestamp = parts[5].strip() if len(parts) > 5 else ""
         details[video_id] = {
-            "upload_date": _yt_format_upload_date(raw_date),
+            "upload_date": (
+                _yt_format_upload_date(raw_date)
+                or _yt_format_timestamp_date(raw_timestamp)
+                or _yt_format_timestamp_date(raw_release_timestamp)
+            ),
             "duration": _yt_format_duration(raw_duration_string) or _yt_format_duration(raw_duration),
         }
     return details
+
+
+def _yt_fetch_video_details(video_ids: list[str]) -> dict[str, dict]:
+    """Fetch per-video metadata in parallel batches."""
+    ids = [vid for vid in video_ids if vid]
+    if not ids:
+        return {}
+
+    batch_size = max(1, YT_DETAIL_BATCH_SIZE)
+    workers = max(1, YT_DETAIL_WORKERS)
+    batches = [ids[i:i + batch_size] for i in range(0, len(ids), batch_size)]
+    results: dict[str, dict] = {}
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = [pool.submit(_yt_fetch_video_details_batch, batch) for batch in batches]
+        for fut in as_completed(futures):
+            try:
+                results.update(fut.result() or {})
+            except Exception:
+                continue
+
+    return results
 
 
 def _yt_parse_detail_limit(total: int) -> int:
@@ -727,27 +768,23 @@ def _fetch_remote_yt_videos(handle: str, limit: int | None = None) -> list:
         detail_limit = _yt_parse_detail_limit(len(missing_detail_ids))
         missing_detail_ids = missing_detail_ids[:detail_limit]
 
-        batch_size = max(1, YT_DETAIL_BATCH_SIZE)
-        for start in range(0, len(missing_detail_ids), batch_size):
-            batch_ids = missing_detail_ids[start:start + batch_size]
-            details = _yt_fetch_video_details(batch_ids)
-            for video in videos:
-                detail = details.get(video["id"], {})
-                if not video.get("upload_date"):
-                    video["upload_date"] = detail.get("upload_date", "")
-                if not video.get("duration"):
-                    video["duration"] = detail.get("duration", "")
-            with _remote_cache_lock:
-                _remote_yt_cache[handle] = list(videos)
-            is_last_batch = start + batch_size >= len(missing_detail_ids)
-            save_cached_youtube_videos(handle, videos, details_ready=is_last_batch)
-        if not missing_detail_ids:
-            save_cached_youtube_videos(handle, videos, details_ready=True)
+        details = _yt_fetch_video_details(missing_detail_ids)
+        for video in videos:
+            detail = details.get(video["id"], {})
+            if not video.get("upload_date"):
+                video["upload_date"] = detail.get("upload_date", "")
+            if not video.get("duration"):
+                video["duration"] = detail.get("duration", "")
+        with _remote_cache_lock:
+            _remote_yt_cache[handle] = list(videos)
+        details_ready = all(v.get("upload_date") and v.get("duration") for v in videos)
+        save_cached_youtube_videos(handle, videos, details_ready=details_ready)
+        if details_ready:
             with _remote_cache_lock:
                 _remote_yt_details_ready.add(handle)
         else:
             with _remote_cache_lock:
-                _remote_yt_details_ready.add(handle)
+                _remote_yt_details_ready.discard(handle)
         return videos
     finally:
         with _remote_cache_lock:
