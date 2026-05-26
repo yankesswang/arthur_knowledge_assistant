@@ -45,10 +45,12 @@ podcast-note/
 ## 快速啟動（Web Server）
 
 ```bash
-cd .agent/skills/podcast-note/server
+cd server
 bash run.sh
 # → http://localhost:7654
 ```
+
+> Server 已搬到專案根目錄 `./server/`；`data/`、`config/`、`scripts/` 仍留在這個 skill 資料夾。
 
 `run.sh` 會：
 1. 自動載入 `.env`（專案根目錄或 server/ 目錄）

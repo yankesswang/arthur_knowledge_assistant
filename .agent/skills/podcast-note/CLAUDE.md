@@ -20,21 +20,25 @@
 
 ## 啟動 Server
 
+> Server 已搬到專案根目錄 `./server/`（v1.3+）。`data/`、`config/`、`scripts/` 仍留在這個 skill 資料夾。
+
+從專案根目錄執行：
+
 ```bash
-cd server/
+cd server
 bash run.sh              # 自動清 port → 啟動，跨平台安全
 ```
 
 或直接：
 ```bash
-cd server/
+cd server
 VAULT_ROOT=/path/to/arthurwang_DB python3.10 main.py
 ```
 
 預設 port：**7654**，可用 `PORT=8000 bash run.sh` 覆蓋。
 
 `.env` 載入順序（第一個存在的即使用）：
-1. `server/../../../.env`（專案根目錄）
+1. `server/../.env`（專案根目錄）
 2. `server/.env`
 
 ---

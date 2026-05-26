@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # load .env if present (project root or server dir)
-for envfile in "$SCRIPT_DIR/../../../.env" "$SCRIPT_DIR/.env"; do
+for envfile in "$SCRIPT_DIR/../.env" "$SCRIPT_DIR/.env"; do
   if [ -f "$envfile" ]; then
     set -a; source "$envfile"; set +a
     echo "Loaded env: $envfile"

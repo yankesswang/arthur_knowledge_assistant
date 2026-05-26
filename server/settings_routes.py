@@ -9,8 +9,8 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
-SKILL_DIR = Path(__file__).parent.parent
-PROJECT_ROOT = SKILL_DIR.parent.parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+SKILL_DIR = PROJECT_ROOT / ".agent" / "skills" / "podcast-note"
 DEFAULT_PROMPT_PATH = PROJECT_ROOT / "instructions" / "note-investment.md"
 CUSTOM_PROMPT_PATH = SKILL_DIR / "data" / "custom_prompt.md"
 OUTPUT_SETTINGS_PATH = SKILL_DIR / "data" / "output_settings.json"

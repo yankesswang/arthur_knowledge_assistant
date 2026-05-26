@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 
-SKILL_DIR = Path(__file__).parent.parent
+SKILL_DIR = Path(__file__).resolve().parent.parent / ".agent" / "skills" / "podcast-note"
 DATA_DIR = SKILL_DIR / "data" / "episodes"
 CONFIG_PATH = SKILL_DIR / "config" / "podcasts.json"
 STATIC_DIR = Path(__file__).parent / "static"
