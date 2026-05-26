@@ -167,6 +167,38 @@
       "enabled": true,
       "channel_id": "UCAuUUnT6oDeKwE6v1NGQxug",
       "avatar": "https://yt3.googleusercontent.com/ytc/AIdro_koIFcCOrvh0KThLNOiazAIDu6hcs8bjkGNwe1f6A_OYm8=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@kojiyang",
+      "name": "十字路口Crossing",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCqoy3g7ZH24j2mLOq_nbKrQ",
+      "avatar": "https://yt3.googleusercontent.com/RW4500Hm0ofFj_0GpS6fs0lXRSDyT_kqJoy0XSbGcQ16x-TobBbXxySoi5ul1mVRGWzWVadgN_8=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@NoPriorsPodcast",
+      "name": "No Priors",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCSI7h9hydQ40K5MJHnCrQvw",
+      "avatar": "https://yt3.googleusercontent.com/HQXIpkLms_iVMi_Ob5Cie3PNcZ3smOT7HeNLIAWvBO-lZMdiax2N5LH1blWMxUtMrJCcXyNZ=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@CognitiveRevolutionPodcast",
+      "name": "The Cognitive Revolution",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCjNRVMBVI30Sak_p6HRWhIA",
+      "avatar": "https://yt3.googleusercontent.com/C1EPZEq7DeGew5kC54iCSlazpqOcqcRdegjjCVkfO4VdhVaKyJIC3BDcGgfqr6PyhkvnNqXM=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@MachineLearningStreetTalk",
+      "name": "Machine Learning Street Talk",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCMLtBahI5DMrt0NPvDSoIRQ",
+      "avatar": "https://yt3.googleusercontent.com/15Akj76BG8IsM5ctgqVwKXArl6IfIVFAbuGa1kOomoioRgJgXHHaLmMAW7iHTMRUoEfyjTtq8lg=s900-c-k-c0x00ffffff-no-rj"
     }
   ]
 }
