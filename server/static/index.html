@@ -32,13 +32,11 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 #nav-search svg{position:absolute;left:8px;top:50%;transform:translateY(-50%);opacity:.4;pointer-events:none}
 
 /* ── PAGE WRAPPER ── */
-.page{display:none;padding:24px 20px 60px;max-width:1200px;margin:0 auto}
+.page{display:none;padding:24px 28px 60px}
 .page.active{display:block}
 
 /* ── CARDS GRID ── */
-.cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:32px}
-@media(max-width:900px){.cards-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:580px){.cards-grid{grid-template-columns:1fr}}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin-bottom:32px}
 .source-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .2s;position:relative;display:flex;flex-direction:row;align-items:stretch}
 .source-card:hover{border-color:var(--accent);box-shadow:0 4px 16px rgba(0,0,0,.3)}
 .source-card.expanded{border-color:var(--accent);overflow:visible;flex-direction:column}
