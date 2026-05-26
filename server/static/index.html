@@ -209,8 +209,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .card-remove{position:absolute;top:6px;right:6px;z-index:2;background:rgba(15,17,23,.78);border-color:var(--border)}
 
 /* ── Category section headers ── */
-.cat-section{margin-bottom:28px}
-.cat-section-header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.cat-section-header{display:flex;align-items:center;gap:8px;margin-bottom:4px;grid-column:1/-1;margin-top:16px}
 .cat-section-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .cat-section-label{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-dim)}
 .cat-section-count{font-size:10px;color:var(--text-muted)}
@@ -1193,32 +1192,31 @@ $('search-input').addEventListener('input',()=>{
 
 // ── PODCAST CARDS ─────────────────────────────────────────────
 function _buildCardGrid(items, renderCardFn){
-  // group by category; uncategorised last
+  // single grid; category headers span full width as separators
   const groups=new Map();
   for(const item of items){
     const cat=(item.category||'').trim()||'__none__';
     if(!groups.has(cat)) groups.set(cat,[]);
     groups.get(cat).push(item);
   }
-  const frag=document.createDocumentFragment();
+  const grid=document.createElement('div');
+  grid.className='cards-grid';
   const orderedCats=[..._categories.map(c=>c.name),'__none__'].filter(c=>groups.has(c));
+  const showHeaders=orderedCats.length>1;
   for(const cat of orderedCats){
     const catItems=groups.get(cat)||[];
     if(!catItems.length) continue;
-    const section=document.createElement('div');
-    section.className='cat-section';
-    if(cat!=='__none__'||groups.size>1){
-      const col=_catColor(cat);
+    if(showHeaders){
+      const col=cat==='__none__'?'var(--border)':_catColor(cat);
       const label=cat==='__none__'?'未分類':cat;
-      section.innerHTML=`<div class="cat-section-header"><span class="cat-section-dot" style="background:${cat==='__none__'?'var(--border)':col}"></span><span class="cat-section-label" style="color:${cat==='__none__'?'var(--text-muted)':col}">${h(label)}</span><span class="cat-section-count">${catItems.length}</span><span class="cat-section-line"></span></div>`;
+      const hdr=document.createElement('div');
+      hdr.className='cat-section-header';
+      hdr.innerHTML=`<span class="cat-section-dot" style="background:${col}"></span><span class="cat-section-label" style="color:${cat==='__none__'?'var(--text-muted)':col}">${h(label)}</span><span class="cat-section-count">${catItems.length}</span><span class="cat-section-line"></span>`;
+      grid.appendChild(hdr);
     }
-    const grid=document.createElement('div');
-    grid.className='cards-grid';
     for(const item of catItems) grid.appendChild(renderCardFn(item));
-    section.appendChild(grid);
-    frag.appendChild(section);
   }
-  return frag;
+  return grid;
 }
 
 function _buildPodCard(pod){
@@ -1301,15 +1299,7 @@ function renderPodcastCards(){
   const container=$('podcast-cards');
   container.innerHTML='';
   const podList=_podCatFilter?podcasts.filter(p=>p.category===_podCatFilter):podcasts;
-  if(_podCatFilter){
-    // filtered: flat grid
-    const grid=document.createElement('div');
-    grid.className='cards-grid';
-    podList.forEach(pod=>grid.appendChild(_buildPodCard(pod)));
-    container.appendChild(grid);
-  } else {
-    container.appendChild(_buildCardGrid(podList, _buildPodCard));
-  }
+  container.appendChild(_buildCardGrid(podList, _buildPodCard));
 }
 
 function buildPodEpList(pod, episodes, visibleMonths){
@@ -1533,14 +1523,7 @@ function renderYTCards(){
   const container=$('yt-cards');
   container.innerHTML='';
   const ytList=_ytCatFilter?sortedYTChannels().filter(c=>c.category===_ytCatFilter):sortedYTChannels();
-  if(_ytCatFilter){
-    const grid=document.createElement('div');
-    grid.className='cards-grid';
-    ytList.forEach(ch=>grid.appendChild(_buildYTCard(ch)));
-    container.appendChild(grid);
-  } else {
-    container.appendChild(_buildCardGrid(ytList, _buildYTCard));
-  }
+  container.appendChild(_buildCardGrid(ytList, _buildYTCard));
 }
 
 function buildYTEpList(ch, videos, visibleMonths, hiddenMissingDate=0){
