@@ -14,6 +14,15 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 
+from cache_store import (
+    add_category,
+    delete_category,
+    get_all_source_categories,
+    get_categories,
+    get_source_category,
+    set_source_category,
+    update_category,
+)
 from reading_routes import _load_inbox, _save_inbox
 from settings import (
     YT_AUTO_TRANSCRIPT,
@@ -556,6 +565,7 @@ def yt_list_channels():
     local_vids  = _yt_scan_videos()
     local_by_id = {v["id"]: v for v in local_vids}
 
+    cat_map = get_all_source_categories("yt")
     result = []
     for ch in channels:
         handle = ch.get("handle", "")
@@ -643,6 +653,7 @@ def yt_list_channels():
             "name":         name,
             "enabled":      ch.get("enabled", True),
             "avatar":       ch.get("avatar", ""),
+            "category":     cat_map.get(handle, ""),
             "video_count":  len(merged),
             "note_count":   sum(1 for v in merged if v["has_note"]),
             "remote_ready": bool(remote),
@@ -1195,3 +1206,50 @@ def yt_refresh_avatars():
     """手動觸發補抓所有缺 avatar 的頻道（背景執行）。"""
     _backfill_avatars()
     return {"status": "started"}
+
+
+@router.patch("/api/youtube/channels/{handle}")
+def yt_update_channel(handle: str, body: dict):
+    """Update mutable fields on a channel (currently: category)."""
+    handle = urllib.parse.unquote(handle)
+    if "category" in body:
+        set_source_category("yt", handle, body["category"])
+    return {"handle": handle, "category": body.get("category", "")}
+
+
+# ── Category management routes ───────────────────────────────────────────────
+
+@router.get("/api/categories")
+def list_categories():
+    return get_categories()
+
+
+@router.post("/api/categories")
+def create_category(body: dict):
+    name = (body.get("name") or "").strip()
+    if not name:
+        raise HTTPException(400, "缺少分類名稱")
+    color = (body.get("color") or "#7c6af7").strip()
+    existing = [c["name"] for c in get_categories()]
+    if name in existing:
+        raise HTTPException(409, f"分類「{name}」已存在")
+    return add_category(name, color)
+
+
+@router.patch("/api/categories/{cat_id}")
+def update_category_route(cat_id: int, body: dict):
+    name  = body.get("name")
+    color = body.get("color")
+    if name is not None:
+        name = name.strip()
+        if not name:
+            raise HTTPException(400, "分類名稱不能為空")
+    update_category(cat_id, name=name, color=color)
+    return {"ok": True}
+
+
+@router.delete("/api/categories/{cat_id}")
+def delete_category_route(cat_id: int):
+    if not delete_category(cat_id):
+        raise HTTPException(404, "找不到此分類")
+    return {"deleted": cat_id}

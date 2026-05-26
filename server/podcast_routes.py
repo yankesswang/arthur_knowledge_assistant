@@ -13,6 +13,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
+from cache_store import get_all_source_categories, get_source_category, set_source_category
 from config_store import get_podcast_config, load_config, save_config
 from podcast_jobs import _run_download
 from podcast_services import (
@@ -37,6 +38,7 @@ def list_podcasters():
     cfg      = load_config()
     local_eps = build_episode_list()  # 本地已有的
 
+    cat_map = get_all_source_categories("podcast")
     result = []
     for pod in cfg.get("podcasts", []):
         pid      = pod["id"]
@@ -90,6 +92,7 @@ def list_podcasters():
             "artwork":       artwork,
             "language":      pod.get("language", ""),
             "note_type":     pod.get("note_type", ""),
+            "category":      cat_map.get(pid, ""),
             "episode_count": len(merged),
             "note_count":    note_count,
             "remote_ready":  bool(remote),
@@ -179,6 +182,14 @@ def remove_podcaster(podcast_id: str):
     cfg["podcasts"] = new_list
     save_config(cfg)
     return {"deleted": podcast_id}
+
+
+@router.patch("/api/podcasters/{podcast_id}")
+def update_podcaster(podcast_id: str, body: dict):
+    """Update mutable fields on a podcast (currently: category)."""
+    if "category" in body:
+        set_source_category("podcast", podcast_id, body["category"])
+    return {"id": podcast_id, "category": body.get("category", "")}
 
 
 @router.get("/api/podcasters/{podcast_id}/remote-episodes")

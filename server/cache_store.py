@@ -59,8 +59,36 @@ def init_cache_db() -> None:
                 cost_usd REAL NOT NULL DEFAULT 0,
                 ts REAL NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS categories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                color TEXT NOT NULL DEFAULT '#7c6af7',
+                sort_order INTEGER NOT NULL DEFAULT 0
+            );
+
+            CREATE TABLE IF NOT EXISTS source_categories (
+                source_type TEXT NOT NULL,
+                source_id TEXT NOT NULL,
+                category_name TEXT NOT NULL DEFAULT '',
+                PRIMARY KEY (source_type, source_id)
+            );
             """
         )
+        # seed default categories if empty
+        count = conn.execute("SELECT COUNT(*) FROM categories").fetchone()[0]
+        if count == 0:
+            defaults = [
+                ("投資", "#4ade80", 0),
+                ("AI / 技術", "#60a5fa", 1),
+                ("產業分析", "#fbbf24", 2),
+                ("創業", "#f87171", 3),
+                ("其他", "#8b8fa8", 4),
+            ]
+            conn.executemany(
+                "INSERT OR IGNORE INTO categories(name, color, sort_order) VALUES(?,?,?)",
+                defaults,
+            )
 
 
 def get_yt_read_status() -> dict[str, str]:
@@ -227,3 +255,81 @@ def get_cost_summary() -> dict:
             for r in rows
         ],
     }
+
+
+# ── Categories ───────────────────────────────────────────────────────────────
+
+def get_categories() -> list[dict]:
+    init_cache_db()
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT id, name, color, sort_order FROM categories ORDER BY sort_order, id"
+        ).fetchall()
+    return [{"id": r["id"], "name": r["name"], "color": r["color"], "sort_order": r["sort_order"]} for r in rows]
+
+
+def add_category(name: str, color: str = "#7c6af7") -> dict:
+    init_cache_db()
+    with _connect() as conn:
+        max_order = conn.execute("SELECT COALESCE(MAX(sort_order),0) FROM categories").fetchone()[0]
+        conn.execute(
+            "INSERT INTO categories(name, color, sort_order) VALUES(?,?,?)",
+            (name.strip(), color, max_order + 1),
+        )
+        row = conn.execute("SELECT id, name, color, sort_order FROM categories WHERE name=?", (name.strip(),)).fetchone()
+    return {"id": row["id"], "name": row["name"], "color": row["color"], "sort_order": row["sort_order"]}
+
+
+def update_category(cat_id: int, name: str | None = None, color: str | None = None) -> bool:
+    init_cache_db()
+    with _connect() as conn:
+        if name is not None:
+            conn.execute("UPDATE categories SET name=? WHERE id=?", (name.strip(), cat_id))
+        if color is not None:
+            conn.execute("UPDATE categories SET color=? WHERE id=?", (color, cat_id))
+    return True
+
+
+def delete_category(cat_id: int) -> bool:
+    init_cache_db()
+    with _connect() as conn:
+        name_row = conn.execute("SELECT name FROM categories WHERE id=?", (cat_id,)).fetchone()
+        if not name_row:
+            return False
+        conn.execute("DELETE FROM categories WHERE id=?", (cat_id,))
+        conn.execute("UPDATE source_categories SET category_name='' WHERE category_name=?", (name_row["name"],))
+    return True
+
+
+def get_source_category(source_type: str, source_id: str) -> str:
+    init_cache_db()
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT category_name FROM source_categories WHERE source_type=? AND source_id=?",
+            (source_type, source_id),
+        ).fetchone()
+    return row["category_name"] if row else ""
+
+
+def set_source_category(source_type: str, source_id: str, category_name: str) -> None:
+    init_cache_db()
+    with _connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO source_categories(source_type, source_id, category_name)
+            VALUES(?,?,?)
+            ON CONFLICT(source_type, source_id) DO UPDATE SET category_name=excluded.category_name
+            """,
+            (source_type, source_id, category_name),
+        )
+
+
+def get_all_source_categories(source_type: str) -> dict[str, str]:
+    """Return {source_id: category_name} for all sources of given type."""
+    init_cache_db()
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT source_id, category_name FROM source_categories WHERE source_type=?",
+            (source_type,),
+        ).fetchall()
+    return {r["source_id"]: r["category_name"] for r in rows}

@@ -208,6 +208,48 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .ch-remove-btn:hover{border-color:var(--red);color:var(--red)}
 .card-remove{position:absolute;top:6px;right:6px;z-index:2;background:rgba(15,17,23,.78);border-color:var(--border)}
 
+/* ── Category filter pills ── */
+.cat-filter-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.cat-pill{padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-dim);transition:all .15s;white-space:nowrap}
+.cat-pill:hover{border-color:var(--accent);color:var(--text)}
+.cat-pill.active{color:#fff;border-color:transparent}
+.cat-pill.all{border-color:var(--accent);color:var(--accent)}
+.cat-pill.all.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.cat-manage-btn{padding:4px 8px;border-radius:20px;font-size:10px;cursor:pointer;border:1px dashed var(--border);background:transparent;color:var(--text-muted);transition:all .15s;margin-left:4px}
+.cat-manage-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── Category badge on card ── */
+.card-cat-badge{display:inline-block;padding:2px 7px;border-radius:8px;font-size:9px;font-weight:700;cursor:pointer;margin-top:5px;opacity:.9;transition:opacity .15s}
+.card-cat-badge:hover{opacity:1}
+.card-cat-badge.empty{border:1px dashed var(--border);background:transparent;color:var(--text-muted)}
+
+/* ── Category manage modal ── */
+#cat-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:400;backdrop-filter:blur(3px);align-items:flex-start;justify-content:center;padding-top:80px}
+#cat-modal.open{display:flex}
+#cat-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:min(440px,95vw);max-height:70vh;display:flex;flex-direction:column;overflow:hidden}
+#cat-box-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+#cat-box-head h2{font-size:14px;font-weight:700}
+#cat-box-head button{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:0 4px}
+#cat-box-head button:hover{color:var(--text)}
+#cat-list{flex:1;overflow-y:auto;padding:8px 0}
+.cat-item{display:flex;align-items:center;gap:10px;padding:8px 16px}
+.cat-item-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.cat-item-name{flex:1;font-size:13px}
+.cat-item-del{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:2px 6px}
+.cat-item-del:hover{color:var(--red)}
+#cat-add-row{padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px}
+#cat-add-row input{flex:1;padding:6px 10px;border-radius:6px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:12px;outline:none}
+#cat-add-row input:focus{border-color:var(--accent)}
+#cat-add-row button{padding:6px 14px;border-radius:6px;background:var(--accent);border:none;color:#fff;font-size:12px;font-weight:600;cursor:pointer}
+
+/* ── Add-channel: category step ── */
+#add-ch-cat-step{padding:14px 16px;display:none;flex-direction:column;gap:10px}
+#add-ch-cat-step.visible{display:flex}
+.cat-select-grid{display:flex;flex-wrap:wrap;gap:7px}
+.cat-select-pill{padding:5px 13px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-dim);transition:all .15s}
+.cat-select-pill:hover{border-color:var(--accent)}
+.cat-select-pill.selected{color:#fff;border-color:transparent}
+
 /* ── Add-channel modal ── */
 #add-ch-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:300;backdrop-filter:blur(3px);align-items:flex-start;justify-content:center;padding-top:80px}
 #add-ch-modal.open{display:flex}
@@ -359,8 +401,7 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2499;outline:2px solid #fbb
 <body>
 
 <div id="nav">
-  <h1 id="nav-title" style="cursor:pointer" title="查看所有筆記">🎙 Notes</h1>
-  <button class="nav-tab nav-tab-yt active" data-page="youtube">YouTube</button>
+<button class="nav-tab nav-tab-yt active" data-page="youtube">YouTube</button>
   <button class="nav-tab" data-page="podcast">Podcast</button>
   <button class="nav-tab" data-page="notes">
     Notes
@@ -378,6 +419,7 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2499;outline:2px solid #fbb
   <div class="page-toolbar">
     <button class="add-ch-btn" onclick="openAddChannel('podcast')">+ 新增 Podcast</button>
   </div>
+  <div id="pod-cat-filter-bar" class="cat-filter-bar"></div>
   <div id="podcast-cards" class="cards-grid"></div>
 </div>
 
@@ -398,6 +440,7 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2499;outline:2px solid #fbb
       </select>
     </div>
   </div>
+  <div id="yt-cat-filter-bar" class="cat-filter-bar"></div>
   <div id="yt-cards" class="cards-grid"></div>
 </div>
 
@@ -487,6 +530,30 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2499;outline:2px solid #fbb
     </div>
     <div id="add-ch-results">
       <div id="add-ch-hint">輸入關鍵字開始搜尋</div>
+    </div>
+    <!-- category step: shown after user clicks + 新增 on a result -->
+    <div id="add-ch-cat-step">
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:2px">選擇分類（必選）</div>
+      <div id="add-ch-cat-grid" class="cat-select-grid"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button id="add-ch-cat-back" style="flex:1;padding:7px;border-radius:6px;background:transparent;border:1px solid var(--border);color:var(--text-dim);font-size:12px;cursor:pointer">← 返回</button>
+        <button id="add-ch-cat-confirm" style="flex:2;padding:7px;border-radius:6px;background:var(--accent);border:none;color:#fff;font-size:12px;font-weight:700;cursor:pointer" disabled>確認新增</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Category manage modal -->
+<div id="cat-modal">
+  <div id="cat-box">
+    <div id="cat-box-head">
+      <h2>管理分類</h2>
+      <button onclick="closeCatModal()">✕</button>
+    </div>
+    <div id="cat-list"></div>
+    <div id="cat-add-row">
+      <input id="cat-new-name" type="text" placeholder="新分類名稱…" autocomplete="off">
+      <button onclick="submitAddCategory()">新增</button>
     </div>
   </div>
 </div>
@@ -593,6 +660,8 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2499;outline:2px solid #fbb
 const $=id=>document.getElementById(id);
 // ── State ─────────────────────────────────────────────────────
 let podcasts=[], ytChannels=[], localYTVideos=[], readStatus={}, currentView='note';
+let _categories=[];
+let _ytCatFilter='', _podCatFilter='';
 let currentItem=null, currentType=null; // 'podcast' | 'yt'
 let jobPoll=null;
 let _whisperVideoId=null, _whisperJobId=null;
@@ -944,6 +1013,8 @@ $('notes-refresh')?.addEventListener('click',async()=>{
     ytChannels=chs;
     inboxItems=items;
     localYTVideos=localVids;
+    renderCatFilterBar('podcast');
+    renderCatFilterBar('yt');
     renderPodcastCards();
     renderYTCards();
     renderInbox();
@@ -952,14 +1023,18 @@ $('notes-refresh')?.addEventListener('click',async()=>{
 
 // ── Init ──────────────────────────────────────────────────────
 async function init(){
-  const[pods,rs,ytrs,inbox,localVids]=await Promise.all([
+  const[pods,rs,ytrs,inbox,localVids,cats]=await Promise.all([
     api('/api/podcasts').catch(()=>[]),
     api('/api/reading-status').catch(()=>({})),
     api('/api/youtube/read-status').catch(()=>({})),
     api('/api/inbox').catch(()=>[]),
     api('/api/youtube/videos').catch(()=>[]),
+    api('/api/categories').catch(()=>[]),
   ]);
   podcasts=pods; readStatus={...rs,...ytrs}; inboxItems=inbox; localYTVideos=localVids;
+  _categories=cats;
+  renderCatFilterBar('podcast');
+  renderCatFilterBar('yt');
   renderPodcastCards();
   renderInbox();
 
@@ -1114,7 +1189,8 @@ function renderPodcastCards(){
   const container=$('podcast-cards');
   container.innerHTML='';
 
-  for(const pod of podcasts){
+  const podList=_podCatFilter?podcasts.filter(p=>p.category===_podCatFilter):podcasts;
+  for(const pod of podList){
     const allEps=pod.episodes||[];
     const filtered=q
       ? allEps.filter(e=>(e.title_zh||'').toLowerCase().includes(q)||(e.episode_label||'').toLowerCase().includes(q))
@@ -1144,6 +1220,7 @@ function renderPodcastCards(){
               <span style="margin:0 4px;color:var(--text-muted)">·</span>
               <span class="stat-total">${allEps.length} 集</span>
             </div>
+            ${_catBadge(pod.category,'podcast',pod.id)}
           </div>
           <button class="ch-remove-btn" data-id="${h(pod.id)}" title="移除頻道"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
           <span style="font-size:18px;color:var(--text-muted)">${visibleMonths<monthCount?'+':'✓'}</span>
@@ -1160,10 +1237,16 @@ function renderPodcastCards(){
             <span class="stat-note">${noteCount} 篇筆記</span>
             <span class="stat-total">${allEps.length} 集</span>
           </div>
+          ${_catBadge(pod.category,'podcast',pod.id)}
         </div>`;
     }
 
     card.addEventListener('click',e=>{
+      if(e.target.closest('.card-cat-badge')){
+        e.stopPropagation();
+        openCatPicker('podcast', pod.id, e.target.closest('.card-cat-badge'));
+        return;
+      }
       if(e.target.closest('.ch-remove-btn')){
         const id=e.target.closest('.ch-remove-btn').dataset.id;
         removePodcast(id); return;
@@ -1325,7 +1408,8 @@ function renderYTCards(){
   const container=$('yt-cards');
   container.innerHTML='';
 
-  for(const ch of sortedYTChannels()){
+  const ytList=_ytCatFilter?sortedYTChannels().filter(c=>c.category===_ytCatFilter):sortedYTChannels();
+  for(const ch of ytList){
     const allVids=ch.videos||[];
     const filtered=q
       ? allVids.filter(v=>(v.title_zh||v.title||'').toLowerCase().includes(q))
@@ -1354,6 +1438,7 @@ function renderYTCards(){
               <span class="stat-total">${ch.video_count} 支影片</span>
               ${hiddenMissingDate>0?`<span style="margin-left:8px;color:var(--yellow)">補日期中 ${hiddenMissingDate}</span>`:''}
             </div>
+            ${_catBadge(ch.category,'yt',ch.handle)}
             <div class="mini-actions">
               <button class="mini-action channel-action" data-action="open-channel" data-handle="${h(ch.handle)}">開頻道</button>
               <button class="mini-action channel-action" data-action="copy-name" data-name="${h(ch.name||ch.handle)}">複製名稱</button>
@@ -1377,6 +1462,7 @@ function renderYTCards(){
             <span class="stat-total">${ch.video_count} 支</span>
             ${hiddenMissingDate>0?`<span style="color:var(--yellow)">補日期中 ${hiddenMissingDate}</span>`:''}
           </div>
+          ${_catBadge(ch.category,'yt',ch.handle)}
           <div class="mini-actions">
             <button class="mini-action channel-action" data-action="open-channel" data-handle="${h(ch.handle)}">開頻道</button>
             <button class="mini-action channel-action" data-action="copy-name" data-name="${h(ch.name||ch.handle)}">複製</button>
@@ -1386,6 +1472,11 @@ function renderYTCards(){
     }
 
     card.addEventListener('click',e=>{
+      if(e.target.closest('.card-cat-badge')){
+        e.stopPropagation();
+        openCatPicker('yt', ch.handle, e.target.closest('.card-cat-badge'));
+        return;
+      }
       const actionBtn=e.target.closest('.channel-action');
       if(actionBtn){
         e.stopPropagation();
@@ -2144,18 +2235,246 @@ function ts2s(t){
   return p.length===2?p[0]*60+p[1]:p[0]*3600+p[1]*60+p[2];
 }
 
+// ── Category helpers ───────────────────────────────────────────
+function _catColor(name){
+  const cat=_categories.find(c=>c.name===name);
+  return cat?cat.color:'#7c6af7';
+}
+
+function _catBadge(catName, sourceType, sourceId){
+  if(catName){
+    const col=_catColor(catName);
+    return `<span class="card-cat-badge" data-source-type="${h(sourceType)}" data-source-id="${h(sourceId)}" style="background:${col}22;color:${col};border:1px solid ${col}44">${h(catName)}</span>`;
+  }
+  return `<span class="card-cat-badge empty" data-source-type="${h(sourceType)}" data-source-id="${h(sourceId)}">+ 分類</span>`;
+}
+
+function renderCatFilterBar(type){
+  const barId=type==='yt'?'yt-cat-filter-bar':'pod-cat-filter-bar';
+  const bar=document.getElementById(barId);
+  if(!bar) return;
+  const active=type==='yt'?_ytCatFilter:_podCatFilter;
+  const sources=type==='yt'?ytChannels:podcasts;
+  const usedCats=new Set(sources.map(s=>s.category).filter(Boolean));
+  if(usedCats.size===0){bar.innerHTML='';return;}
+  let html=`<button class="cat-pill all${active===''?' active':''}" data-cat="" data-type="${type}">全部</button>`;
+  for(const cat of _categories){
+    if(!usedCats.has(cat.name)) continue;
+    const col=cat.color;
+    html+=`<button class="cat-pill${active===cat.name?' active':''}" data-cat="${h(cat.name)}" data-type="${type}" style="${active===cat.name?`background:${col};border-color:${col}`:`border-color:${col}44;color:${col}`}">${h(cat.name)}</button>`;
+  }
+  html+=`<button class="cat-manage-btn" onclick="openCatModal()">管理分類</button>`;
+  bar.innerHTML=html;
+  bar.querySelectorAll('.cat-pill').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const t=btn.dataset.type, cat=btn.dataset.cat;
+      if(t==='yt') _ytCatFilter=cat; else _podCatFilter=cat;
+      renderCatFilterBar(t);
+      if(t==='yt') renderYTCards(); else renderPodcastCards();
+    });
+  });
+}
+
+// inline category picker (popover near badge)
+let _catPickerEl=null;
+function openCatPicker(sourceType, sourceId, anchorEl){
+  closeCatPicker();
+  const pop=document.createElement('div');
+  pop.id='cat-picker-pop';
+  pop.style.cssText='position:fixed;z-index:500;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px;min-width:160px;box-shadow:0 8px 24px rgba(0,0,0,.4)';
+  const rect=anchorEl.getBoundingClientRect();
+  pop.style.top=(rect.bottom+6)+'px';
+  pop.style.left=Math.min(rect.left, window.innerWidth-180)+'px';
+
+  const label=document.createElement('div');
+  label.style.cssText='font-size:10px;color:var(--text-muted);margin-bottom:2px';
+  label.textContent='選擇分類';
+  pop.appendChild(label);
+
+  const grid=document.createElement('div');
+  grid.style.cssText='display:flex;flex-wrap:wrap;gap:5px';
+
+  const currentSrc=sourceType==='yt'?ytChannels.find(c=>c.handle===sourceId):podcasts.find(p=>p.id===sourceId);
+  const currentCat=currentSrc?.category||'';
+
+  for(const cat of _categories){
+    const pill=document.createElement('button');
+    const col=cat.color;
+    pill.style.cssText=`padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid ${col}44;background:${currentCat===cat.name?col+'22':'transparent'};color:${col};transition:all .15s`;
+    pill.textContent=cat.name;
+    pill.addEventListener('click',async()=>{
+      closeCatPicker();
+      await _setSourceCat(sourceType, sourceId, cat.name);
+    });
+    grid.appendChild(pill);
+  }
+  // "清除" option
+  if(currentCat){
+    const clr=document.createElement('button');
+    clr.style.cssText='padding:3px 10px;border-radius:12px;font-size:11px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-muted)';
+    clr.textContent='清除分類';
+    clr.addEventListener('click',async()=>{
+      closeCatPicker();
+      await _setSourceCat(sourceType, sourceId, '');
+    });
+    grid.appendChild(clr);
+  }
+  pop.appendChild(grid);
+  document.body.appendChild(pop);
+  _catPickerEl=pop;
+  setTimeout(()=>document.addEventListener('click', _onClickOutsidePicker, {once:true}), 10);
+}
+
+function _onClickOutsidePicker(e){
+  if(_catPickerEl && !_catPickerEl.contains(e.target)) closeCatPicker();
+}
+
+function closeCatPicker(){
+  if(_catPickerEl){_catPickerEl.remove();_catPickerEl=null;}
+}
+
+async function _setSourceCat(sourceType, sourceId, catName){
+  const endpoint=sourceType==='yt'
+    ?`/api/youtube/channels/${encodeURIComponent(sourceId)}`
+    :`/api/podcasters/${encodeURIComponent(sourceId)}`;
+  try{
+    await api(endpoint,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({category:catName})});
+    // update local state
+    if(sourceType==='yt'){
+      const ch=ytChannels.find(c=>c.handle===sourceId);
+      if(ch) ch.category=catName;
+      renderCatFilterBar('yt');
+      renderYTCards();
+    }else{
+      const pod=podcasts.find(p=>p.id===sourceId);
+      if(pod) pod.category=catName;
+      renderCatFilterBar('podcast');
+      renderPodcastCards();
+    }
+  }catch(e){alert('分類更新失敗：'+e.message);}
+}
+
+// category manage modal
+function openCatModal(){
+  renderCatList();
+  $('cat-modal').classList.add('open');
+  setTimeout(()=>$('cat-new-name').focus(),50);
+}
+function closeCatModal(){$('cat-modal').classList.remove('open');}
+$('cat-modal').addEventListener('click',e=>{if(e.target===$('cat-modal')) closeCatModal();});
+
+function renderCatList(){
+  const list=$('cat-list');
+  list.innerHTML='';
+  for(const cat of _categories){
+    const item=document.createElement('div');
+    item.className='cat-item';
+    item.innerHTML=`<span class="cat-item-dot" style="background:${cat.color}"></span>
+      <span class="cat-item-name">${h(cat.name)}</span>
+      <button class="cat-item-del" data-id="${cat.id}" title="刪除">✕</button>`;
+    item.querySelector('.cat-item-del').addEventListener('click',async()=>{
+      if(!confirm(`刪除分類「${cat.name}」？（已分配的頻道/播客會清除分類）`)) return;
+      await api(`/api/categories/${cat.id}`,{method:'DELETE'});
+      _categories=await api('/api/categories');
+      renderCatList();
+      renderCatFilterBar('yt'); renderCatFilterBar('podcast');
+      renderYTCards(); renderPodcastCards();
+    });
+    list.appendChild(item);
+  }
+}
+
+async function submitAddCategory(){
+  const name=$('cat-new-name').value.trim();
+  if(!name) return;
+  try{
+    const newCat=await api('/api/categories',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+    _categories.push(newCat);
+    $('cat-new-name').value='';
+    renderCatList();
+    renderCatFilterBar('yt'); renderCatFilterBar('podcast');
+  }catch(e){alert('新增失敗：'+e.message);}
+}
+$('cat-new-name').addEventListener('keydown',e=>{if(e.key==='Enter') submitAddCategory();});
+
 // ── Add-channel modal ─────────────────────────────────────────
 let _addChMode='yt', _addChTimer=null;
 
+let _pendingAddChResult=null, _pendingAddChSelectedCat='';
+
 function openAddChannel(mode){
   _addChMode=mode;
+  _pendingAddChResult=null;
+  _pendingAddChSelectedCat='';
   $('add-ch-title').textContent=mode==='yt'?'新增 YouTube 頻道':'新增 Podcast';
   $('add-ch-q').placeholder=mode==='yt'?'搜尋頻道名稱…':'搜尋 Podcast 名稱…';
   $('add-ch-q').value='';
   $('add-ch-results').innerHTML='<div id="add-ch-hint">輸入關鍵字開始搜尋</div>';
+  $('add-ch-search-wrap').style.display='';
+  $('add-ch-results').style.display='';
+  $('add-ch-cat-step').classList.remove('visible');
   $('add-ch-modal').classList.add('open');
   setTimeout(()=>$('add-ch-q').focus(),50);
 }
+
+function _showCatStep(r, mode, btn){
+  _pendingAddChResult=r;
+  btn.textContent='選擇分類中…';
+  // hide search, show category step
+  $('add-ch-search-wrap').style.display='none';
+  $('add-ch-results').style.display='none';
+  $('add-ch-cat-step').classList.add('visible');
+
+  const grid=$('add-ch-cat-grid');
+  grid.innerHTML='';
+  _pendingAddChSelectedCat='';
+  const confirmBtn=$('add-ch-cat-confirm');
+  confirmBtn.disabled=true;
+
+  for(const cat of _categories){
+    const pill=document.createElement('button');
+    pill.className='cat-select-pill';
+    pill.textContent=cat.name;
+    const col=cat.color;
+    pill.style.borderColor=col+'44';
+    pill.style.color=col;
+    pill.dataset.name=cat.name;
+    pill.addEventListener('click',()=>{
+      grid.querySelectorAll('.cat-select-pill').forEach(p=>{ p.classList.remove('selected'); p.style.background='transparent'; });
+      pill.classList.add('selected');
+      pill.style.background=col;
+      _pendingAddChSelectedCat=cat.name;
+      confirmBtn.disabled=false;
+    });
+    grid.appendChild(pill);
+  }
+  // "跳過" option
+  const skipPill=document.createElement('button');
+  skipPill.className='cat-select-pill';
+  skipPill.textContent='跳過';
+  skipPill.style.borderColor='var(--border)';
+  skipPill.style.color='var(--text-muted)';
+  skipPill.addEventListener('click',()=>{
+    grid.querySelectorAll('.cat-select-pill').forEach(p=>{p.classList.remove('selected');p.style.background='transparent';});
+    skipPill.classList.add('selected');
+    skipPill.style.background='var(--surface2)';
+    _pendingAddChSelectedCat='';
+    confirmBtn.disabled=false;
+  });
+  grid.appendChild(skipPill);
+}
+
+$('add-ch-cat-back').addEventListener('click',()=>{
+  $('add-ch-search-wrap').style.display='';
+  $('add-ch-results').style.display='';
+  $('add-ch-cat-step').classList.remove('visible');
+  _pendingAddChResult=null;
+});
+
+$('add-ch-cat-confirm').addEventListener('click',()=>{
+  if(!_pendingAddChResult) return;
+  _doAddChannel(_pendingAddChResult, _addChMode, _pendingAddChSelectedCat);
+});
 
 function closeAddChannel(){
   $('add-ch-modal').classList.remove('open');
@@ -2258,34 +2577,49 @@ function _renderAddChResults(results, mode){
   }
 }
 
-async function _confirmAddChannel(r, mode, btn){
-  btn.disabled=true;
-  btn.textContent='新增中…';
+function _confirmAddChannel(r, mode, btn){
+  // show category step first; actual API call happens after category confirm
+  _showCatStep(r, mode, btn);
+}
+
+async function _doAddChannel(r, mode, category){
+  const confirmBtn=$('add-ch-cat-confirm');
+  confirmBtn.disabled=true;
+  confirmBtn.textContent='新增中…';
   try{
+    let sourceId='';
     if(mode==='yt'){
-      await api('/api/youtube/channels',{
+      const newCh=await api('/api/youtube/channels',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({handle:r.handle, name:r.name, channel_id:r.channel_id||'', avatar:r.thumbnail||''}),
       });
-      btn.textContent='✓ 已新增';
+      sourceId=newCh.handle||r.handle;
       const updated=await api('/api/youtube/channels');
-      ytChannels=updated; renderYTCards(); startYTPollIfNeeded();
+      ytChannels=updated;
+      if(category) await _setSourceCat('yt', sourceId, category);
+      else{const ch=ytChannels.find(c=>c.handle===sourceId);if(ch)ch.category='';}
+      renderCatFilterBar('yt');
+      renderYTCards(); startYTPollIfNeeded();
       finishAddChannel('yt');
     }else{
-      await api('/api/podcasters',{
+      const newPod=await api('/api/podcasters',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({rss:r.rss, name:r.name, apple_id:r.apple_id||'', artwork:r.artwork||'', language:'zh', note_type:'investment'}),
       });
-      btn.textContent='✓ 已新增';
+      sourceId=newPod.id;
       const updated=await api('/api/podcasts');
-      podcasts=updated; renderPodcastCards();
+      podcasts=updated;
+      if(category) await _setSourceCat('podcast', sourceId, category);
+      else{const pod=podcasts.find(p=>p.id===sourceId);if(pod)pod.category='';}
+      renderCatFilterBar('podcast');
+      renderPodcastCards();
       finishAddChannel('podcast');
     }
   }catch(e){
-    btn.disabled=false;
-    btn.textContent='+ 新增';
+    confirmBtn.disabled=false;
+    confirmBtn.textContent='確認新增';
     alert('新增失敗：'+e.message);
   }
 }
