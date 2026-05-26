@@ -208,6 +208,14 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .ch-remove-btn:hover{border-color:var(--red);color:var(--red)}
 .card-remove{position:absolute;top:6px;right:6px;z-index:2;background:rgba(15,17,23,.78);border-color:var(--border)}
 
+/* ── Category section headers ── */
+.cat-section{margin-bottom:28px}
+.cat-section-header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.cat-section-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cat-section-label{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-dim)}
+.cat-section-count{font-size:10px;color:var(--text-muted)}
+.cat-section-line{flex:1;height:1px;background:var(--border)}
+
 /* ── Category filter pills ── */
 .cat-filter-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:14px}
 .cat-pill{padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-dim);transition:all .15s;white-space:nowrap}
@@ -1184,90 +1192,123 @@ $('search-input').addEventListener('input',()=>{
 });
 
 // ── PODCAST CARDS ─────────────────────────────────────────────
-function renderPodcastCards(){
+function _buildCardGrid(items, renderCardFn){
+  // group by category; uncategorised last
+  const groups=new Map();
+  for(const item of items){
+    const cat=(item.category||'').trim()||'__none__';
+    if(!groups.has(cat)) groups.set(cat,[]);
+    groups.get(cat).push(item);
+  }
+  const frag=document.createDocumentFragment();
+  const orderedCats=[..._categories.map(c=>c.name),'__none__'].filter(c=>groups.has(c));
+  for(const cat of orderedCats){
+    const catItems=groups.get(cat)||[];
+    if(!catItems.length) continue;
+    const section=document.createElement('div');
+    section.className='cat-section';
+    if(cat!=='__none__'||groups.size>1){
+      const col=_catColor(cat);
+      const label=cat==='__none__'?'未分類':cat;
+      section.innerHTML=`<div class="cat-section-header"><span class="cat-section-dot" style="background:${cat==='__none__'?'var(--border)':col}"></span><span class="cat-section-label" style="color:${cat==='__none__'?'var(--text-muted)':col}">${h(label)}</span><span class="cat-section-count">${catItems.length}</span><span class="cat-section-line"></span></div>`;
+    }
+    const grid=document.createElement('div');
+    grid.className='cards-grid';
+    for(const item of catItems) grid.appendChild(renderCardFn(item));
+    section.appendChild(grid);
+    frag.appendChild(section);
+  }
+  return frag;
+}
+
+function _buildPodCard(pod){
   const q=$('search-input').value.trim().toLowerCase();
-  const container=$('podcast-cards');
-  container.innerHTML='';
+  const allEps=pod.episodes||[];
+  const filtered=q
+    ? allEps.filter(e=>(e.title_zh||'').toLowerCase().includes(q)||(e.episode_label||'').toLowerCase().includes(q))
+    : allEps;
+  const podKey=pod.id;
+  const monthCount=groupByMonth(filtered,'upload_date').length;
+  const visibleMonths=visibleMonthCount(podKey, monthCount);
+  const noteCount=allEps.filter(e=>e.has_note).length;
 
-  const podList=_podCatFilter?podcasts.filter(p=>p.category===_podCatFilter):podcasts;
-  for(const pod of podList){
-    const allEps=pod.episodes||[];
-    const filtered=q
-      ? allEps.filter(e=>(e.title_zh||'').toLowerCase().includes(q)||(e.episode_label||'').toLowerCase().includes(q))
-      : allEps;
-    const podKey=pod.id;
-    const monthCount=groupByMonth(filtered,'upload_date').length;
-    const visibleMonths=visibleMonthCount(podKey, monthCount);
+  const wrap=document.createElement('div');
+  wrap.style.gridColumn=expandedCards.has(podKey)?'1 / -1':'';
 
-    const wrap=document.createElement('div');
-    wrap.style.gridColumn=expandedCards.has(podKey)?'1 / -1':'';
+  const card=document.createElement('div');
+  card.className='source-card'+(expandedCards.has(podKey)?' expanded':'');
+  card.dataset.id=pod.id;
 
-    const card=document.createElement('div');
-    card.className='source-card'+(expandedCards.has(podKey)?' expanded':'');
-    card.dataset.id=pod.id;
-
-    const noteCount=allEps.filter(e=>e.has_note).length;
-
-    if(expandedCards.has(podKey)){
-      // expanded layout: horizontal header + episode list
-      card.innerHTML=`
-        <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;cursor:pointer" data-toggle="${pod.id}">
-          <img src="${h(pod.artwork)}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:700">${h(pod.name)}</div>
-            <div style="font-size:11px;color:var(--text-dim);margin-top:2px">
-              <span class="stat-note">${noteCount} 篇筆記</span>
-              <span style="margin:0 4px;color:var(--text-muted)">·</span>
-              <span class="stat-total">${allEps.length} 集</span>
-            </div>
-            ${_catBadge(pod.category,'podcast',pod.id)}
-          </div>
-          <button class="ch-remove-btn" data-id="${h(pod.id)}" title="移除頻道"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
-          <span style="font-size:18px;color:var(--text-muted)">${visibleMonths<monthCount?'+':'✓'}</span>
-        </div>`;
-      const epContainer=buildPodEpList(pod, filtered, visibleMonths);
-      card.appendChild(epContainer);
-    } else {
-      card.innerHTML=`
-        <button class="ch-remove-btn card-remove" data-id="${h(pod.id)}" title="移除頻道"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
-        <img class="card-art" src="${h(pod.artwork)}" alt="" onerror="this.style.display='none'">
-        <div class="card-body">
-          <div class="card-name">${h(pod.name)}</div>
-          <div class="card-stats">
+  if(expandedCards.has(podKey)){
+    card.innerHTML=`
+      <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;cursor:pointer" data-toggle="${pod.id}">
+        <img src="${h(pod.artwork)}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0" onerror="this.style.display='none'">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700">${h(pod.name)}</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:2px">
             <span class="stat-note">${noteCount} 篇筆記</span>
+            <span style="margin:0 4px;color:var(--text-muted)">·</span>
             <span class="stat-total">${allEps.length} 集</span>
           </div>
           ${_catBadge(pod.category,'podcast',pod.id)}
-        </div>`;
+        </div>
+        <button class="ch-remove-btn" data-id="${h(pod.id)}" title="移除頻道"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+        <span style="font-size:18px;color:var(--text-muted)">${visibleMonths<monthCount?'+':'✓'}</span>
+      </div>`;
+    card.appendChild(buildPodEpList(pod, filtered, visibleMonths));
+  } else {
+    card.innerHTML=`
+      <button class="ch-remove-btn card-remove" data-id="${h(pod.id)}" title="移除頻道"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+      <img class="card-art" src="${h(pod.artwork)}" alt="" onerror="this.style.display='none'">
+      <div class="card-body">
+        <div class="card-name">${h(pod.name)}</div>
+        <div class="card-stats">
+          <span class="stat-note">${noteCount} 篇筆記</span>
+          <span class="stat-total">${allEps.length} 集</span>
+        </div>
+        ${_catBadge(pod.category,'podcast',pod.id)}
+      </div>`;
+  }
+
+  card.addEventListener('click',e=>{
+    if(e.target.closest('.card-cat-badge')){
+      e.stopPropagation();
+      openCatPicker('podcast', pod.id, e.target.closest('.card-cat-badge'));
+      return;
     }
+    if(e.target.closest('.ch-remove-btn')){
+      removePodcast(e.target.closest('.ch-remove-btn').dataset.id); return;
+    }
+    if(e.target.closest('[data-toggle]')){
+      expandedCards.delete(podKey); renderPodcastCards(); return;
+    }
+    if(e.target.closest('.ep-row')||e.target.closest('.month-header')||
+       e.target.closest('.read-toggle')||e.target.closest('.ep-dl-btn')||e.target.closest('.ep-note-btn')||
+       e.target.closest('.month-more-btn')) return;
+    if(!expandedCards.has(podKey)){
+      for(const k of [...expandedMonths]) if(k.startsWith(podKey+':')) expandedMonths.delete(k);
+      expandedCards.add(podKey);
+      visibleMonthCounts.set(podKey, Math.min(MONTH_BATCH, monthCount));
+      renderPodcastCards();
+    }
+  });
 
-    card.addEventListener('click',e=>{
-      if(e.target.closest('.card-cat-badge')){
-        e.stopPropagation();
-        openCatPicker('podcast', pod.id, e.target.closest('.card-cat-badge'));
-        return;
-      }
-      if(e.target.closest('.ch-remove-btn')){
-        const id=e.target.closest('.ch-remove-btn').dataset.id;
-        removePodcast(id); return;
-      }
-      if(e.target.closest('[data-toggle]')){
-        expandedCards.delete(podKey);
-        renderPodcastCards(); return;
-      }
-      if(e.target.closest('.ep-row')||e.target.closest('.month-header')||
-         e.target.closest('.read-toggle')||e.target.closest('.ep-dl-btn')||e.target.closest('.ep-note-btn')||
-         e.target.closest('.month-more-btn')) return;
-      if(!expandedCards.has(podKey)){
-        for(const k of [...expandedMonths]) if(k.startsWith(podKey+':')) expandedMonths.delete(k);
-        expandedCards.add(podKey);
-        visibleMonthCounts.set(podKey, Math.min(MONTH_BATCH, monthCount));
-        renderPodcastCards();
-      }
-    });
+  wrap.appendChild(card);
+  return wrap;
+}
 
-    wrap.appendChild(card);
-    container.appendChild(wrap);
+function renderPodcastCards(){
+  const container=$('podcast-cards');
+  container.innerHTML='';
+  const podList=_podCatFilter?podcasts.filter(p=>p.category===_podCatFilter):podcasts;
+  if(_podCatFilter){
+    // filtered: flat grid
+    const grid=document.createElement('div');
+    grid.className='cards-grid';
+    podList.forEach(pod=>grid.appendChild(_buildPodCard(pod)));
+    container.appendChild(grid);
+  } else {
+    container.appendChild(_buildCardGrid(podList, _buildPodCard));
   }
 }
 
@@ -1403,107 +1444,102 @@ function sortedYTChannels(){
 }
 
 // ── YOUTUBE CARDS ─────────────────────────────────────────────
-function renderYTCards(){
+function _buildYTCard(ch){
   const q=$('search-input').value.trim().toLowerCase();
-  const container=$('yt-cards');
-  container.innerHTML='';
+  const allVids=ch.videos||[];
+  const filtered=q ? allVids.filter(v=>(v.title_zh||v.title||'').toLowerCase().includes(q)) : allVids;
+  const datedFiltered=filtered.filter(v=>v.upload_date);
+  const hiddenMissingDate=filtered.length-datedFiltered.length;
+  const chKey='yt:'+ch.handle;
+  const monthCount=groupByMonth(datedFiltered,'upload_date').length;
+  const visibleMonths=visibleMonthCount(chKey, monthCount);
 
-  const ytList=_ytCatFilter?sortedYTChannels().filter(c=>c.category===_ytCatFilter):sortedYTChannels();
-  for(const ch of ytList){
-    const allVids=ch.videos||[];
-    const filtered=q
-      ? allVids.filter(v=>(v.title_zh||v.title||'').toLowerCase().includes(q))
-      : allVids;
-    const datedFiltered=filtered.filter(v=>v.upload_date);
-    const hiddenMissingDate=filtered.length-datedFiltered.length;
-    const chKey='yt:'+ch.handle;
-    const monthCount=groupByMonth(datedFiltered,'upload_date').length;
-    const visibleMonths=visibleMonthCount(chKey, monthCount);
+  const wrap=document.createElement('div');
+  wrap.style.gridColumn=expandedCards.has(chKey)?'1 / -1':'';
 
-    const wrap=document.createElement('div');
-    wrap.style.gridColumn=expandedCards.has(chKey)?'1 / -1':'';
+  const card=document.createElement('div');
+  card.className='source-card'+(expandedCards.has(chKey)?' expanded':'');
 
-    const card=document.createElement('div');
-    card.className='source-card'+(expandedCards.has(chKey)?' expanded':'');
-
-    if(expandedCards.has(chKey)){
-      card.innerHTML=`
-        <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;cursor:pointer" data-toggle="yt:${h(ch.handle)}">
-          <img class="yt-avatar-img" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--surface2)">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:700">${h(ch.name)}</div>
-            <div style="font-size:11px;color:var(--text-dim);margin-top:2px">
-              <span class="stat-note">${ch.note_count} 篇筆記</span>
-              <span style="margin:0 4px;color:var(--text-muted)">·</span>
-              <span class="stat-total">${ch.video_count} 支影片</span>
-              ${hiddenMissingDate>0?`<span style="margin-left:8px;color:var(--yellow)">補日期中 ${hiddenMissingDate}</span>`:''}
-            </div>
-            ${_catBadge(ch.category,'yt',ch.handle)}
-            <div class="mini-actions">
-              <button class="mini-action channel-action" data-action="open-channel" data-handle="${h(ch.handle)}">開頻道</button>
-              <button class="mini-action channel-action" data-action="copy-name" data-name="${h(ch.name||ch.handle)}">複製名稱</button>
-              <button class="mini-action channel-action" data-action="refresh-channel" data-handle="${h(ch.handle)}">重抓列表</button>
-            </div>
-          </div>
-          <button class="ch-remove-btn" data-handle="${h(ch.handle)}" title="移除頻道"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
-          <span style="font-size:18px;color:var(--text-muted)">${visibleMonths<monthCount?'+':'✓'}</span>
-        </div>`;
-      setImgSrc(card.querySelector('.yt-avatar-img'), ytImg(ch.avatar), avatarPlaceholder(ch.name||ch.handle));
-      const epContainer=buildYTEpList(ch, datedFiltered, visibleMonths, hiddenMissingDate);
-      card.appendChild(epContainer);
-    } else {
-      card.innerHTML=`
-        <button class="ch-remove-btn card-remove" data-handle="${h(ch.handle)}" title="移除頻道"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
-        <img class="card-art yt-avatar-img" alt="" style="border-radius:0;aspect-ratio:1;object-fit:cover;background:var(--surface2)">
-        <div class="card-body">
-          <div class="card-name">${h(ch.name||ch.handle)}</div>
-          <div class="card-stats">
+  if(expandedCards.has(chKey)){
+    card.innerHTML=`
+      <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;cursor:pointer" data-toggle="yt:${h(ch.handle)}">
+        <img class="yt-avatar-img" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--surface2)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700">${h(ch.name)}</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:2px">
             <span class="stat-note">${ch.note_count} 篇筆記</span>
-            <span class="stat-total">${ch.video_count} 支</span>
-            ${hiddenMissingDate>0?`<span style="color:var(--yellow)">補日期中 ${hiddenMissingDate}</span>`:''}
+            <span style="margin:0 4px;color:var(--text-muted)">·</span>
+            <span class="stat-total">${ch.video_count} 支影片</span>
+            ${hiddenMissingDate>0?`<span style="margin-left:8px;color:var(--yellow)">補日期中 ${hiddenMissingDate}</span>`:''}
           </div>
           ${_catBadge(ch.category,'yt',ch.handle)}
           <div class="mini-actions">
             <button class="mini-action channel-action" data-action="open-channel" data-handle="${h(ch.handle)}">開頻道</button>
-            <button class="mini-action channel-action" data-action="copy-name" data-name="${h(ch.name||ch.handle)}">複製</button>
+            <button class="mini-action channel-action" data-action="copy-name" data-name="${h(ch.name||ch.handle)}">複製名稱</button>
+            <button class="mini-action channel-action" data-action="refresh-channel" data-handle="${h(ch.handle)}">重抓列表</button>
           </div>
-        </div>`;
-      setImgSrc(card.querySelector('.yt-avatar-img'), ytImg(ch.avatar), avatarPlaceholder(ch.name||ch.handle));
+        </div>
+        <button class="ch-remove-btn" data-handle="${h(ch.handle)}" title="移除頻道"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+        <span style="font-size:18px;color:var(--text-muted)">${visibleMonths<monthCount?'+':'✓'}</span>
+      </div>`;
+    setImgSrc(card.querySelector('.yt-avatar-img'), ytImg(ch.avatar), avatarPlaceholder(ch.name||ch.handle));
+    card.appendChild(buildYTEpList(ch, datedFiltered, visibleMonths, hiddenMissingDate));
+  } else {
+    card.innerHTML=`
+      <button class="ch-remove-btn card-remove" data-handle="${h(ch.handle)}" title="移除頻道"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+      <img class="card-art yt-avatar-img" alt="" style="border-radius:0;aspect-ratio:1;object-fit:cover;background:var(--surface2)">
+      <div class="card-body">
+        <div class="card-name">${h(ch.name||ch.handle)}</div>
+        <div class="card-stats">
+          <span class="stat-note">${ch.note_count} 篇筆記</span>
+          <span class="stat-total">${ch.video_count} 支</span>
+          ${hiddenMissingDate>0?`<span style="color:var(--yellow)">補日期中 ${hiddenMissingDate}</span>`:''}
+        </div>
+        ${_catBadge(ch.category,'yt',ch.handle)}
+        <div class="mini-actions">
+          <button class="mini-action channel-action" data-action="open-channel" data-handle="${h(ch.handle)}">開頻道</button>
+          <button class="mini-action channel-action" data-action="copy-name" data-name="${h(ch.name||ch.handle)}">複製</button>
+        </div>
+      </div>`;
+    setImgSrc(card.querySelector('.yt-avatar-img'), ytImg(ch.avatar), avatarPlaceholder(ch.name||ch.handle));
+  }
+
+  card.addEventListener('click',e=>{
+    if(e.target.closest('.card-cat-badge')){
+      e.stopPropagation();
+      openCatPicker('yt', ch.handle, e.target.closest('.card-cat-badge'));
+      return;
     }
+    const actionBtn=e.target.closest('.channel-action');
+    if(actionBtn){ e.stopPropagation(); handleChannelAction(actionBtn); return; }
+    if(e.target.closest('.ch-remove-btn')){ removeYTChannel(e.target.closest('.ch-remove-btn').dataset.handle); return; }
+    if(e.target.closest('[data-toggle]')){ expandedCards.delete(chKey); renderYTCards(); return; }
+    if(e.target.closest('.ep-row')||e.target.closest('.month-header')||
+       e.target.closest('.read-toggle')||e.target.closest('.ep-dl-btn')||e.target.closest('.ep-note-btn')||
+       e.target.closest('.month-more-btn')||e.target.closest('.mini-action')) return;
+    if(!expandedCards.has(chKey)){
+      for(const k of [...expandedMonths]) if(k.startsWith(chKey+':')) expandedMonths.delete(k);
+      expandedCards.add(chKey);
+      visibleMonthCounts.set(chKey, Math.min(MONTH_BATCH, monthCount));
+      renderYTCards();
+    }
+  });
 
-    card.addEventListener('click',e=>{
-      if(e.target.closest('.card-cat-badge')){
-        e.stopPropagation();
-        openCatPicker('yt', ch.handle, e.target.closest('.card-cat-badge'));
-        return;
-      }
-      const actionBtn=e.target.closest('.channel-action');
-      if(actionBtn){
-        e.stopPropagation();
-        handleChannelAction(actionBtn);
-        return;
-      }
-      if(e.target.closest('.ch-remove-btn')){
-        const handle=e.target.closest('.ch-remove-btn').dataset.handle;
-        removeYTChannel(handle); return;
-      }
-      if(e.target.closest('[data-toggle]')){
-        expandedCards.delete(chKey);
-        renderYTCards(); return;
-      }
-      if(e.target.closest('.ep-row')||e.target.closest('.month-header')||
-         e.target.closest('.read-toggle')||e.target.closest('.ep-dl-btn')||e.target.closest('.ep-note-btn')||
-         e.target.closest('.month-more-btn')||e.target.closest('.mini-action')) return;
-      if(!expandedCards.has(chKey)){
-        for(const k of [...expandedMonths]) if(k.startsWith(chKey+':')) expandedMonths.delete(k);
-        expandedCards.add(chKey);
-        visibleMonthCounts.set(chKey, Math.min(MONTH_BATCH, monthCount));
-        renderYTCards();
-      }
-    });
+  wrap.appendChild(card);
+  return wrap;
+}
 
-    wrap.appendChild(card);
-    container.appendChild(wrap);
+function renderYTCards(){
+  const container=$('yt-cards');
+  container.innerHTML='';
+  const ytList=_ytCatFilter?sortedYTChannels().filter(c=>c.category===_ytCatFilter):sortedYTChannels();
+  if(_ytCatFilter){
+    const grid=document.createElement('div');
+    grid.className='cards-grid';
+    ytList.forEach(ch=>grid.appendChild(_buildYTCard(ch)));
+    container.appendChild(grid);
+  } else {
+    container.appendChild(_buildCardGrid(ytList, _buildYTCard));
   }
 }
 
@@ -2242,9 +2278,10 @@ function _catColor(name){
 }
 
 function _catBadge(catName, sourceType, sourceId){
-  if(catName){
-    const col=_catColor(catName);
-    return `<span class="card-cat-badge" data-source-type="${h(sourceType)}" data-source-id="${h(sourceId)}" style="background:${col}22;color:${col};border:1px solid ${col}44">${h(catName)}</span>`;
+  const name=(catName||'').trim();
+  if(name){
+    const col=_catColor(name);
+    return `<span class="card-cat-badge" data-source-type="${h(sourceType)}" data-source-id="${h(sourceId)}" style="background:${col}22;color:${col};border:1px solid ${col}44">${h(name)}</span>`;
   }
   return `<span class="card-cat-badge empty" data-source-type="${h(sourceType)}" data-source-id="${h(sourceId)}">+ 分類</span>`;
 }
