@@ -427,7 +427,7 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2499;outline:2px solid #fbb
     <button class="add-ch-btn" onclick="openAddChannel('podcast')">+ 新增 Podcast</button>
   </div>
   <div id="pod-cat-filter-bar" class="cat-filter-bar"></div>
-  <div id="podcast-cards" class="cards-grid"></div>
+  <div id="podcast-cards" class="cards-grid" style="align-items:start"></div>
 </div>
 
 <!-- YouTube page -->
@@ -448,7 +448,7 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2499;outline:2px solid #fbb
     </div>
   </div>
   <div id="yt-cat-filter-bar" class="cat-filter-bar"></div>
-  <div id="yt-cards" class="cards-grid"></div>
+  <div id="yt-cards" class="cards-grid" style="align-items:start"></div>
 </div>
 
 <!-- Inbox page -->
@@ -1191,16 +1191,14 @@ $('search-input').addEventListener('input',()=>{
 });
 
 // ── PODCAST CARDS ─────────────────────────────────────────────
-function _buildCardGrid(items, renderCardFn){
-  // single grid; category headers span full width as separators
+function _buildCardGrid(container, items, renderCardFn){
+  // fill container (already a .cards-grid) with headers + cards
   const groups=new Map();
   for(const item of items){
     const cat=(item.category||'').trim()||'__none__';
     if(!groups.has(cat)) groups.set(cat,[]);
     groups.get(cat).push(item);
   }
-  const grid=document.createElement('div');
-  grid.className='cards-grid';
   const orderedCats=[..._categories.map(c=>c.name),'__none__'].filter(c=>groups.has(c));
   const showHeaders=orderedCats.length>1;
   for(const cat of orderedCats){
@@ -1212,11 +1210,10 @@ function _buildCardGrid(items, renderCardFn){
       const hdr=document.createElement('div');
       hdr.className='cat-section-header';
       hdr.innerHTML=`<span class="cat-section-dot" style="background:${col}"></span><span class="cat-section-label" style="color:${cat==='__none__'?'var(--text-muted)':col}">${h(label)}</span><span class="cat-section-count">${catItems.length}</span><span class="cat-section-line"></span>`;
-      grid.appendChild(hdr);
+      container.appendChild(hdr);
     }
-    for(const item of catItems) grid.appendChild(renderCardFn(item));
+    for(const item of catItems) container.appendChild(renderCardFn(item));
   }
-  return grid;
 }
 
 function _buildPodCard(pod){
@@ -1299,7 +1296,7 @@ function renderPodcastCards(){
   const container=$('podcast-cards');
   container.innerHTML='';
   const podList=_podCatFilter?podcasts.filter(p=>p.category===_podCatFilter):podcasts;
-  container.appendChild(_buildCardGrid(podList, _buildPodCard));
+  _buildCardGrid(container, podList, _buildPodCard);
 }
 
 function buildPodEpList(pod, episodes, visibleMonths){
@@ -1523,7 +1520,7 @@ function renderYTCards(){
   const container=$('yt-cards');
   container.innerHTML='';
   const ytList=_ytCatFilter?sortedYTChannels().filter(c=>c.category===_ytCatFilter):sortedYTChannels();
-  container.appendChild(_buildCardGrid(ytList, _buildYTCard));
+  _buildCardGrid(container, ytList, _buildYTCard);
 }
 
 function buildYTEpList(ch, videos, visibleMonths, hiddenMissingDate=0){
