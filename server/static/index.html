@@ -36,13 +36,13 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .page.active{display:block}
 
 /* ── CARDS GRID ── */
-.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:32px}
-.source-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .2s;position:relative}
-.source-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
-.source-card.expanded{border-color:var(--accent);overflow:visible}
-.card-art{width:100%;aspect-ratio:1;object-fit:cover;background:var(--surface2);display:block}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-bottom:32px}
+.source-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .2s;position:relative;display:flex;flex-direction:row;align-items:stretch}
+.source-card:hover{border-color:var(--accent);box-shadow:0 4px 16px rgba(0,0,0,.3)}
+.source-card.expanded{border-color:var(--accent);overflow:visible;flex-direction:column}
+.card-art{width:72px;height:72px;flex-shrink:0;object-fit:cover;background:var(--surface2);display:block;border-radius:8px;margin:10px 0 10px 10px}
 .card-art-yt{width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--surface2);display:block}
-.card-body{padding:10px 12px 12px}
+.card-body{padding:10px 12px;flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
 .card-name{font-size:12px;font-weight:700;line-height:1.4;margin-bottom:4px}
 .card-stats{font-size:10px;color:var(--text-dim);display:flex;gap:8px}
 .stat-note{color:var(--green)}
@@ -1477,7 +1477,7 @@ function _buildYTCard(ch){
   } else {
     card.innerHTML=`
       <button class="ch-remove-btn card-remove" data-handle="${h(ch.handle)}" title="移除頻道"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
-      <img class="card-art yt-avatar-img" alt="" style="border-radius:0;aspect-ratio:1;object-fit:cover;background:var(--surface2)">
+      <img class="card-art yt-avatar-img" alt="" style="border-radius:50%">
       <div class="card-body">
         <div class="card-name">${h(ch.name||ch.handle)}</div>
         <div class="card-stats">
