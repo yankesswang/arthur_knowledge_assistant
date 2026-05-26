@@ -4,12 +4,24 @@ import json
 import os
 import re
 import subprocess
+import threading
 import time
 from pathlib import Path
 
 from config_store import get_podcast_config
 from settings import SKILL_DIR
 from state import _jobs
+
+def get_transcription_settings():
+    import json as _json
+    from pathlib import Path as _Path
+    p = SKILL_DIR / "data" / "transcription_settings.json"
+    if p.exists():
+        try:
+            return _json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {"mode": "local"}
 
 DOWNLOAD_SH = SKILL_DIR / "scripts" / "download.sh"
 
@@ -116,10 +128,6 @@ def _run_download(job_id: str, podcast_id: str, episode: str):
         except Exception:
             model = "small"
 
-        job["phase"]    = "轉錄中"
-        job["progress"] = 0
-        log(f"→ 開始轉錄（模型：{model}）")
-
         # 預先取音頻時長（從 meta.json 或 ffprobe）
         duration_s: float = 0.0
         meta_path = work_dir / "meta.json"
@@ -141,6 +149,22 @@ def _run_download(job_id: str, podcast_id: str, episode: str):
                 duration_s = float(json.loads(ff.stdout)["format"]["duration"])
             except Exception:
                 pass
+
+        job["phase"]    = "轉錄中"
+        job["progress"] = 0
+        transcribe_mode = get_transcription_settings().get("mode", "local")
+
+        if duration_s:
+            duration_min = duration_s / 60
+            job["estimated_minutes"] = round(duration_min, 1)
+            job["estimated_cost_usd"] = round(duration_min * 0.006, 4)
+            # 估計轉錄時間：API 模式約 60s 固定；local 依模型速度估
+            if transcribe_mode == "api":
+                job["estimated_transcribe_secs"] = max(60, int(duration_min * 2))
+            else:
+                speed_factor = {"medium": 8, "small": 12, "base": 20, "large-v2": 4, "large-v3": 4}.get(model, 8)
+                job["estimated_transcribe_secs"] = max(10, int(duration_s / speed_factor))
+        log(f"→ 開始轉錄（模型：{model}）")
 
         pod_cfg = get_podcast_config(podcast_id)
         lang    = pod_cfg.get("language", "zh")
@@ -176,9 +200,19 @@ def _run_download(job_id: str, podcast_id: str, episode: str):
             env=t_env,
         )
         elapsed_s = 0.0
+        wall_start = time.time()
         for t_line in t_proc.stdout:
             t_line = t_line.rstrip()
             if not t_line:
+                continue
+            if t_line.startswith("TRANSCRIPT_COST:"):
+                parts_cost = t_line.split(":")
+                if len(parts_cost) == 3:
+                    try:
+                        job["transcript_minutes"] = float(parts_cost[1])
+                        job["transcript_cost_usd"] = float(parts_cost[2])
+                    except ValueError:
+                        pass
                 continue
             log(t_line)
             tm = _TRANSCRIBE_RE.search(t_line)
@@ -186,6 +220,13 @@ def _run_download(job_id: str, podcast_id: str, episode: str):
                 elapsed_s = float(tm.group(1))
                 if duration_s > 0:
                     job["progress"] = min(99, elapsed_s / duration_s * 100)
+                    # 用實際速度動態更新剩餘時間估算
+                    wall_elapsed = time.time() - wall_start
+                    if elapsed_s > 5 and wall_elapsed > 0:
+                        actual_speed = elapsed_s / wall_elapsed  # x realtime
+                        remaining_audio = duration_s - elapsed_s
+                        eta_secs = int(remaining_audio / actual_speed)
+                        job["estimated_transcribe_secs"] = eta_secs
             # 備用：從轉錄完成行取時長
             dur_m = re.search(r'音頻\s+([\d.]+)\s*分', t_line)
             if dur_m and not duration_s:
@@ -200,24 +241,52 @@ def _run_download(job_id: str, podcast_id: str, episode: str):
             return
 
         log("✓ 轉錄完成")
+        job["progress"] = 100
 
-        # ── Step 3: Claude 分析逐字稿 → 筆記 ────────────────
+        # 把費用寫入持久 DB
+        if job.get("transcript_cost_usd", 0) > 0:
+            from cache_store import log_transcript_cost
+            pod_cfg2 = get_podcast_config(podcast_id)
+            source_title = pod_cfg2.get("name", podcast_id) if pod_cfg2 else podcast_id
+            log_transcript_cost(
+                job_id=job_id,
+                job_type="pod_download",
+                source_title=f"{source_title} EP{episode}",
+                duration_minutes=job.get("transcript_minutes", 0),
+                cost_usd=job["transcript_cost_usd"],
+            )
+
+        # ── Step 3: 等待 user 確認是否產生筆記 ──────────────
+        ev = threading.Event()
+        job["status"]             = "waiting"
+        job["phase"]              = "awaiting_analyze_confirm"
+        job["_analyze_event"]     = ev
+        job["_work_dir"]          = str(work_dir)
+        job["_episode_label"]     = episode_label
+        log("⏸ 等待確認是否產生筆記...")
+
+        confirmed = ev.wait(timeout=3600)  # 最多等 1 小時
+        if not confirmed or not job.get("_analyze_confirmed"):
+            job["status"]      = "done"
+            job["phase"]       = "轉錄完成（未產生筆記）"
+            job["finished_at"] = time.time()
+            return
+
+        # ── Step 4: Claude 分析逐字稿 → 筆記 ────────────────
+        job["status"]   = "running"
         job["phase"]    = "分析中"
         job["progress"] = 0
         log("→ 呼叫 Claude 分析逐字稿...")
 
         analyze_script = SKILL_DIR / "scripts" / "analyze.py"
         a_proc = subprocess.Popen(
-            ["python3.10", str(analyze_script), str(work_dir), "--podcast", podcast_id],
+            ["python3.10", str(analyze_script), str(job["_work_dir"]), "--podcast", podcast_id],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             bufsize=1,
             text=True,
             env={**_os.environ, "PODCAST_ID": podcast_id},
         )
-
-        # 模擬進度（分析階段沒有精確進度，用 indeterminate）
-        job["progress"] = 0
 
         for a_line in a_proc.stdout:
             a_line = a_line.rstrip()

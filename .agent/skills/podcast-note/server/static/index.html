@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Knowledge Notes</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%237c6af7'/><text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-size='20'>🎙</text></svg>">
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="/marked.min.js"></script>
 <style>
 :root {
   --bg:#0f1117; --surface:#1a1d27; --surface2:#22253a; --border:#2e3145;
@@ -253,18 +253,22 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 #whisper-confirm-btn{padding:7px 16px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:12px;font-weight:600;transition:opacity .15s}
 #whisper-confirm-btn:hover{opacity:.85}
 
-/* ── Inbox ── */
-.inbox-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;transition:all .15s}
-.inbox-item:hover{border-color:var(--accent)}
-.inbox-thumb{width:48px;height:48px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--surface2)}
-.inbox-thumb.round{border-radius:50%}
-.inbox-info{flex:1;min-width:0}
-.inbox-title{font-size:13px;font-weight:600;line-height:1.4;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
-.inbox-title:hover{color:var(--accent)}
-.inbox-meta{font-size:11px;color:var(--text-dim);display:flex;gap:6px;align-items:center}
-.inbox-type{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;background:var(--accent-dim);color:var(--accent)}
-.inbox-read-btn{font-size:11px;padding:4px 12px;border-radius:5px;border:1px solid var(--green);color:var(--green);background:transparent;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s}
-.inbox-read-btn:hover{background:var(--green);color:#000}
+/* ── Notes page ── */
+.notes-source-section{margin-bottom:32px}
+.notes-source-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.notes-source-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;background:var(--surface2);flex-shrink:0}
+.notes-source-avatar.sq{border-radius:6px}
+.notes-source-name{font-size:13px;font-weight:700;color:var(--text)}
+.notes-source-count{font-size:10px;color:var(--text-muted);margin-left:2px}
+.notes-cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.notes-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;transition:all .2s}
+.notes-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.3)}
+.notes-card-thumb{width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--surface2);display:block}
+.notes-card-thumb.sq{aspect-ratio:1}
+.notes-card-body{padding:8px 10px 10px}
+.notes-card-title{font-size:11.5px;font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:5px}
+.notes-card-meta{font-size:10px;color:var(--text-dim);display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.notes-card-ep{color:var(--accent);font-weight:600}
 .inbox-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:200px;gap:8px;color:var(--text-muted)}
 .inbox-empty p{font-size:14px}
 
@@ -307,12 +311,42 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .job-log::-webkit-scrollbar{width:3px}
 .job-log::-webkit-scrollbar-thumb{background:var(--border)}
 .job-row.expanded .job-log{display:block}
+.job-analyze-prompt{margin-top:6px;padding:6px 8px;background:var(--accent-dim);border-radius:4px;border:1px solid var(--accent)}
 .job-type-badge{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;white-space:nowrap}
 .jt-transcript{background:#1a2535;color:#7eb8f7}
 .jt-analyze{background:var(--accent-dim);color:var(--accent)}
 .jt-download{background:#2a1f35;color:#c084fc}
 .jt-auto{background:#1f2a1f;color:#86efac}
 #jobs-empty{padding:24px;text-align:center;color:var(--text-muted);font-size:12px}
+#cost-detail-modal.open{display:flex}
+
+/* ── YT Background Transcript Pill ── */
+#yt-bg-pill-btn:hover{border-color:var(--accent);color:var(--text)}
+#yt-bg-popup.open{display:block}
+#yt-bg-list::-webkit-scrollbar{width:4px}
+#yt-bg-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.yt-bg-row{display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid var(--border);font-size:11px}
+.yt-bg-row:last-child{border-bottom:none}
+.yt-bg-thumb{width:56px;height:32px;object-fit:cover;border-radius:3px;flex-shrink:0;background:var(--border)}
+.yt-bg-body{flex:1;min-width:0}
+.yt-bg-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);margin-bottom:3px}
+.yt-bg-meta{display:flex;align-items:center;gap:6px}
+.yt-bg-phase{font-size:10px;color:var(--text-muted)}
+.yt-bg-pct{font-size:10px;color:var(--text-dim);margin-left:auto}
+.yt-bg-mini-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:3px}
+.yt-bg-mini-bar-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .4s;animation:job-pulse 1.5s ease-in-out infinite}
+.yt-bg-done .yt-bg-mini-bar-fill{background:var(--green);animation:none}
+.yt-bg-error .yt-bg-mini-bar-fill{background:var(--red);animation:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Cost Dashboard ── */
+.cost-stat-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.cost-stat-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.cost-stat-value{font-size:22px;font-weight:700;color:var(--text);line-height:1.1}
+.cost-stat-sub{font-size:10px;color:var(--text-dim);margin-top:2px}
+#cost-table tbody tr{border-bottom:1px solid var(--border)}
+#cost-table tbody tr:last-child{border-bottom:none}
+#cost-table tbody tr:hover{background:var(--surface2)}
 
 /* ── Highlight mode ── */
 #hl-mode-btn.active{background:var(--yellow)!important;border-color:var(--yellow)!important;color:#000!important}
@@ -325,13 +359,14 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2499;outline:2px solid #fbb
 <body>
 
 <div id="nav">
-  <h1>🎙 Notes</h1>
+  <h1 id="nav-title" style="cursor:pointer" title="查看所有筆記">🎙 Notes</h1>
   <button class="nav-tab nav-tab-yt active" data-page="youtube">YouTube</button>
   <button class="nav-tab" data-page="podcast">Podcast</button>
   <button class="nav-tab" data-page="notes">
     Notes
     <span id="notes-badge" style="display:none;background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:4px;vertical-align:middle"></span>
   </button>
+  <button class="nav-tab" data-page="cost">💰 費用</button>
   <div id="nav-search">
     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="11" cy="11" r="8" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke-width="2" stroke-linecap="round"/></svg>
     <input id="search-input" type="text" placeholder="搜尋…" autocomplete="off">
@@ -373,16 +408,70 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2499;outline:2px solid #fbb
     <div style="display:flex;gap:6px;align-items:center">
       <label class="toolbar-label" for="notes-sort">排序</label>
       <select id="notes-sort" class="sort-select">
-        <option value="updated_desc">最新更新：新到舊</option>
-        <option value="updated_asc">最新更新：舊到新</option>
+        <option value="updated_desc">筆記時間：新到舊</option>
+        <option value="updated_asc">筆記時間：舊到新</option>
         <option value="pub_desc">發布日期：新到舊</option>
         <option value="title_asc">標題：A 到 Z</option>
-        <option value="type_asc">類型：Podcast / YouTube</option>
       </select>
       <button id="notes-refresh" class="add-ch-btn" style="background:transparent;border-color:var(--border);color:var(--text-muted);margin-left:6px">重新整理</button>
     </div>
   </div>
   <div id="notes-list"></div>
+</div>
+
+<!-- Cost Dashboard page -->
+<div id="page-cost" class="page">
+  <div class="page-toolbar" style="justify-content:space-between">
+    <span style="font-size:13px;font-weight:700;color:var(--text-dim)">轉錄費用 Dashboard</span>
+    <button id="cost-refresh-btn" class="add-ch-btn" style="background:transparent;border-color:var(--border);color:var(--text-muted)">重新整理</button>
+  </div>
+  <div id="cost-dashboard-content" style="padding:0 16px 24px">
+    <!-- stat cards -->
+    <div id="cost-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+      <div class="cost-stat-card">
+        <div class="cost-stat-label">累計總費用</div>
+        <div class="cost-stat-value" id="cost-total-usd">—</div>
+        <div class="cost-stat-sub" id="cost-total-twd">—</div>
+      </div>
+      <div class="cost-stat-card">
+        <div class="cost-stat-label">累計轉錄時長</div>
+        <div class="cost-stat-value" id="cost-total-min">—</div>
+        <div class="cost-stat-sub">分鐘</div>
+      </div>
+      <div class="cost-stat-card">
+        <div class="cost-stat-label">轉錄次數</div>
+        <div class="cost-stat-value" id="cost-total-count">—</div>
+        <div class="cost-stat-sub">筆 job</div>
+      </div>
+    </div>
+    <!-- history table -->
+    <div style="font-size:11px;font-weight:700;color:var(--text-dim);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">歷史明細</div>
+    <div id="cost-table-wrap" style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+      <table id="cost-table" style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="background:var(--surface2);color:var(--text-dim);font-size:10px;text-transform:uppercase;letter-spacing:.4px">
+            <th style="text-align:left;padding:8px 12px;font-weight:600">日期</th>
+            <th style="text-align:left;padding:8px 12px;font-weight:600">來源</th>
+            <th style="text-align:right;padding:8px 12px;font-weight:600">時長</th>
+            <th style="text-align:right;padding:8px 12px;font-weight:600">費用 (USD)</th>
+            <th style="text-align:right;padding:8px 12px;font-weight:600">費用 (TWD)</th>
+          </tr>
+        </thead>
+        <tbody id="cost-table-body">
+          <tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">載入中…</td></tr>
+        </tbody>
+        <tfoot id="cost-table-foot" style="display:none">
+          <tr style="background:var(--surface2);font-weight:700;border-top:1px solid var(--border)">
+            <td colspan="2" style="padding:8px 12px;color:var(--text-dim)">合計</td>
+            <td style="text-align:right;padding:8px 12px" id="cost-foot-min">—</td>
+            <td style="text-align:right;padding:8px 12px;color:var(--accent)" id="cost-foot-usd">—</td>
+            <td style="text-align:right;padding:8px 12px;color:var(--accent)" id="cost-foot-twd">—</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div style="font-size:10px;color:var(--text-muted);margin-top:8px">* Whisper API $0.006 / 分鐘；TWD 以 1 USD = 32 TWD 換算</div>
+  </div>
 </div>
 
 <!-- Add channel modal -->
@@ -417,6 +506,17 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2499;outline:2px solid #fbb
       <button id="whisper-cancel-btn" onclick="cancelWhisper()">取消</button>
       <button id="whisper-confirm-btn" onclick="confirmWhisper()">使用 Whisper 轉錄</button>
     </div>
+  </div>
+</div>
+
+<!-- Cost detail modal -->
+<div id="cost-detail-modal" style="position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.5);align-items:center;justify-content:center;display:none">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;min-width:380px;max-width:520px;max-height:70vh;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span style="font-weight:700;font-size:13px">轉錄費用明細</span>
+      <button onclick="$('cost-detail-modal').classList.remove('open')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px">✕</button>
+    </div>
+    <div id="cost-detail-body" style="overflow-y:auto;flex:1"></div>
   </div>
 </div>
 
@@ -457,6 +557,21 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2499;outline:2px solid #fbb
 </div>
 
 <!-- Jobs Dashboard FAB -->
+<!-- BG transcript pill -->
+<div id="yt-bg-pill" style="display:none;position:fixed;bottom:78px;left:24px;z-index:399">
+  <div id="yt-bg-pill-btn" style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 10px 5px 8px;cursor:pointer;font-size:11px;color:var(--text-dim);box-shadow:0 2px 8px rgba(0,0,0,.3);white-space:nowrap">
+    <span id="yt-bg-pill-spinner" style="width:8px;height:8px;border:1.5px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;display:none"></span>
+    <span id="yt-bg-pill-icon" style="font-size:12px">📥</span>
+    <span id="yt-bg-pill-text">新影片逐字稿</span>
+    <span id="yt-bg-pill-count" style="background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;display:none"></span>
+  </div>
+  <!-- popup -->
+  <div id="yt-bg-popup" style="display:none;position:absolute;bottom:36px;left:0;width:300px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.4);overflow:hidden">
+    <div style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text-dim)">背景逐字稿進度</div>
+    <div id="yt-bg-list" style="max-height:200px;overflow-y:auto"></div>
+  </div>
+</div>
+
 <div id="jobs-fab" title="Jobs Dashboard">
   ⚙️
   <span class="fab-badge" id="jobs-fab-badge"></span>
@@ -477,7 +592,7 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2499;outline:2px solid #fbb
 <script>
 const $=id=>document.getElementById(id);
 // ── State ─────────────────────────────────────────────────────
-let podcasts=[], ytChannels=[], readStatus={}, currentView='note';
+let podcasts=[], ytChannels=[], localYTVideos=[], readStatus={}, currentView='note';
 let currentItem=null, currentType=null; // 'podcast' | 'yt'
 let jobPoll=null;
 let _whisperVideoId=null, _whisperJobId=null;
@@ -612,9 +727,12 @@ function _buildNotesItems(){
     }
   }
 
+  // 從 ytChannels 收集有筆記的影片（遠端 + merge 後）
+  const seenYTIds=new Set();
   for(const ch of ytChannels){
     for(const v of (ch.videos||[])){
       if(!(v.has_note||v.has_analysis)) continue;
+      seenYTIds.add(v.id);
       const noteMeta=inboxById.get(`yt:${v.id}`) || inboxById.get(v.id) || {};
       items.push({
         id: v.id,
@@ -632,6 +750,28 @@ function _buildNotesItems(){
         has_transcript: !!v.has_transcript,
       });
     }
+  }
+
+  // 補上 localYTVideos 裡有筆記但不在 ytChannels 的影片
+  for(const v of localYTVideos){
+    if(!(v.has_note||v.has_analysis)) continue;
+    if(seenYTIds.has(v.id)) continue;
+    const noteMeta=inboxById.get(`yt:${v.id}`) || inboxById.get(v.id) || {};
+    items.push({
+      id: v.id,
+      type: 'yt',
+      video_id: v.id,
+      title: v.title_zh||v.title||v.id,
+      channel: v.channel||'未分類',
+      pub_date: v.upload_date||'',
+      note_created: noteMeta.note_created||0,
+      note_path: v.note_path||noteMeta.note_path||'',
+      thumbnail: v.thumbnail||`https://img.youtube.com/vi/${v.id}/mqdefault.jpg`,
+      url: v.url||`https://www.youtube.com/watch?v=${v.id}`,
+      has_note: !!v.has_note,
+      has_analysis: !!v.has_analysis,
+      has_transcript: !!v.has_transcript,
+    });
   }
 
   return items;
@@ -655,6 +795,69 @@ function parseDateStamp(value){
   return Number.isFinite(ts) ? Math.floor(ts/1000) : 0;
 }
 
+function _sortNotes(items){
+  return [...items].sort((a,b)=>{
+    if(notesSort==='title_asc')
+      return (a.title||'').localeCompare(b.title||'','zh-Hant');
+    if(notesSort==='type_asc'){
+      const c=(a.type||'').localeCompare(b.type||'');
+      if(c) return c;
+    }
+    const va=notesSort==='updated_desc'||notesSort==='updated_asc'
+      ? Math.max(parseDateStamp(a.note_created),parseDateStamp(a.pub_date))
+      : parseDateStamp(a.pub_date);
+    const vb=notesSort==='updated_desc'||notesSort==='updated_asc'
+      ? Math.max(parseDateStamp(b.note_created),parseDateStamp(b.pub_date))
+      : parseDateStamp(b.pub_date);
+    if(va===vb) return (a.title||'').localeCompare(b.title||'','zh-Hant');
+    return notesSort==='updated_asc' ? va-vb : vb-va;
+  });
+}
+
+function _openNoteItem(item){
+  if(item.type==='yt'){
+    const v={id:item.video_id,title_zh:item.title,title:item.title,channel:item.channel,
+             url:item.url,thumbnail:item.thumbnail,
+             has_note:!!item.note_path||item.has_note,
+             has_analysis:!!item.note_path||item.has_analysis,has_transcript:true};
+    openDetailYT(v);
+  }else{
+    const pod=podcasts.find(p=>p.id===item.podcast_id)||podcasts.find(p=>p.name===item.podcast)||{name:item.podcast};
+    const ep={id:`${item.podcast_id}_${item.episode}`,title_zh:item.title,
+              episode_label:item.episode,
+              has_note:!!item.note_path||item.has_note,
+              has_analysis:!!item.note_path||item.has_analysis,
+              has_transcript:true,_pod:pod.name};
+    openDetail('podcast',ep,pod);
+  }
+}
+
+function _makeNoteCard(item){
+  const isYT=item.type==='yt';
+  const thumb=isYT
+    ? ytImg(item.thumbnail||`https://img.youtube.com/vi/${item.video_id}/mqdefault.jpg`)
+    : (item.thumbnail||item.artwork||'');
+  const dateStr=item.pub_date
+    ? item.pub_date.length===8
+      ? `${item.pub_date.slice(0,4)}-${item.pub_date.slice(4,6)}-${item.pub_date.slice(6,8)}`
+      : item.pub_date.slice(0,10)
+    : '';
+
+  const card=document.createElement('div');
+  card.className='notes-card';
+  card.innerHTML=`
+    <img class="notes-card-thumb${isYT?'':' sq'}" src="${h(thumb)}" onerror="this.style.opacity='.3'">
+    <div class="notes-card-body">
+      <div class="notes-card-title">${h(item.title||item.episode||item.video_id||'')}</div>
+      <div class="notes-card-meta">
+        ${item.episode?`<span class="notes-card-ep">${h(item.episode)}</span>`:''}
+        ${dateStr?`<span>${dateStr}</span>`:''}
+      </div>
+    </div>`;
+  card.addEventListener('click',()=>_openNoteItem(item));
+  return card;
+}
+
 function renderInbox(){
   const notes=_buildNotesItems();
   updateNotesBadge(notes);
@@ -667,8 +870,8 @@ function renderInbox(){
   const q=$('search-input').value.trim().toLowerCase();
   const filtered=q
     ? notes.filter(n=>
-        (n.title||'').toLowerCase().includes(q) ||
-        (n.podcast||'').toLowerCase().includes(q) ||
+        (n.title||'').toLowerCase().includes(q)||
+        (n.podcast||'').toLowerCase().includes(q)||
         (n.channel||'').toLowerCase().includes(q)
       )
     : notes;
@@ -676,85 +879,71 @@ function renderInbox(){
     el.innerHTML='<div class="inbox-empty"><p>沒有符合的筆記</p></div>';
     return;
   }
-  const sorted=[...filtered].sort((a,b)=>{
-    if(notesSort==='title_asc'){
-      return (a.title||a.episode||a.video_id||'').localeCompare(b.title||b.episode||b.video_id||'', 'zh-Hant');
-    }
-    if(notesSort==='type_asc'){
-      const typeCmp=(a.type||'').localeCompare(b.type||'');
-      if(typeCmp) return typeCmp;
-    }
-    const va=notesSort==='updated_desc'||notesSort==='updated_asc'
-      ? Math.max(parseDateStamp(a.note_created), parseDateStamp(a.pub_date))
-      : parseDateStamp(a.pub_date);
-    const vb=notesSort==='updated_desc'||notesSort==='updated_asc'
-      ? Math.max(parseDateStamp(b.note_created), parseDateStamp(b.pub_date))
-      : parseDateStamp(b.pub_date);
-    if(va===vb) return (a.title||'').localeCompare(b.title||'', 'zh-Hant');
-    return notesSort==='updated_asc' ? va-vb : vb-va;
-  });
-  el.innerHTML='';
-  for(const item of sorted){
+
+  // 按來源分組
+  const groups=new Map(); // sourceKey → {name, avatar, isYT, items[]}
+  for(const item of filtered){
     const isYT=item.type==='yt';
-    const thumb=isYT
-      ? ytImg(item.thumbnail||`https://img.youtube.com/vi/${item.video_id}/mqdefault.jpg`)
-      : (item.thumbnail||item.artwork||'');
-    const typeLabel=isYT?'YouTube':'Podcast';
-    const meta=[isYT?item.channel:item.podcast, item.episode].filter(Boolean).join(' · ');
-
-    const row=document.createElement('div');
-    row.className='inbox-item';
-    row.innerHTML=`
-      <img class="inbox-thumb${isYT?'':' round'}" src="${h(thumb)}" onerror="this.style.opacity='.3'">
-      <div class="inbox-info">
-        <div class="inbox-title" data-id="${h(item.id)}">${h(item.title||item.episode||item.video_id||'')}</div>
-        <div class="inbox-meta">
-          <span class="inbox-type">${typeLabel}</span>
-          <span>${h(meta)}</span>
-        </div>
-        <div class="inbox-meta" style="margin-top:3px;gap:10px">
-          ${item.pub_date?`<span title="發布日期">📅 ${h(item.pub_date)}</span>`:''}
-          ${item.note_created?`<span title="筆記建立時間">✏️ ${new Date(item.note_created*1000).toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'})}</span>`:''}
-        </div>
-      </div>
-      <button class="inbox-read-btn" data-id="${h(item.id)}">開啟</button>`;
-
-    // 點標題 → 開 detail
-    row.querySelector('.inbox-title').addEventListener('click',()=>{
+    const key=isYT?`yt:${item.channel}`:`pod:${item.podcast}`;
+    if(!groups.has(key)){
+      // 找 avatar
+      let avatar='';
       if(isYT){
-        const v={id:item.video_id, title_zh:item.title, title:item.title, channel:item.channel,
-                 url:item.url, thumbnail:item.thumbnail, has_note:!!item.note_path||item.has_note,
-                 has_analysis:!!item.note_path||item.has_analysis, has_transcript:true};
-        openDetailYT(v);
+        const ch=ytChannels.find(c=>c.name===item.channel||c.handle===item.channel);
+        avatar=ch?.avatar?ytImg(ch.avatar):'';
       }else{
-        const pod=podcasts.find(p=>p.id===item.podcast_id)||podcasts.find(p=>p.name===item.podcast)||{name:item.podcast};
-        const ep={id:`${item.podcast_id}_${item.episode}`, title_zh:item.title,
-                  episode_label:item.episode, has_note:!!item.note_path||item.has_note,
-                  has_analysis:!!item.note_path||item.has_analysis,
-                  has_transcript:true, _pod:pod.name};
-        openDetail('podcast', ep, pod);
+        const pod=podcasts.find(p=>p.name===item.podcast||p.id===item.podcast_id);
+        avatar=pod?.artwork||'';
       }
-    });
+      groups.set(key,{name:isYT?item.channel:item.podcast,avatar,isYT,items:[]});
+    }
+    groups.get(key).items.push(item);
+  }
 
-    row.querySelector('.inbox-read-btn').addEventListener('click',async e=>{
-      e.stopPropagation();
-      row.querySelector('.inbox-title').click();
-    });
+  // 各組內部排序
+  for(const g of groups.values()) g.items=_sortNotes(g.items);
 
-    el.appendChild(row);
+  // 組間排序：各組最新筆記時間降序
+  const sortedGroups=[...groups.values()].sort((a,b)=>{
+    const ta=Math.max(...a.items.map(i=>Math.max(parseDateStamp(i.note_created),parseDateStamp(i.pub_date))));
+    const tb=Math.max(...b.items.map(i=>Math.max(parseDateStamp(i.note_created),parseDateStamp(i.pub_date))));
+    return tb-ta;
+  });
+
+  el.innerHTML='';
+  for(const g of sortedGroups){
+    const sec=document.createElement('div');
+    sec.className='notes-source-section';
+
+    const avatarEl=g.avatar
+      ? `<img class="notes-source-avatar${g.isYT?' sq':''}" src="${h(g.avatar)}" onerror="this.style.display='none'">`
+      : '';
+    const hdr=document.createElement('div');
+    hdr.className='notes-source-header';
+    hdr.innerHTML=`${avatarEl}<span class="notes-source-name">${h(g.name||'未知來源')}</span><span class="notes-source-count">${g.items.length} 筆</span>`;
+    sec.appendChild(hdr);
+
+    const grid=document.createElement('div');
+    grid.className='notes-cards-grid';
+    for(const item of g.items) grid.appendChild(_makeNoteCard(item));
+    sec.appendChild(grid);
+
+    el.appendChild(sec);
   }
 }
 
 $('notes-refresh')?.addEventListener('click',async()=>{
   try{
-    const [pods,chs,items]=await Promise.all([
+    const [pods,chs,items,localVids]=await Promise.all([
       api('/api/podcasts').catch(()=>podcasts),
       api('/api/youtube/channels').catch(()=>ytChannels),
       api('/api/inbox').catch(()=>inboxItems),
+      api('/api/youtube/videos').catch(()=>localYTVideos),
     ]);
     podcasts=pods;
     ytChannels=chs;
     inboxItems=items;
+    localYTVideos=localVids;
     renderPodcastCards();
     renderYTCards();
     renderInbox();
@@ -763,13 +952,14 @@ $('notes-refresh')?.addEventListener('click',async()=>{
 
 // ── Init ──────────────────────────────────────────────────────
 async function init(){
-  const[pods,rs,ytrs,inbox]=await Promise.all([
+  const[pods,rs,ytrs,inbox,localVids]=await Promise.all([
     api('/api/podcasts').catch(()=>[]),
     api('/api/reading-status').catch(()=>({})),
     api('/api/youtube/read-status').catch(()=>({})),
     api('/api/inbox').catch(()=>[]),
+    api('/api/youtube/videos').catch(()=>[]),
   ]);
-  podcasts=pods; readStatus={...rs,...ytrs}; inboxItems=inbox;
+  podcasts=pods; readStatus={...rs,...ytrs}; inboxItems=inbox; localYTVideos=localVids;
   renderPodcastCards();
   renderInbox();
 
@@ -821,6 +1011,12 @@ function startYTJobRefreshPoll(){
   ytJobRefreshPoll=setInterval(async()=>{
     try{
       const jobs=await api('/api/jobs');
+      // update _allJobs so bg bar stays fresh (preserve dismissed filter)
+      const merged=new Map(_allJobs.map(j=>[j.job_id,j]));
+      jobs.forEach(j=>{ if(!_dismissedJobIds.has(j.job_id)) merged.set(j.job_id,j); });
+      _allJobs=[...merged.values()];
+      renderYTBgBar();
+
       const now=Date.now()/1000;
       const needsRefresh=jobs.some(j=>{
         const isYT=String(j.type||'').startsWith('yt_');
@@ -842,6 +1038,7 @@ function showPage(page){
   document.querySelectorAll('.nav-tab').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   $(`page-${page}`)?.classList.add('active');
+  if(page==='cost') loadCostDashboard();
 }
 
 document.querySelectorAll('.nav-tab').forEach(btn=>{
@@ -849,6 +1046,64 @@ document.querySelectorAll('.nav-tab').forEach(btn=>{
     showPage(btn.dataset.page);
   });
 });
+
+// ── Cost Dashboard ─────────────────────────────────────────────
+const USD_TO_TWD = 32;
+
+async function loadCostDashboard(){
+  const tbody=$('cost-table-body');
+  const tfoot=$('cost-table-foot');
+  tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">載入中…</td></tr>';
+  tfoot.style.display='none';
+  try{
+    const data=await api('/api/costs');
+    const entries=data.entries||[];
+    const totalUsd=data.total_usd||0;
+    const totalMin=entries.reduce((s,r)=>s+r.duration_minutes,0);
+    const totalCount=entries.length;
+
+    // stat cards
+    $('cost-total-usd').textContent=`$${totalUsd.toFixed(2)}`;
+    $('cost-total-twd').textContent=`≈ NT$${Math.round(totalUsd*USD_TO_TWD)}`;
+    $('cost-total-min').textContent=totalMin>=60
+      ? `${(totalMin/60).toFixed(1)} 小時`
+      : `${totalMin.toFixed(1)}`;
+    $('cost-total-count').textContent=totalCount;
+
+    if(!entries.length){
+      tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">尚無轉錄費用紀錄<br><span style="font-size:10px">只有使用 Whisper API 模式才會記錄費用</span></td></tr>';
+      return;
+    }
+
+    tbody.innerHTML=entries.map(r=>{
+      const d=new Date(r.ts*1000);
+      const dateStr=`${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+      const twd=Math.round(r.cost_usd*USD_TO_TWD);
+      const durStr=r.duration_minutes>=60
+        ?`${(r.duration_minutes/60).toFixed(1)} hr`
+        :`${r.duration_minutes.toFixed(1)} 分`;
+      return `<tr>
+        <td style="padding:8px 12px;color:var(--text-dim);white-space:nowrap">${dateStr}</td>
+        <td style="padding:8px 12px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${h(r.source_title)}">${h(r.source_title)}</td>
+        <td style="padding:8px 12px;text-align:right;color:var(--text-dim)">${durStr}</td>
+        <td style="padding:8px 12px;text-align:right;font-family:monospace">$${r.cost_usd.toFixed(2)}</td>
+        <td style="padding:8px 12px;text-align:right;color:var(--text-dim)">NT$${twd}</td>
+      </tr>`;
+    }).join('');
+
+    // footer totals
+    const footMin=totalMin>=60?`${(totalMin/60).toFixed(1)} hr`:`${totalMin.toFixed(1)} 分`;
+    $('cost-foot-min').textContent=footMin;
+    $('cost-foot-usd').textContent=`$${totalUsd.toFixed(2)}`;
+    $('cost-foot-twd').textContent=`NT$${Math.round(totalUsd*USD_TO_TWD)}`;
+    tfoot.style.display='';
+  }catch(e){
+    tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--red)">載入失敗：${h(e.message||'未知錯誤')}</td></tr>`;
+  }
+}
+
+$('cost-refresh-btn')?.addEventListener('click',loadCostDashboard);
+$('nav-title')?.addEventListener('click',()=>showPage('notes'));
 $('search-input').addEventListener('input',()=>{
   renderPodcastCards(); renderYTCards(); renderInbox();
 });
@@ -2151,7 +2406,11 @@ function _jobTypeInfo(job){
 }
 
 function _jobTitle(job){
-  if(job.episode) return `${job.podcast||job.podcast_id||''} ${job.episode}`.trim();
+  if(job.podcast_id){
+    const name=job.podcast_name||job.podcast||job.podcast_id;
+    const ep=job.episode_label||job.episode||'';
+    return ep?`${name} ${ep}`:name;
+  }
   if(job.video_id){
     for(const ch of ytChannels){
       const v=(ch.videos||[]).find(v=>v.id===job.video_id);
@@ -2211,8 +2470,9 @@ $('whisper-modal').addEventListener('click',e=>{
 });
 
 function renderJobsDash(){
-  const active=_allJobs.filter(j=>j.status==='pending'||j.status==='running');
-  const recent=_allJobs.filter(j=>j.status==='done'||j.status==='error')
+  const userJobs=_allJobs.filter(j=>j.type!=='yt_auto_transcript');
+  const active=userJobs.filter(j=>j.status==='pending'||j.status==='running'||j.status==='waiting');
+  const recent=userJobs.filter(j=>j.status==='done'||j.status==='error')
     .sort((a,b)=>(b.finished_at||0)-(a.finished_at||0)).slice(0,8);
   const shown=[...active,...recent];
 
@@ -2230,7 +2490,7 @@ function renderJobsDash(){
   for(const job of shown){
     const{label,cls}=_jobTypeInfo(job);
     const title=_jobTitle(job);
-    const pct=job.progress||0;
+    const pct=Math.round(job.progress||0);
     const isActive=job.status==='pending'||job.status==='running';
     const barCls=isActive?'running':job.status==='done'?'done':'error';
     const statusIcon=job.status==='done'?'✓ ':job.status==='error'?'✗ ':isActive?'⏳ ':'';
@@ -2239,16 +2499,21 @@ function renderJobsDash(){
     const logs=(job.log||[]).slice(-80); // last 80 lines
 
     const canOpen=job.status==='done';
+    const isAwaitingAnalyze=job.status==='waiting'&&job.phase==='awaiting_analyze_confirm';
     const row=document.createElement('div');
     row.className='job-row'+(isExpanded?' expanded':'');
     const waitingPhase=job.status==='waiting';
-    const effectivePct=waitingPhase?job.progress||0:pct;
-    const phaseText=waitingPhase?'等待確認':(job.phase||job.status);
+    const effectivePct=waitingPhase?100:pct;
+    const phaseText=isAwaitingAnalyze?'轉錄完成':(waitingPhase?'等待確認':(job.phase||job.status));
 
-    // 縮圖：YT 影片用 video_id 建構，否則留空
+    // 縮圖：podcast 用 artwork，YT 用 video_id
     let thumbUrl='';
-    if(job.video_id){
-      // 先找 ytChannels 裡有沒有 thumbnail，找不到就用 YouTube CDN
+    if(job.artwork){
+      thumbUrl=job.artwork;
+    } else if(job.podcast_id){
+      const pod=podcasts.find(p=>p.id===job.podcast_id);
+      if(pod?.artwork) thumbUrl=pod.artwork;
+    } else if(job.video_id){
       let found=null;
       for(const ch of ytChannels){ found=(ch.videos||[]).find(v=>v.id===job.video_id); if(found) break; }
       thumbUrl=found?.thumbnail
@@ -2268,12 +2533,53 @@ function renderJobsDash(){
           <div class="job-meta">
             <span class="job-type-badge ${cls}">${label}</span>
             <span class="job-phase">${h(phaseText)}</span>
-            ${ago?`<span style="margin-left:auto">${ago}</span>`:`<span style="margin-left:auto">${effectivePct}%</span>`}
+            ${job.transcript_cost_usd
+              ?`<span style="margin-left:4px;color:var(--green);font-size:9px" title="實際 Whisper API 費用">實際 $${Number(job.transcript_cost_usd).toFixed(2)}</span>`
+              :job.estimated_cost_usd&&isActive
+                ?`<span style="margin-left:4px;color:var(--text-muted);font-size:9px" title="依音頻時長預估，僅 API 模式計費">預估 ≈$${Number(job.estimated_cost_usd).toFixed(2)}</span>`
+                :''}
+            ${ago
+              ?`<span style="margin-left:auto">${ago}</span>`
+              :isActive&&job.phase==='轉錄中'
+                ?`<span style="margin-left:auto;display:flex;align-items:center;gap:6px">${effectivePct}%${job.estimated_transcribe_secs>0?`<span style="color:var(--text-muted);font-size:9px">剩 ~${job.estimated_transcribe_secs<60?job.estimated_transcribe_secs+'s':Math.ceil(job.estimated_transcribe_secs/60)+'分'}</span>`:''}  </span>`
+                :''}
           </div>
-          <div class="job-bar-wrap"><div class="job-bar ${barCls}" style="width:${(isActive||waitingPhase)?effectivePct:100}%"></div></div>
+          <div class="job-bar-wrap"><div class="job-bar ${isAwaitingAnalyze?'done':barCls}" style="width:${isAwaitingAnalyze||(!isActive&&!waitingPhase)?100:job.phase==='轉錄中'?effectivePct:0}%"></div></div>
+          ${isAwaitingAnalyze?`<div class="job-analyze-prompt">
+            <span style="font-size:10px;color:var(--text-dim)">逐字稿已完成${job.transcript_cost_usd?`，實際轉錄費 <strong style="color:var(--accent)">$${Number(job.transcript_cost_usd).toFixed(2)}</strong>`:job.estimated_cost_usd?`，預估費用 <strong style="color:var(--text-dim)">≈$${Number(job.estimated_cost_usd).toFixed(2)}</strong>`:''}，是否產生筆記？</span>
+            <div style="display:flex;gap:6px;margin-top:4px">
+              <button class="job-confirm-analyze-btn" style="flex:1;background:var(--accent);color:#fff;border:none;border-radius:4px;padding:4px 0;font-size:11px;cursor:pointer">✨ 產生筆記</button>
+              <button class="job-skip-analyze-btn" style="flex:1;background:transparent;color:var(--text-muted);border:1px solid var(--border);border-radius:4px;padding:4px 0;font-size:11px;cursor:pointer">跳過</button>
+            </div>
+          </div>`:''}
           <div class="job-log">${logs.length?logs.map(l=>h(l)).join('<br>'):'（尚無 log）'}</div>
         </div>
       </div>`;
+
+    // 轉錄完成 → 產生筆記確認
+    row.querySelector('.job-confirm-analyze-btn')?.addEventListener('click',async e=>{
+      e.stopPropagation();
+      const btn=e.target;
+      btn.disabled=true; btn.textContent='送出中…';
+      try{
+        await api(`/api/jobs/${job.job_id}/confirm-analyze`,{method:'POST'});
+        await refreshJobsDash();
+        startJobsDashPoll();
+      }catch(err){
+        btn.disabled=false; btn.textContent='✨ 產生筆記';
+        console.error(err);
+      }
+    });
+
+    row.querySelector('.job-skip-analyze-btn')?.addEventListener('click',async e=>{
+      e.stopPropagation();
+      // 讓 timeout 自然結束（server 端 event 不 set，waiting 1hr 後 done）
+      // 直接在前端把這筆 dismiss 掉
+      _dismissedJobIds.add(job.job_id);
+      _saveDismissed();
+      _allJobs=_allJobs.filter(j=>j.job_id!==job.job_id);
+      renderJobsDash();
+    });
 
     // 點標題文字 → 開 detail panel
     row.querySelector('.job-title-text').addEventListener('click',async e=>{
@@ -2322,16 +2628,116 @@ async function refreshJobsDash(){
     const jobs=await api('/api/jobs');
     _allJobs=jobs.filter(j=>!_dismissedJobIds.has(j.job_id));
     renderJobsDash();
+    renderYTBgBar();
   }catch(_){}
+}
+
+// ── YT Background Transcript Pill ─────────────────────────────
+function renderYTBgBar(){
+  const pill=$('yt-bg-pill');
+  if(!pill) return;
+
+  const autoJobs=_allJobs.filter(j=>j.type==='yt_auto_transcript');
+  const active=autoJobs.filter(j=>j.status==='pending'||j.status==='running');
+  const done=autoJobs.filter(j=>j.status==='done')
+    .sort((a,b)=>(b.finished_at||0)-(a.finished_at||0)).slice(0,5);
+
+  // pill 只在有 active 或剛完成時顯示
+  const shown=[...active,...done];
+  if(!shown.length){pill.style.display='none';return;}
+  pill.style.display='';
+
+  const spinner=$('yt-bg-pill-spinner');
+  const icon=$('yt-bg-pill-icon');
+  const text=$('yt-bg-pill-text');
+  const countBadge=$('yt-bg-pill-count');
+
+  if(active.length){
+    if(spinner) spinner.style.display='';
+    if(icon) icon.style.display='none';
+    if(text) text.textContent='正在抓逐字稿';
+    if(countBadge){countBadge.textContent=active.length;countBadge.style.display='';}
+  } else {
+    if(spinner) spinner.style.display='none';
+    if(icon) icon.style.display='';
+    if(text) text.textContent=`${done.length} 部新影片就緒`;
+    if(countBadge) countBadge.style.display='none';
+  }
+
+  const list=$('yt-bg-list');
+  if(!list) return;
+  list.innerHTML=shown.map(job=>{
+    const isActive=job.status==='pending'||job.status==='running';
+    const isDone=job.status==='done';
+    const pct=Math.round(job.progress||0);
+    const title=job.title||job.video_id||'—';
+    const thumbUrl=job.video_id
+      ?`/api/proxy-image?url=${encodeURIComponent(`https://img.youtube.com/vi/${job.video_id}/mqdefault.jpg`)}`
+      :'';
+    return `<div class="yt-bg-row ${isDone?'yt-bg-done':''}">
+      ${thumbUrl?`<img class="yt-bg-thumb" src="${thumbUrl}" onerror="this.style.display='none'">`:''}
+      <div class="yt-bg-body">
+        <div class="yt-bg-title">${h(title)}</div>
+        <div class="yt-bg-meta">
+          <span class="yt-bg-phase">${isDone?'✓ 就緒':h(job.phase||'處理中')}</span>
+          ${isActive?`<span class="yt-bg-pct">${pct}%</span>`:''}
+        </div>
+        ${isActive?`<div class="yt-bg-mini-bar"><div class="yt-bg-mini-bar-fill" style="width:${pct}%"></div></div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// pill 點擊切換 popup
+$('yt-bg-pill-btn')?.addEventListener('click',e=>{
+  e.stopPropagation();
+  $('yt-bg-popup')?.classList.toggle('open');
+});
+document.addEventListener('click',()=>$('yt-bg-popup')?.classList.remove('open'));
+
+
+function showCostDetail(){
+  const modal=$('cost-detail-modal');
+  const body=$('cost-detail-body');
+  if(!modal||!body) return;
+  body.innerHTML='<div style="padding:16px;text-align:center;color:var(--text-muted)">載入中…</div>';
+  modal.classList.add('open');
+  api('/api/costs').then(data=>{
+    const rows=data.entries||[];
+    const rowsHtml=rows.length
+      ?rows.map(r=>`<tr>
+        <td style="color:var(--text-dim);font-size:10px;padding:5px 6px">${new Date(r.ts*1000).toLocaleDateString('zh-TW')}</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 6px" title="${h(r.source_title)}">${h(r.source_title)}</td>
+        <td style="text-align:right;padding:5px 6px">${r.duration_minutes.toFixed(1)} 分</td>
+        <td style="text-align:right;padding:5px 6px;color:var(--accent)">$${r.cost_usd.toFixed(2)}</td>
+      </tr>`).join('')
+      :`<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:16px">無轉錄費紀錄</td></tr>`;
+    body.innerHTML=`
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="color:var(--text-dim);font-size:10px;border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:4px 6px">日期</th>
+          <th style="text-align:left;padding:4px 6px">來源</th>
+          <th style="text-align:right;padding:4px 6px">時長</th>
+          <th style="text-align:right;padding:4px 6px">費用</th>
+        </tr></thead>
+        <tbody>${rowsHtml}</tbody>
+        <tfoot><tr style="border-top:1px solid var(--border);font-weight:700">
+          <td colspan="3" style="padding:6px 6px;text-align:right">總計</td>
+          <td style="padding:6px 6px;text-align:right;color:var(--accent)">$${data.total_usd.toFixed(2)} USD</td>
+        </tr></tfoot>
+      </table>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:8px">* 僅計入 Whisper API 轉錄費用（$0.006/分鐘）</div>`;
+  }).catch(()=>{body.innerHTML='<div style="padding:16px;color:var(--red)">無法載入費用資料</div>';});
 }
 
 function startJobsDashPoll(){
   if(_jobsDashPoll) return;
   _jobsDashPoll=setInterval(async()=>{
-    const hasActive=_allJobs.some(j=>j.status==='pending'||j.status==='running');
+    const hasActive=_allJobs.some(j=>j.status==='pending'||j.status==='running'||j.status==='waiting');
     const panelOpen=$('jobs-panel').classList.contains('open');
-    if(hasActive||panelOpen) await refreshJobsDash();
-    if(!hasActive&&!panelOpen){clearInterval(_jobsDashPoll);_jobsDashPoll=null;}
+    const ytPageOpen=$('page-youtube')?.classList.contains('active');
+    if(hasActive||panelOpen||ytPageOpen) await refreshJobsDash();
+    if(!hasActive&&!panelOpen&&!ytPageOpen){clearInterval(_jobsDashPoll);_jobsDashPoll=null;}
   },2000);
 }
 
@@ -2342,6 +2748,10 @@ $('jobs-fab').addEventListener('click',e=>{
   startJobsDashPoll();
 });
 
+$('cost-detail-modal')?.addEventListener('click',e=>{
+  if(e.target===$('cost-detail-modal')) $('cost-detail-modal').classList.remove('open');
+});
+
 $('jobs-panel').addEventListener('click',e=>e.stopPropagation());
 
 document.addEventListener('click',()=>{
@@ -2349,16 +2759,20 @@ document.addEventListener('click',()=>{
 });
 
 $('jobs-clear-done')?.addEventListener('click',()=>{
-  _allJobs.forEach(j=>{ if(j.status!=='pending'&&j.status!=='running') _dismissedJobIds.add(j.job_id); });
+  // 只清用戶主動觸發的 jobs，auto transcript 留在 bg bar
+  _allJobs.forEach(j=>{
+    if(j.type==='yt_auto_transcript') return;
+    if(j.status!=='pending'&&j.status!=='running'&&j.status!=='waiting') _dismissedJobIds.add(j.job_id);
+  });
   _saveDismissed();
-  _allJobs=_allJobs.filter(j=>j.status==='pending'||j.status==='running');
+  _allJobs=_allJobs.filter(j=>j.type==='yt_auto_transcript'||j.status==='pending'||j.status==='running'||j.status==='waiting');
   renderJobsDash();
 });
 
 $('jobs-clear-all')?.addEventListener('click',()=>{
-  _allJobs.forEach(j=>_dismissedJobIds.add(j.job_id));
+  _allJobs.forEach(j=>{ if(j.type!=='yt_auto_transcript') _dismissedJobIds.add(j.job_id); });
   _saveDismissed();
-  _allJobs=[];
+  _allJobs=_allJobs.filter(j=>j.type==='yt_auto_transcript');
   renderJobsDash();
 });
 

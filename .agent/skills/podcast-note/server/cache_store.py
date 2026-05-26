@@ -49,6 +49,16 @@ def init_cache_db() -> None:
                 status TEXT NOT NULL DEFAULT 'unread',
                 updated_at REAL NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS cost_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_id TEXT NOT NULL,
+                job_type TEXT NOT NULL DEFAULT '',
+                source_title TEXT NOT NULL DEFAULT '',
+                duration_minutes REAL NOT NULL DEFAULT 0,
+                cost_usd REAL NOT NULL DEFAULT 0,
+                ts REAL NOT NULL
+            );
             """
         )
 
@@ -185,3 +195,35 @@ def is_youtube_cache_fresh(handle: str, ttl_seconds: int) -> bool:
     _, meta = load_cached_youtube_videos(handle)
     fetched_at = float(meta.get("fetched_at") or 0)
     return fetched_at > 0 and (time.time() - fetched_at) < ttl_seconds
+
+
+def log_transcript_cost(job_id: str, job_type: str, source_title: str, duration_minutes: float, cost_usd: float) -> None:
+    init_cache_db()
+    with _connect() as conn:
+        conn.execute(
+            "INSERT INTO cost_log(job_id, job_type, source_title, duration_minutes, cost_usd, ts) VALUES(?,?,?,?,?,?)",
+            (job_id, job_type, source_title, duration_minutes, cost_usd, time.time()),
+        )
+
+
+def get_cost_summary() -> dict:
+    init_cache_db()
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT job_id, job_type, source_title, duration_minutes, cost_usd, ts FROM cost_log ORDER BY ts DESC"
+        ).fetchall()
+        total = conn.execute("SELECT COALESCE(SUM(cost_usd),0) FROM cost_log").fetchone()[0]
+    return {
+        "total_usd": round(float(total), 4),
+        "entries": [
+            {
+                "job_id": r["job_id"],
+                "job_type": r["job_type"],
+                "source_title": r["source_title"],
+                "duration_minutes": round(r["duration_minutes"], 2),
+                "cost_usd": round(r["cost_usd"], 4),
+                "ts": r["ts"],
+            }
+            for r in rows
+        ],
+    }

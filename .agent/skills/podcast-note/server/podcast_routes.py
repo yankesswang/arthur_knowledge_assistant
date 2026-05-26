@@ -334,8 +334,10 @@ def start_download(body: dict):
 
 
 def _enrich_job(job: dict) -> dict:
-    """補上 title 欄位（從 info.json 取，供前端顯示用），並過濾不可序列化的私有欄位。"""
+    """補上 title / podcast_name / artwork 欄位，並過濾不可序列化的私有欄位。"""
     out = {k: v for k, v in job.items() if not k.startswith("_")}
+
+    # YT job：從 info.json 補 title
     if not out.get("title"):
         video_id = out.get("video_id", "")
         if video_id:
@@ -348,6 +350,19 @@ def _enrich_job(job: dict) -> dict:
                         out["title"] = title
                 except Exception:
                     pass
+
+    # Podcast job：補 podcast_name + artwork + episode_label
+    podcast_id = out.get("podcast_id", "")
+    if podcast_id and not out.get("podcast_name"):
+        pod_cfg = get_podcast_config(podcast_id)
+        if pod_cfg:
+            out["podcast_name"] = pod_cfg.get("name", podcast_id)
+            if not out.get("artwork"):
+                out["artwork"] = pod_cfg.get("artwork", "")
+    if not out.get("episode_label") and out.get("episode"):
+        ep = out["episode"]
+        out["episode_label"] = f"EP{ep}" if ep != "latest" else "最新集"
+
     return out
 
 
@@ -365,6 +380,28 @@ def list_jobs():
     """列出所有 jobs（最新 20 個）"""
     jobs = sorted(_jobs.values(), key=lambda j: j["started_at"], reverse=True)[:20]
     return [_enrich_job(j) for j in jobs]
+
+
+@router.post("/api/jobs/{job_id}/confirm-analyze")
+def confirm_analyze(job_id: str):
+    """用戶確認對已完成轉錄的 job 產生筆記。"""
+    job = _jobs.get(job_id)
+    if not job:
+        raise HTTPException(404, f"找不到 job: {job_id}")
+    if job.get("status") != "waiting" or job.get("phase") != "awaiting_analyze_confirm":
+        raise HTTPException(400, "此 job 目前不在等待確認狀態")
+    job["_analyze_confirmed"] = True
+    ev = job.get("_analyze_event")
+    if ev:
+        ev.set()
+    return {"ok": True}
+
+
+@router.get("/api/costs")
+def get_costs():
+    """回傳歷史轉錄費用：每筆明細 + 累計總額"""
+    from cache_store import get_cost_summary
+    return get_cost_summary()
 
 
 

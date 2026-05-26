@@ -89,8 +89,62 @@ def get_transcription_settings() -> dict:
     return {"mode": "local", "openai_api_key": "", "whisper_model": "medium"}
 
 
+_WHISPER_API_MAX_BYTES = 24 * 1024 * 1024  # 24 MB，留 1 MB 餘裕
+
+
+def _split_audio(audio_path: str, chunk_dir: Path, chunk_secs: int = 3000) -> list[Path]:
+    """用 ffmpeg 把音頻切成 chunk_secs 秒一段，回傳各段路徑。"""
+    import subprocess as _sp
+    chunk_dir.mkdir(parents=True, exist_ok=True)
+    pattern = chunk_dir / "chunk_%03d.mp3"
+    _sp.run(
+        ["ffmpeg", "-y", "-i", audio_path,
+         "-f", "segment", "-segment_time", str(chunk_secs),
+         "-ar", "16000", "-ac", "1", "-q:a", "5",
+         str(pattern)],
+        check=True, capture_output=True,
+    )
+    return sorted(chunk_dir.glob("chunk_*.mp3"))
+
+
+def _transcribe_api_file(client, audio_path: str, language: str | None, offset: float) -> list[dict]:
+    """單一檔案送 Whisper API，回傳帶 offset 修正的 entries。"""
+    with open(audio_path, "rb") as f:
+        kwargs = {
+            "model": "whisper-1",
+            "response_format": "verbose_json",
+            "timestamp_granularities": ["segment"],
+        }
+        if language and language != "auto":
+            kwargs["language"] = language
+        result = client.audio.transcriptions.create(file=f, **kwargs)
+    entries = []
+    for seg in result.segments:
+        entries.append({
+            "start": round(seg.start + offset, 3),
+            "end":   round(seg.end   + offset, 3),
+            "text":  seg.text.strip(),
+        })
+        print(f"  [{seg.start + offset:7.1f}s] {seg.text.strip()[:80]}", flush=True)
+    return entries
+
+
+def _chunk_duration(chunk_path: Path) -> float:
+    """用 ffprobe 取切片時長（秒）。"""
+    import subprocess as _sp
+    r = _sp.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+         "-of", "default=noprint_wrappers=1:nokey=1", str(chunk_path)],
+        capture_output=True, text=True,
+    )
+    try:
+        return float(r.stdout.strip())
+    except ValueError:
+        return 1200.0
+
+
 def transcribe_api(audio_path: str, language: str | None) -> list[dict]:
-    """Whisper API（OpenAI）轉錄，回傳與本地模式相同格式的 entries。"""
+    """Whisper API（OpenAI）轉錄，超過 24 MB 自動切片並行送出。"""
     cfg = get_transcription_settings()
     api_key = cfg.get("openai_api_key") or os.environ.get("OPENAI_API_KEY", "")
     if not api_key:
@@ -102,26 +156,54 @@ def transcribe_api(audio_path: str, language: str | None) -> list[dict]:
         raise RuntimeError("請先安裝 openai：pip install openai")
 
     client = OpenAI(api_key=api_key)
-    print(f"送出 Whisper API 請求：{audio_path}", flush=True)
+    file_size = Path(audio_path).stat().st_size
     t0 = time.time()
 
-    with open(audio_path, "rb") as f:
-        kwargs = {"model": "whisper-1", "response_format": "verbose_json", "timestamp_granularities": ["segment"]}
-        if language and language != "auto":
-            kwargs["language"] = language
-        result = client.audio.transcriptions.create(file=f, **kwargs)
+    if file_size <= _WHISPER_API_MAX_BYTES:
+        print(f"送出 Whisper API 請求：{audio_path}（{file_size//1024//1024} MB）", flush=True)
+        entries = _transcribe_api_file(client, audio_path, language, offset=0.0)
+    else:
+        print(f"檔案 {file_size//1024//1024} MB > 24 MB，切片並行送 API...", flush=True)
+        chunk_dir = Path(audio_path).parent / "_chunks"
+        try:
+            chunks = _split_audio(audio_path, chunk_dir)
+            n = len(chunks)
+            print(f"切成 {n} 段，計算各段 offset...", flush=True)
+
+            # 先用 ffprobe 算出每段的起始 offset（可並行，但很快，sequential 即可）
+            durations = [_chunk_duration(c) for c in chunks]
+            offsets = [sum(durations[:i]) for i in range(n)]
+
+            print(f"並行送出 {n} 個 API 請求...", flush=True)
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+
+            results: dict[int, list[dict]] = {}
+            futures = {}
+            with ThreadPoolExecutor(max_workers=n) as pool:
+                for i, (chunk, offset) in enumerate(zip(chunks, offsets)):
+                    fut = pool.submit(_transcribe_api_file, client, str(chunk), language, offset)
+                    futures[fut] = i
+
+                for fut in as_completed(futures):
+                    i = futures[fut]
+                    results[i] = fut.result()
+                    print(f"  ✓ 第 {i+1}/{n} 段完成", flush=True)
+
+            entries = []
+            for i in range(n):
+                entries.extend(results[i])
+
+        finally:
+            import shutil
+            if chunk_dir.exists():
+                shutil.rmtree(chunk_dir)
 
     elapsed = time.time() - t0
-    print(f"Whisper API 完成（{elapsed:.1f}s）", flush=True)
+    print(f"Whisper API 完成（{elapsed:.1f}s，{len(entries)} 段）", flush=True)
 
-    entries = []
-    for seg in result.segments:
-        entries.append({
-            "start": round(seg.start, 3),
-            "end": round(seg.end, 3),
-            "text": seg.text.strip(),
-        })
-        print(f"  [{seg.start:7.1f}s] {seg.text.strip()[:80]}", flush=True)
+    duration_min = (entries[-1]["end"] / 60) if entries else 0
+    cost_usd = round(duration_min * 0.006, 4)
+    print(f"TRANSCRIPT_COST:{duration_min:.2f}:{cost_usd:.4f}", flush=True)
 
     return entries
 

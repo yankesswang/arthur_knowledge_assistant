@@ -145,14 +145,6 @@
       "avatar": "https://yt3.googleusercontent.com/r_5L4cURrh_xzd26bnroPt3rwIxUZu9fRWi_0nwPVwcYvGgJwq2ZlCc3ak3x2pjFBlN8iymPeQ=s900-c-k-c0x00ffffff-no-rj"
     },
     {
-      "handle": "@TEDx",
-      "name": "TEDx Talks",
-      "limit": 5,
-      "enabled": true,
-      "channel_id": "UCsT0YIqwnpJCM-mx7-gSA4Q",
-      "avatar": "https://yt3.googleusercontent.com/1gDPO-4YPWFErfn3yQBnv0yxpkmiud1m5CrorApkOqUYdNd9FrZQ9xB9C9VmDt4EsgArnlwqAQc=s900-c-k-c0x00ffffff-no-rj"
-    },
-    {
       "handle": "@macromicrom2843",
       "name": "MacroMicro財經M平方",
       "limit": 5,
@@ -167,6 +159,14 @@
       "enabled": true,
       "channel_id": "UCh_dVD10YuSghle8g6yjePg",
       "avatar": "https://yt3.googleusercontent.com/lV4R_u6OuI0xnRhHVS3jjOZGo_KYBOscekvEWRtkccoRuMAkPUNwwB59DjBd8QJdM1Dw0cGElg=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@TED",
+      "name": "TED",
+      "limit": 5,
+      "enabled": true,
+      "channel_id": "UCAuUUnT6oDeKwE6v1NGQxug",
+      "avatar": "https://yt3.googleusercontent.com/ytc/AIdro_koIFcCOrvh0KThLNOiazAIDu6hcs8bjkGNwe1f6A_OYm8=s900-c-k-c0x00ffffff-no-rj"
     }
   ]
 }

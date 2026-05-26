@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "AlphaNote",
-  "version": "1.0.0",
+  "version": "1.3.0",
   "description": "一鍵把 YouTube 影片送進本地 server 產生 Obsidian 投資筆記",
   "permissions": [
     "storage",
     "activeTab",
     "scripting",
-    "sidePanel"
+    "sidePanel",
+    "nativeMessaging"
   ],
   "host_permissions": [
     "http://localhost/*",
