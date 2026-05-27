@@ -291,50 +291,102 @@ async function analyzeCurrentVideo() {
 
   ytBtn.disabled = true;
   ytBtn.textContent = '處理中...';
+  ytBtn.title = '';
 
   try {
-    await fetch(`${serverUrl}/api/youtube/queue`, {
+    const info = await sendBg({ type: 'GET_PAGE_INFO' });
+    const setup = await fetchJson(`${serverUrl}/api/youtube/queue`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: `https://www.youtube.com/watch?v=${videoId}` }),
     });
-    const r = await fetch(`${serverUrl}/api/youtube/videos/${videoId}/analyze`, {
+
+    if (setup.job_id) {
+      ytBtn.textContent = '⏳ 抓取逐字稿';
+      await waitForJob(setup.job_id);
+    }
+
+    const data = await fetchJson(`${serverUrl}/api/youtube/videos/${videoId}/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ title: info?.title || '' }),
     });
-    const data = await r.json();
     if (data.job_id) {
       ytBtn.textContent = '⏳ 分析中...';
       pollJob(data.job_id);
     } else {
-      resetYtBtn();
+      throw new Error('server 沒有回傳 job_id');
     }
-  } catch (_) {
+  } catch (e) {
     ytBtn.textContent = '❌ 失敗';
-    setTimeout(resetYtBtn, 2000);
+    ytBtn.title = e?.message || String(e);
+    setTimeout(resetYtBtn, 3000);
+  }
+}
+
+async function fetchJson(url, options = {}) {
+  const r = await fetch(url, options);
+  if (r.status === 409) {
+    // Already processed: keep going to the analyze endpoint so the note can be regenerated.
+    return { already_processed: true };
+  }
+  let data = null;
+  const text = await r.text();
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch (_) {
+      data = null;
+    }
+  }
+  if (!r.ok) {
+    const detail = data?.detail || text || `HTTP ${r.status}`;
+    throw new Error(detail);
+  }
+  return data || {};
+}
+
+function latestJobError(job) {
+  if (!job) return '未知錯誤';
+  const log = Array.isArray(job.log) ? job.log : [];
+  const explicit = [...log].reverse().find(line =>
+    /ERROR|✗|失敗|exception|Traceback/i.test(String(line))
+  );
+  return explicit || job.phase || '未知錯誤';
+}
+
+async function waitForJob(jobId) {
+  while (true) {
+    const job = await fetchJson(`${serverUrl}/api/jobs/${jobId}`);
+    if (job.status === 'done') return job;
+    if (job.status === 'error' || job.status === 'cancelled') {
+      throw new Error(latestJobError(job));
+    }
+    ytBtn.textContent = `⏳ ${job.phase || '處理中'}`;
+    await new Promise(resolve => setTimeout(resolve, 2000));
   }
 }
 
 async function pollJob(jobId) {
   const timer = setInterval(async () => {
     try {
-      const r = await fetch(`${serverUrl}/api/jobs/${jobId}`);
-      const job = await r.json();
+      const job = await fetchJson(`${serverUrl}/api/jobs/${jobId}`);
       if (job.status === 'done') {
         clearInterval(timer);
         ytBtn.textContent = '✅ 完成';
         frame.src = frame.src;
         setTimeout(resetYtBtn, 3000);
-      } else if (job.status === 'error') {
+      } else if (job.status === 'error' || job.status === 'cancelled') {
         clearInterval(timer);
         ytBtn.textContent = '❌ 失敗';
+        ytBtn.title = latestJobError(job);
         setTimeout(resetYtBtn, 3000);
       } else {
         ytBtn.textContent = `⏳ ${job.phase || '分析中'}`;
       }
-    } catch (_) {
+    } catch (e) {
       clearInterval(timer);
+      ytBtn.title = e?.message || String(e);
       resetYtBtn();
     }
   }, 2000);
@@ -526,6 +578,53 @@ function initSettingsDrawer() {
     }
   });
 
+  // Telegram token show/hide
+  document.getElementById('d-tgTokenToggle').addEventListener('click', () => {
+    const input = document.getElementById('d-tgToken');
+    input.type = input.type === 'password' ? 'text' : 'password';
+  });
+
+  // Telegram save
+  document.getElementById('d-saveTgBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('d-saveTgBtn');
+    const token = document.getElementById('d-tgToken').value.trim();
+    const chat_id = document.getElementById('d-tgChatId').value.trim();
+    btn.classList.add('loading'); btn.textContent = '儲存中';
+    try {
+      const r = await fetch(`${serverUrl}/api/settings/notification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegram_bot_token: token, telegram_chat_id: chat_id }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      document.getElementById('d-tgToken').value = '';
+      if (token || chat_id) updateTgStatus(true);
+      showDrawerStatus('d-tgStatusMsg', '✅ 已儲存', true);
+    } catch (e) {
+      showDrawerStatus('d-tgStatusMsg', `❌ ${e.message}`, false);
+    } finally {
+      btn.classList.remove('loading'); btn.textContent = '儲存';
+    }
+  });
+
+  // Telegram test
+  document.getElementById('d-testTgBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('d-testTgBtn');
+    btn.classList.add('loading'); btn.textContent = '發送中';
+    try {
+      const r = await fetch(`${serverUrl}/api/settings/notification/test`, { method: 'POST' });
+      if (!r.ok) {
+        const msg = await r.text().catch(() => '');
+        throw new Error(msg || `HTTP ${r.status}`);
+      }
+      showDrawerStatus('d-tgStatusMsg', '✅ 測試訊息已送出', true);
+    } catch (e) {
+      showDrawerStatus('d-tgStatusMsg', `❌ ${e.message}`, false);
+    } finally {
+      btn.classList.remove('loading'); btn.textContent = '測試通知';
+    }
+  });
+
   // Prompt edit/preview toggle — button OR clicking the box
   document.getElementById('d-promptEditBtn').addEventListener('click', () => {
     switchToPromptEdit();
@@ -651,6 +750,20 @@ function updateKeyStatus(isSet) {
   }
 }
 
+function updateTgStatus(isSet) {
+  const el = document.getElementById('d-tgStatus');
+  const text = document.getElementById('d-tgStatusText');
+  if (isSet) {
+    el.className = 'key-status saved';
+    el.querySelector('svg').innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+    text.textContent = 'Telegram 已設定';
+  } else {
+    el.className = 'key-status empty';
+    el.querySelector('svg').innerHTML = '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';
+    text.textContent = '尚未設定 Telegram';
+  }
+}
+
 async function loadDrawerSettings() {
   // Connection
   const data = await chrome.storage.local.get(['serverPort', 'vaultName', 'promptCustomised']);
@@ -698,6 +811,16 @@ async function loadDrawerSettings() {
       if (langRadio) langRadio.checked = true;
       applyLang(savedLang);
       syncTranscriptFields();
+    }
+  } catch (_) {}
+
+  // Notification settings
+  try {
+    const r = await fetch(`${serverUrl}/api/settings/notification`, { signal: AbortSignal.timeout(2000) });
+    if (r.ok) {
+      const cfg = await r.json();
+      updateTgStatus(cfg.telegram_bot_token_set);
+      if (cfg.telegram_chat_id) document.getElementById('d-tgChatId').value = cfg.telegram_chat_id;
     }
   } catch (_) {}
 

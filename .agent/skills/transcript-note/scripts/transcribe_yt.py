@@ -104,7 +104,14 @@ def download_audio(yt_url: str, work_dir: Path) -> Path:
 
 
 def transcribe(audio_path: Path, model_size: str, language: str | None, device: str):
-    from faster_whisper import WhisperModel
+    try:
+        from faster_whisper import WhisperModel
+    except ModuleNotFoundError:
+        print(
+            "ERROR: 缺少 faster-whisper 套件，請先執行 `python3.10 -m pip install faster-whisper`",
+            file=sys.stderr,
+        )
+        sys.exit(1)
     compute_type = "float16" if device == "cuda" else "int8"
     print(f"載入 Whisper {model_size}（{device}/{compute_type}）...", flush=True)
     t0    = time.time()

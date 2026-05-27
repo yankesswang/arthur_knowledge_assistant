@@ -11,7 +11,7 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-READING_LIST = Path("/home/trx50/Documents/arthurwang_DB/待看影片與Podcast清單.md")
+READING_LIST = Path("/Users/yankesswang/Documents/arthurwang_DB/待看影片與Podcast清單.md")
 PODCAST_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_PATH  = PODCAST_ROOT / "config" / "podcasts.json"
 

@@ -1094,6 +1094,43 @@ iframe {
 
       <hr class="s-divider">
 
+      <!-- Telegram notification -->
+      <div class="s-section">
+        <div class="s-label">通知設定</div>
+
+        <div class="key-status empty" id="d-tgStatus">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span id="d-tgStatusText">尚未設定 Telegram</span>
+        </div>
+
+        <div class="s-field">
+          <label for="d-tgToken">Bot Token</label>
+          <div class="key-input-wrap">
+            <input type="password" id="d-tgToken" placeholder="123456789:ABC..." autocomplete="off" spellcheck="false">
+            <button class="key-toggle" id="d-tgTokenToggle" type="button" aria-label="顯示/隱藏 Token" tabindex="-1">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+          <div class="s-hint">從 @BotFather 取得，留空則保留舊值</div>
+        </div>
+
+        <div class="s-field">
+          <label for="d-tgChatId">Chat ID</label>
+          <input type="text" id="d-tgChatId" placeholder="-100xxxxxxxxxx 或你的 user ID">
+          <div class="s-hint">傳訊息給 @userinfobot 取得你的 Chat ID</div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" id="d-saveTgBtn">儲存</button>
+          <button class="btn btn-secondary" id="d-testTgBtn">測試通知</button>
+        </div>
+        <div class="s-status" id="d-tgStatusMsg"></div>
+      </div>
+
+      <hr class="s-divider">
+
       <!-- Prompt editor -->
       <div class="s-section">
         <div class="prompt-label-row">

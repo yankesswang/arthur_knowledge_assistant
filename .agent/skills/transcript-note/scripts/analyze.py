@@ -163,6 +163,9 @@ def main():
     print(f"→ 筆記生成 provider：{provider}", flush=True)
 
     if provider == "codex":
+        analysis_path = work_dir / "analysis.json"
+        if not analysis_path.exists():
+            analysis_path.write_text("{}", encoding="utf-8")
         print(f"→ 呼叫 Codex 分析逐字稿（{video_id}）...", flush=True)
         prompt = build_codex_prompt(video_id, work_dir)
         source_title = video_id
@@ -215,6 +218,7 @@ def main():
                     "--dangerously-skip-permissions",
                     "--add-dir", str(PROJECT_ROOT),
                     "--output-format", "stream-json",
+                    "--verbose",
                 ],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,

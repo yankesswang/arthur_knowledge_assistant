@@ -6,8 +6,9 @@ Podcast Note Viewer — FastAPI backend
 
 import threading
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 
 from cache_store import init_cache_db
@@ -21,6 +22,26 @@ from youtube_services import _backfill_avatars
 
 app = FastAPI(title="Podcast Note Viewer")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+
+@app.middleware("http")
+async def private_network_access(request: Request, call_next):
+    # Chrome Private Network Access: extensions fetching localhost need this header
+    if request.headers.get("access-control-request-private-network"):
+        if request.method == "OPTIONS":
+            return Response(
+                status_code=204,
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "*",
+                    "Access-Control-Allow-Headers": "*",
+                    "Access-Control-Allow-Private-Network": "true",
+                },
+            )
+    response = await call_next(request)
+    if request.headers.get("access-control-request-private-network"):
+        response.headers["Access-Control-Allow-Private-Network"] = "true"
+    return response
 
 app.include_router(podcast_router)
 app.include_router(reading_router)

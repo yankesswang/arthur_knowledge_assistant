@@ -128,6 +128,7 @@ def _run_yt_setup(job: dict, url: str, video_id: str) -> None:
         env=os.environ.copy(),
         cwd=str(YT_SKILL_DIR),
     )
+    job["_proc"] = proc
     assert proc.stdout is not None
     for line in proc.stdout:
         line = line.rstrip()
@@ -140,6 +141,8 @@ def _run_yt_setup(job: dict, url: str, video_id: str) -> None:
             job["progress"] = max(job.get("progress", 0), 50)
     proc.wait()
 
+    if job.get("_cancelled"):
+        raise RuntimeError("__cancelled__")
     if proc.returncode != 0:
         raise RuntimeError(f"yt-dlp 逐字稿抓取失敗（exit {proc.returncode}）")
 
@@ -191,6 +194,7 @@ def _run_yt_whisper(job: dict, url: str, video_id: str) -> None:
             env=env,
             cwd=str(YT_SKILL_DIR),
         )
+        job["_proc"] = proc
         assert proc.stdout is not None
         segment_count = 0
         for line in proc.stdout:
@@ -215,10 +219,14 @@ def _run_yt_whisper(job: dict, url: str, video_id: str) -> None:
         return proc.returncode
 
     returncode = run_attempt("medium", "auto")
+    if job.get("_cancelled"):
+        raise RuntimeError("__cancelled__")
     if returncode != 0:
         job["log"].append(f"Whisper GPU/auto 失敗（exit {returncode}），改用 CPU small 重試")
         job["progress"] = max(job.get("progress", 0), 56)
         returncode = run_attempt("small", "cpu")
+        if job.get("_cancelled"):
+            raise RuntimeError("__cancelled__")
 
     if returncode != 0:
         raise RuntimeError(f"Whisper 轉錄失敗（exit {returncode}）")
@@ -880,6 +888,7 @@ async def yt_start_analyze(video_id: str, request: Request):
                 env={**os.environ.copy(), "JOB_ID": job_id},
                 cwd=str(YT_SKILL_DIR),
             )
+            job["_proc"] = proc
             assert proc.stdout is not None
             for line in proc.stdout:
                 line = line.rstrip()
@@ -916,6 +925,9 @@ async def yt_start_analyze(video_id: str, request: Request):
                         title_zh = json.loads(analysis_path.read_text()).get("title_zh") or video_id
                     except Exception:
                         pass
+                from notify import send_note_done
+                yt_thumbnail = f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg"
+                send_note_done(title_zh, "yt", analysis_path=analysis_path, image_url=yt_thumbnail)
                 info_path = vid_dir / "info.json"
                 channel = ""
                 pub_date = ""
@@ -948,9 +960,12 @@ async def yt_start_analyze(video_id: str, request: Request):
                 job["status"] = "error"
                 job["phase"]  = "分析失敗"
         except Exception as e:
-            job["status"] = "error"
-            job["phase"]  = "失敗"
-            log(f"✗ 例外：{e}")
+            if job.get("_cancelled") or "__cancelled__" in str(e):
+                pass  # cancel_job() already set status/phase
+            else:
+                job["status"] = "error"
+                job["phase"]  = "失敗"
+                log(f"✗ 例外：{e}")
 
         job["finished_at"] = time.time()
         save_job_snapshot(job)

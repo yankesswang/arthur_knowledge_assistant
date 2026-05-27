@@ -317,6 +317,9 @@ def main():
     print(f"→ 筆記生成 provider：{provider}", flush=True)
 
     if provider == "codex":
+        analysis_path = work_dir / "analysis.json"
+        if not analysis_path.exists():
+            analysis_path.write_text("{}", encoding="utf-8")
         prompt = build_codex_prompt(work_dir, args.podcast, clean)
         returncode = run_codex_exec(
             prompt,

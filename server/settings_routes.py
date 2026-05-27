@@ -2,7 +2,7 @@
 
 import json
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
@@ -10,6 +10,7 @@ from settings import (
     CUSTOM_PROMPT_PATH,
     DEFAULT_PROMPT_PATH,
     GENERATION_SETTINGS_PATH,
+    NOTIFICATION_SETTINGS_PATH,
     OUTPUT_SETTINGS_PATH,
     TRANSCRIPTION_SETTINGS_PATH,
 )
@@ -149,4 +150,43 @@ async def save_generation_settings(body: GenerationSettingsBody):
         json.dumps(data, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+    return {"ok": True}
+
+
+# ── Notification settings ─────────────────────────────────────────────────────
+
+class NotificationSettingsBody(BaseModel):
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
+
+
+@router.get("/api/settings/notification")
+async def get_notification_settings():
+    if NOTIFICATION_SETTINGS_PATH.exists():
+        data = json.loads(NOTIFICATION_SETTINGS_PATH.read_text(encoding="utf-8"))
+        return {
+            "telegram_bot_token_set": bool(data.get("telegram_bot_token")),
+            "telegram_chat_id": data.get("telegram_chat_id", ""),
+        }
+    return {"telegram_bot_token_set": False, "telegram_chat_id": ""}
+
+
+@router.post("/api/settings/notification")
+async def save_notification_settings(body: NotificationSettingsBody):
+    NOTIFICATION_SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    existing = {}
+    if NOTIFICATION_SETTINGS_PATH.exists():
+        existing = json.loads(NOTIFICATION_SETTINGS_PATH.read_text(encoding="utf-8"))
+    token = body.telegram_bot_token or existing.get("telegram_bot_token", "")
+    data = {"telegram_bot_token": token, "telegram_chat_id": body.telegram_chat_id}
+    NOTIFICATION_SETTINGS_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"ok": True}
+
+
+@router.post("/api/settings/notification/test")
+async def test_notification():
+    from notify import send_note_done
+    ok = send_note_done("AlphaNote 測試通知 ✅", "yt")
+    if not ok:
+        raise HTTPException(400, "發送失敗，請確認 Bot Token 和 Chat ID 是否正確")
     return {"ok": True}

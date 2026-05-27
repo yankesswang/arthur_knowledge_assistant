@@ -64,6 +64,7 @@ def _run_download(job_id: str, podcast_id: str, episode: str):
             stderr=subprocess.STDOUT,
             bufsize=0,
         )
+        job["_proc"] = proc
 
         buf = b""
         while True:
@@ -87,6 +88,8 @@ def _run_download(job_id: str, podcast_id: str, episode: str):
                     log(line)
 
         proc.wait()
+        if job.get("_cancelled"):
+            return
         if proc.returncode != 0:
             job["status"] = "error"
             job["phase"]  = "下載失敗"
@@ -202,6 +205,7 @@ def _run_download(job_id: str, podcast_id: str, episode: str):
             text=True,
             env=t_env,
         )
+        job["_proc"] = t_proc
         elapsed_s = 0.0
         wall_start = time.time()
         for t_line in t_proc.stdout:
@@ -236,6 +240,8 @@ def _run_download(job_id: str, podcast_id: str, episode: str):
                 duration_s = float(dur_m.group(1)) * 60
 
         t_proc.wait()
+        if job.get("_cancelled"):
+            return
         if t_proc.returncode != 0:
             job["status"] = "error"
             job["phase"]  = "轉錄失敗"
@@ -296,6 +302,7 @@ def _run_download(job_id: str, podcast_id: str, episode: str):
             text=True,
             env={**_os.environ, "PODCAST_ID": podcast_id, "JOB_ID": job_id},
         )
+        job["_proc"] = a_proc
 
         for a_line in a_proc.stdout:
             a_line = a_line.rstrip()
@@ -312,6 +319,11 @@ def _run_download(job_id: str, podcast_id: str, episode: str):
             job["progress"] = 100
             job["phase"]    = "完成"
             log("✓ 筆記產生完成")
+            from notify import send_note_done
+            _analysis = Path(job["_work_dir"]) / "analysis.json"
+            _pod_cfg3  = get_podcast_config(podcast_id)
+            _artwork   = _pod_cfg3.get("artwork", "") if _pod_cfg3 else ""
+            send_note_done(f"{job.get('podcast_id', '')} EP{job.get('episode', '')}", "podcast", analysis_path=_analysis, image_url=_artwork)
         else:
             job["status"] = "error"
             job["phase"]  = "分析失敗"

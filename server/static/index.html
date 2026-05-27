@@ -135,6 +135,22 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,Bl
 .ep-note-btn:hover{background:#e60023;color:#fff}
 .ep-note-btn.running{border-color:var(--accent);color:var(--accent);cursor:default;animation:note-btn-pulse 1.2s ease-in-out infinite}
 @keyframes note-btn-pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(230,0,35,.3)}50%{opacity:.6;box-shadow:0 0 0 4px rgba(230,0,35,0)}}
+/* ── BATCH SELECT ── */
+.batch-toggle-btn{font-size:11px;padding:3px 10px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;transition:all .15s}
+.batch-toggle-btn.active{border-color:#2563eb;background:#eff6ff;color:#1d4ed8;font-weight:600}
+.ep-checkbox{display:none;width:15px;height:15px;flex-shrink:0;cursor:pointer;accent-color:#2563eb;margin-right:2px}
+#yt-cards.batch-mode .ep-row.batch-eligible .ep-checkbox{display:block}
+#yt-cards.batch-mode .ep-row.batch-eligible{cursor:pointer}
+#yt-cards.batch-mode .ep-row.batch-selected{background:rgba(37,99,235,.07);outline:1px solid #bfdbfe}
+#batch-bar{display:none;position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid #bfdbfe;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.18);padding:10px 18px;z-index:300;align-items:center;gap:12px;white-space:nowrap}
+#batch-bar.visible{display:flex}
+#batch-bar-count{font-size:13px;font-weight:600;color:#1d4ed8}
+.batch-bar-btn{font-size:12px;padding:4px 14px;border-radius:6px;cursor:pointer;border:none;transition:all .15s}
+#batch-run-btn{background:#e60023;color:#fff;font-weight:600}
+#batch-run-btn:hover{background:#c0001e}
+#batch-run-btn:disabled{opacity:.5;cursor:default}
+#batch-clear-btn{background:transparent;color:var(--text-muted);border:1px solid var(--border)}
+#batch-clear-btn:hover{background:var(--border)}
 
 /* ── DETAIL PANEL ── */
 #detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;backdrop-filter:blur(2px)}
@@ -392,11 +408,18 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,Bl
 .job-row.expanded .job-log-btn{border-color:var(--border);color:var(--text)}
 .job-dismiss-btn{font-size:10px;color:var(--text-muted);margin-left:4px;flex-shrink:0;padding:1px 5px;border-radius:3px;cursor:pointer;transition:color .15s}
 .job-dismiss-btn:hover{color:#9e0a0a;}
+.job-pause-btn{font-size:9px;color:#1d4ed8;margin-left:4px;flex-shrink:0;padding:1px 6px;border-radius:3px;border:1px solid #bfdbfe;background:#eff6ff;cursor:pointer;transition:all .15s}
+.job-pause-btn:hover{background:#bfdbfe;color:#1e3a8a;}
+.job-resume-btn{font-size:9px;color:#065f46;margin-left:4px;flex-shrink:0;padding:1px 6px;border-radius:3px;border:1px solid #a7f3d0;background:#ecfdf5;cursor:pointer;transition:all .15s}
+.job-resume-btn:hover{background:#a7f3d0;color:#064e3b;}
+.job-cancel-btn{font-size:9px;color:#b45309;margin-left:4px;flex-shrink:0;padding:1px 6px;border-radius:3px;border:1px solid #fde68a;background:#fef9ee;cursor:pointer;transition:all .15s}
+.job-cancel-btn:hover{background:#fde68a;color:#7c2d12;}
 .job-meta{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-dim)}
 .job-phase{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .job-bar-wrap{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:5px;cursor:pointer}
 .job-bar{height:100%;border-radius:2px;transition:width .4s}
 .job-bar.running{background:#e60023;animation:job-pulse 1.5s ease-in-out infinite}
+.job-bar.paused{background:#3b82f6}
 .job-bar.done{background:#2d7a4a}
 .job-bar.error{background:var(--red)}
 @keyframes job-pulse{0%,100%{opacity:1}50%{opacity:.5}}
@@ -603,7 +626,10 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2480;outline:2px solid #fbb
 <!-- YouTube page -->
 <div id="page-youtube" class="page active">
   <div class="page-toolbar" style="justify-content:space-between">
-    <button class="add-ch-btn" onclick="openAddChannel('yt')">+ 新增 YouTube 頻道</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="add-ch-btn" onclick="openAddChannel('yt')">+ 新增 YouTube 頻道</button>
+      <button id="yt-batch-toggle" class="batch-toggle-btn" onclick="toggleYTBatch()">☑ 批次選取</button>
+    </div>
     <div style="display:flex;gap:8px;align-items:center">
       <label class="toolbar-label" for="yt-channel-sort">排序</label>
       <select id="yt-channel-sort" class="sort-select">
@@ -619,6 +645,14 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2480;outline:2px solid #fbb
   </div>
   <div id="yt-cat-filter-bar" class="cat-filter-bar"></div>
   <div id="yt-cards" class="cards-grid" style="align-items:start"></div>
+</div>
+
+<!-- Batch action bar (fixed bottom) -->
+<div id="batch-bar">
+  <span id="batch-bar-count">已選 0 個</span>
+  <button class="batch-bar-btn" id="batch-select-all-btn" onclick="batchSelectAll()">全選</button>
+  <button class="batch-bar-btn" id="batch-clear-btn" onclick="batchClearAll()">清除</button>
+  <button class="batch-bar-btn" id="batch-run-btn" onclick="runBatchAnalyze()">✨ 批次產生筆記</button>
 </div>
 
 <!-- Inbox page -->
@@ -1067,6 +1101,37 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2480;outline:2px solid #fbb
 
     <hr class="s-divider">
 
+    <!-- Telegram notification -->
+    <div class="s-section">
+      <div class="s-label">通知設定</div>
+      <div class="key-status empty" id="d-tgStatus">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span id="d-tgStatusText">尚未設定 Telegram</span>
+      </div>
+      <div class="s-field">
+        <label for="d-tgToken">Bot Token</label>
+        <div class="key-input-wrap">
+          <input type="password" id="d-tgToken" placeholder="123456789:ABC..." autocomplete="off" spellcheck="false">
+          <button class="key-toggle" id="d-tgTokenToggle" type="button" aria-label="顯示/隱藏" tabindex="-1">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div class="s-hint">從 @BotFather 取得，留空則保留舊值</div>
+      </div>
+      <div class="s-field">
+        <label for="d-tgChatId">Chat ID</label>
+        <input type="text" id="d-tgChatId" placeholder="-100xxxxxxxxxx 或你的 user ID">
+        <div class="s-hint">傳訊息給 @userinfobot 取得你的 Chat ID</div>
+      </div>
+      <div class="s-btn-row">
+        <button class="s-btn s-btn-primary" id="d-saveTgBtn">儲存</button>
+        <button class="s-btn s-btn-secondary" id="d-testTgBtn">測試通知</button>
+      </div>
+      <div class="s-status" id="d-tgStatusMsg"></div>
+    </div>
+
+    <hr class="s-divider">
+
     <!-- Prompt editor -->
     <div class="s-section">
       <div class="prompt-label-row">
@@ -1110,6 +1175,8 @@ let _ytCatFilter='', _podCatFilter='';
 let currentItem=null, currentType=null; // 'podcast' | 'yt'
 let jobPoll=null;
 let _whisperVideoId=null, _whisperJobId=null;
+let ytBatchMode=false;
+const ytBatchSelected=new Set();
 let ytRefreshPoll=null;
 let ytJobRefreshPoll=null;
 let inboxItems=[];
@@ -2246,10 +2313,14 @@ function buildYTRow(v){
   const actionText=v.has_note?'✓ 有筆記':(v.has_transcript?'✓ 逐字稿':'↓ 處理');
   const showNoteBtn=!v.has_note;
   const isAnalyzing=analyzingIds.has('yt:'+v.id);
+  const isBatchEligible=!v.has_note&&(v.has_transcript||v.has_analysis);
+  const isBatchSelected=ytBatchSelected.has(v.id);
   const row=document.createElement('div');
-  row.className='ep-row'+(rs==='read'?' read':'')+(isLocal?'':' no-note');
+  row.className='ep-row'+(rs==='read'?' read':'')+(isLocal?'':' no-note')+(isBatchEligible?' batch-eligible':'')+(isBatchSelected?' batch-selected':'');
+  row.dataset.vid=v.id;
 
   row.innerHTML=`
+    <input type="checkbox" class="ep-checkbox"${isBatchSelected?' checked':''}/>
     <img class="ep-thumb yt-thumb-img">
     <div class="ep-info">
       <div class="ep-title" style="display:flex;align-items:center;gap:4px">${h(v.title_zh||v.title||v.id)}<a href="${h(v.url||`https://www.youtube.com/watch?v=${v.id}`)}" target="_blank" rel="noopener" class="ep-ext-link" title="開 YouTube" onclick="event.stopPropagation()"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a></div>
@@ -2270,6 +2341,10 @@ function buildYTRow(v){
 
   setImgSrc(row.querySelector('.yt-thumb-img'), ytImg(v.thumbnail), '');
 
+  row.querySelector('.ep-checkbox')?.addEventListener('change',e=>{
+    e.stopPropagation();
+    toggleBatchItem(v.id, e.target.checked, row);
+  });
   row.querySelector('.read-toggle').addEventListener('click',e=>{
     e.stopPropagation();
     toggleReadYT(v.id, row, e.target);
@@ -2282,7 +2357,17 @@ function buildYTRow(v){
     e.stopPropagation();
     if(!hasDone) addToYTQueue(v.url, e.target);
   });
-  row.addEventListener('click',()=>{ openDetailYT(v); });
+  row.addEventListener('click',(e)=>{
+    if(ytBatchMode && isBatchEligible){
+      e.stopPropagation();
+      const cb=row.querySelector('.ep-checkbox');
+      const newVal=!ytBatchSelected.has(v.id);
+      if(cb) cb.checked=newVal;
+      toggleBatchItem(v.id, newVal, row);
+      return;
+    }
+    openDetailYT(v);
+  });
   return row;
 }
 
@@ -3562,8 +3647,10 @@ function renderJobsDash(){
     const title=_jobTitle(job);
     const pct=Math.round(job.progress||0);
     const isActive=job.status==='pending'||job.status==='running';
-    const barCls=isActive?'running':job.status==='done'?'done':'error';
-    const statusIcon=job.status==='done'?'✓ ':job.status==='error'?'✗ ':isActive?'⏳ ':'';
+    const isPaused=job.status==='paused';
+    const isControllable=isActive||isPaused;
+    const barCls=isPaused?'paused':isActive?'running':job.status==='done'?'done':'error';
+    const statusIcon=job.status==='done'?'✓ ':job.status==='error'?'✗ ':isPaused?'⏸ ':isActive?'⏳ ':'';
     const ago=job.finished_at?_timeAgo(job.finished_at):'';
     const isExpanded=_expandedJobs.has(job.job_id);
     const logs=(job.log||[]).slice(-80); // last 80 lines
@@ -3598,6 +3685,9 @@ function renderJobsDash(){
           <div class="job-title">
             <span class="job-title-text" style="${canOpen?'cursor:pointer':''}">${statusIcon}${h(title)}</span>
             <span class="job-log-btn" title="查看 log">log</span>
+            ${isActive?`<span class="job-pause-btn" title="暫停">暫停</span>`:''}
+            ${isPaused?`<span class="job-resume-btn" title="繼續">繼續</span>`:''}
+            ${isControllable?`<span class="job-cancel-btn" title="終止任務">終止</span>`:''}
             <span class="job-dismiss-btn" title="移除">✕</span>
           </div>
           <div class="job-meta">
@@ -3669,6 +3759,34 @@ function renderJobsDash(){
         };
         openDetail('podcast',ep,pod);
       }
+    });
+
+    // 暫停按鈕
+    row.querySelector('.job-pause-btn')?.addEventListener('click',async e=>{
+      e.stopPropagation();
+      try{
+        await api(`/api/jobs/${job.job_id}/pause`,{method:'POST'});
+        await refreshJobsDash();
+      }catch(err){alert('暫停失敗：'+err.message);}
+    });
+
+    // 繼續按鈕
+    row.querySelector('.job-resume-btn')?.addEventListener('click',async e=>{
+      e.stopPropagation();
+      try{
+        await api(`/api/jobs/${job.job_id}/resume`,{method:'POST'});
+        await refreshJobsDash();
+      }catch(err){alert('繼續失敗：'+err.message);}
+    });
+
+    // 終止按鈕 → cancel job
+    row.querySelector('.job-cancel-btn')?.addEventListener('click',async e=>{
+      e.stopPropagation();
+      if(!confirm('確定要終止此任務？')) return;
+      try{
+        await api(`/api/jobs/${job.job_id}/cancel`,{method:'POST'});
+        await refreshJobsDash();
+      }catch(err){alert('終止失敗：'+err.message);}
     });
 
     // 點 log 按鈕 → 展開/收起 log
@@ -4078,6 +4196,12 @@ init();
     document.getElementById('d-localModelField').classList.toggle('visible',mode==='local');
     document.getElementById('d-apiKeyField').classList.toggle('visible',mode==='api');
   }
+  function updateTgStatus(isSet){
+    const el=document.getElementById('d-tgStatus');
+    const text=document.getElementById('d-tgStatusText');
+    if(isSet){el.className='key-status saved';el.querySelector('svg').innerHTML='<polyline points="20 6 9 17 4 12"/>';text.textContent='Telegram 已設定';}
+    else{el.className='key-status empty';el.querySelector('svg').innerHTML='<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';text.textContent='尚未設定 Telegram';}
+  }
   function updateKeyStatus(isSet){
     const el=document.getElementById('d-keyStatus');
     const text=document.getElementById('d-keyStatusText');
@@ -4167,8 +4291,44 @@ init();
         syncTranscriptFields();
       }
     }catch(_){}
+    try{
+      const r=await fetch(`${SERVER}/api/settings/notification`,{signal:AbortSignal.timeout(2000)});
+      if(r.ok){
+        const cfg=await r.json();
+        updateTgStatus(cfg.telegram_bot_token_set);
+        if(cfg.telegram_chat_id)document.getElementById('d-tgChatId').value=cfg.telegram_chat_id;
+      }
+    }catch(_){}
     await loadPromptInDrawer();
   }
+  document.getElementById('d-tgTokenToggle').addEventListener('click',()=>{
+    const input=document.getElementById('d-tgToken');
+    input.type=input.type==='password'?'text':'password';
+  });
+  document.getElementById('d-saveTgBtn').addEventListener('click',async()=>{
+    const btn=document.getElementById('d-saveTgBtn');
+    const token=document.getElementById('d-tgToken').value.trim();
+    const chat_id=document.getElementById('d-tgChatId').value.trim();
+    btn.classList.add('loading');btn.textContent='儲存中';
+    try{
+      const r=await fetch(`${SERVER}/api/settings/notification`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telegram_bot_token:token,telegram_chat_id:chat_id})});
+      if(!r.ok)throw new Error(`HTTP ${r.status}`);
+      document.getElementById('d-tgToken').value='';
+      if(token||chat_id)updateTgStatus(true);
+      showStatus('d-tgStatusMsg','✅ 已儲存',true);
+    }catch(e){showStatus('d-tgStatusMsg','❌ '+e.message,false);}
+    finally{btn.classList.remove('loading');btn.textContent='儲存';}
+  });
+  document.getElementById('d-testTgBtn').addEventListener('click',async()=>{
+    const btn=document.getElementById('d-testTgBtn');
+    btn.classList.add('loading');btn.textContent='發送中';
+    try{
+      const r=await fetch(`${SERVER}/api/settings/notification/test`,{method:'POST'});
+      if(!r.ok){const msg=await r.text().catch(()=>'');throw new Error(msg||`HTTP ${r.status}`);}
+      showStatus('d-tgStatusMsg','✅ 測試訊息已送出',true);
+    }catch(e){showStatus('d-tgStatusMsg','❌ '+e.message,false);}
+    finally{btn.classList.remove('loading');btn.textContent='測試通知';}
+  });
   function showStatus(id,msg,ok){
     const el=document.getElementById(id);
     el.textContent=msg;
@@ -4176,6 +4336,109 @@ init();
     setTimeout(()=>{el.className='s-status';},3500);
   }
 })();
+
+// ── Batch Select ───────────────────────────────────────────────
+function toggleYTBatch(){
+  ytBatchMode=!ytBatchMode;
+  const btn=$('yt-batch-toggle');
+  btn.classList.toggle('active', ytBatchMode);
+  btn.textContent=ytBatchMode?'✕ 結束批次':'☑ 批次選取';
+  const cards=$('yt-cards');
+  cards.classList.toggle('batch-mode', ytBatchMode);
+  if(!ytBatchMode){
+    ytBatchSelected.clear();
+    cards.querySelectorAll('.ep-row.batch-selected').forEach(r=>{
+      r.classList.remove('batch-selected');
+      const cb=r.querySelector('.ep-checkbox');
+      if(cb) cb.checked=false;
+    });
+  }
+  updateBatchBar();
+}
+
+function toggleBatchItem(videoId, selected, row){
+  if(selected) ytBatchSelected.add(videoId);
+  else ytBatchSelected.delete(videoId);
+  row.classList.toggle('batch-selected', selected);
+  updateBatchBar();
+}
+
+function updateBatchBar(){
+  const bar=$('batch-bar');
+  const count=ytBatchSelected.size;
+  if(ytBatchMode && count>=0){
+    bar.classList.add('visible');
+    $('batch-bar-count').textContent=`已選 ${count} 個`;
+    $('batch-run-btn').disabled=(count===0);
+  } else {
+    bar.classList.remove('visible');
+  }
+}
+
+function batchSelectAll(){
+  const cards=$('yt-cards');
+  cards.querySelectorAll('.ep-row.batch-eligible').forEach(row=>{
+    const vid=row.dataset.vid;
+    if(!vid) return;
+    ytBatchSelected.add(vid);
+    row.classList.add('batch-selected');
+    const cb=row.querySelector('.ep-checkbox');
+    if(cb) cb.checked=true;
+  });
+  updateBatchBar();
+}
+
+function batchClearAll(){
+  ytBatchSelected.clear();
+  const cards=$('yt-cards');
+  cards.querySelectorAll('.ep-row.batch-selected').forEach(row=>{
+    row.classList.remove('batch-selected');
+    const cb=row.querySelector('.ep-checkbox');
+    if(cb) cb.checked=false;
+  });
+  updateBatchBar();
+}
+
+async function runBatchAnalyze(){
+  if(ytBatchSelected.size===0) return;
+  const ids=[...ytBatchSelected];
+  if(!confirm(`確定要批次產生 ${ids.length} 支影片的筆記？`)) return;
+
+  const btn=$('batch-run-btn');
+  btn.disabled=true;
+  btn.textContent=`⏳ 送出中（0/${ids.length}）`;
+
+  let done=0;
+  for(const videoId of ids){
+    // 找到這個 row 的 ep-note-btn 模擬觸發，或直接呼叫 startAnalyzeYT
+    const row=$('yt-cards').querySelector(`.ep-row[data-vid="${videoId}"]`);
+    // 取影片標題
+    let title=videoId;
+    if(row){
+      const titleEl=row.querySelector('.ep-title');
+      if(titleEl) title=titleEl.textContent.trim();
+    }
+    try{
+      const{job_id}=await api(`/api/youtube/videos/${encodeURIComponent(videoId)}/analyze`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({title}),
+      });
+      showJobToast(job_id, title);
+      analyzingIds.add('yt:'+videoId);
+    }catch(e){
+      console.warn('batch analyze failed for', videoId, e);
+    }
+    done++;
+    btn.textContent=`⏳ 送出中（${done}/${ids.length}）`;
+    if(done<ids.length) await new Promise(r=>setTimeout(r,300)); // 避免同時爆量
+  }
+
+  btn.textContent='✅ 已全部送出';
+  toggleYTBatch(); // 退出批次模式
+  renderYTCards();
+  setTimeout(()=>{ if($('batch-run-btn')) $('batch-run-btn').textContent='✨ 批次產生筆記'; },2000);
+}
 </script>
 </body>
 </html>

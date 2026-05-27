@@ -409,6 +409,82 @@ def list_jobs():
     return [_enrich_job(j) for j in jobs]
 
 
+@router.post("/api/jobs/{job_id}/pause")
+def pause_job(job_id: str):
+    """暫停進行中的 job（SIGSTOP）。"""
+    import os, signal as _signal
+    job = _jobs.get(job_id)
+    if not job:
+        raise HTTPException(404, f"找不到 job: {job_id}")
+    if job.get("status") not in ("pending", "running"):
+        raise HTTPException(400, f"Job 狀態為 {job.get('status')}，無法暫停")
+    proc = job.get("_proc")
+    if proc and proc.poll() is None:
+        try:
+            os.kill(proc.pid, _signal.SIGSTOP)
+        except Exception as e:
+            raise HTTPException(500, f"SIGSTOP 失敗：{e}")
+    job["status"]       = "paused"
+    job["_pre_pause_phase"] = job.get("phase", "")
+    job["phase"]        = "暫停中"
+    save_job_snapshot(job)
+    return {"ok": True, "job_id": job_id}
+
+
+@router.post("/api/jobs/{job_id}/resume")
+def resume_job(job_id: str):
+    """恢復暫停的 job（SIGCONT）。"""
+    import os, signal as _signal
+    job = _jobs.get(job_id)
+    if not job:
+        raise HTTPException(404, f"找不到 job: {job_id}")
+    if job.get("status") != "paused":
+        raise HTTPException(400, f"Job 狀態為 {job.get('status')}，不在暫停中")
+    proc = job.get("_proc")
+    if proc and proc.poll() is None:
+        try:
+            os.kill(proc.pid, _signal.SIGCONT)
+        except Exception as e:
+            raise HTTPException(500, f"SIGCONT 失敗：{e}")
+    job["status"] = "running"
+    job["phase"]  = job.pop("_pre_pause_phase", "執行中")
+    save_job_snapshot(job)
+    return {"ok": True, "job_id": job_id}
+
+
+@router.post("/api/jobs/{job_id}/cancel")
+def cancel_job(job_id: str):
+    """終止進行中的 job 並殺掉其子 process。"""
+    import os, signal as _signal
+    job = _jobs.get(job_id)
+    if not job:
+        raise HTTPException(404, f"找不到 job: {job_id}")
+    if job.get("status") not in ("pending", "running", "waiting", "paused"):
+        raise HTTPException(400, f"Job 已結束（{job.get('status')}），無法取消")
+    job["_cancelled"] = True
+    proc = job.get("_proc")
+    if proc and proc.poll() is None:
+        # 若暫停中需先 SIGCONT 才能送 SIGTERM/SIGKILL
+        if job.get("status") == "paused":
+            try:
+                os.kill(proc.pid, _signal.SIGCONT)
+            except Exception:
+                pass
+        try:
+            proc.terminate()
+        except Exception:
+            pass
+        try:
+            proc.kill()
+        except Exception:
+            pass
+    job["status"]      = "cancelled"
+    job["phase"]       = "已取消"
+    job["finished_at"] = time.time()
+    save_job_snapshot(job)
+    return {"ok": True, "job_id": job_id}
+
+
 @router.post("/api/jobs/{job_id}/confirm-analyze")
 def confirm_analyze(job_id: str):
     """用戶確認對已完成轉錄的 job 產生筆記。"""
@@ -622,6 +698,7 @@ def analyze_episode(episode_id: str):
             stdout=sp.PIPE, stderr=sp.STDOUT, bufsize=1, text=True,
             env={**os.environ, "PODCAST_ID": podcast_id},
         )
+        job["_proc"] = proc
         assert proc.stdout is not None
         for line in proc.stdout:
             line = line.rstrip()
@@ -639,6 +716,8 @@ def analyze_episode(episode_id: str):
             else:
                 job["log"].append(line)
         proc.wait()
+        if job.get("_cancelled"):
+            return
         if proc.returncode == 0:
             job["status"]   = "done"
             job["phase"]    = "完成"
@@ -654,6 +733,9 @@ def analyze_episode(episode_id: str):
                 if m:
                     pub_date = m.group(1)
             title = note_path.stem if note_path else episode_label
+            from notify import send_note_done
+            _artwork = pod_cfg2.get("artwork", "") if pod_cfg2 else ""
+            send_note_done(title, "podcast", analysis_path=work_dir / "analysis.json", image_url=_artwork)
             inbox_item = {
                 "id":         f"podcast:{podcast_id}:{episode_label}",
                 "type":       "podcast",

@@ -32,6 +32,7 @@ CUSTOM_PROMPT_PATH = SERVER_DATA_DIR / "custom_prompt.md"
 OUTPUT_SETTINGS_PATH = SERVER_DATA_DIR / "output_settings.json"
 TRANSCRIPTION_SETTINGS_PATH = SERVER_DATA_DIR / "transcription_settings.json"
 GENERATION_SETTINGS_PATH = SERVER_DATA_DIR / "generation_settings.json"
+NOTIFICATION_SETTINGS_PATH = SERVER_DATA_DIR / "notification_settings.json"
 
 SERVER_HOST = os.environ.get("HOST", "0.0.0.0")
 SERVER_PORT = int(os.environ.get("PORT", "7654"))
