@@ -28,6 +28,11 @@ const I18N = {
     outputFolderDesc: '不需 Obsidian，純 .md 檔案',
     folderLabel: '資料夾路徑',
     folderHint: '筆記將以 .md 格式存入此資料夾',
+    generationSection: '筆記生成模型',
+    generationClaudeTitle: 'Claude（預設）',
+    generationClaudeDesc: '沿用 claude -p，適合保守穩定的產線',
+    generationCodexTitle: 'Codex',
+    generationCodexDesc: '用 Codex CLI 產生 analysis.json，再由本機流程寫入筆記',
     transcriptSection: '轉錄方式',
     transcriptLocalTitle: '本地（faster-whisper）',
     transcriptLocalDesc: '需要 ffmpeg，不花 API 費用，支援 GPU 加速',
@@ -39,7 +44,7 @@ const I18N = {
     keySet: 'API Key 已設定',
     keyHint: 'Key 僅存在本機 server，不傳到其他地方。留空則保留已儲存的 Key。',
     langLabel: '筆記輸出語言',
-    langHint: '決定 Claude 生成筆記的語言（與轉錄語言無關）',
+    langHint: '決定筆記輸出語言（與轉錄語言無關）',
     promptSection: '分析 Prompt',
     customBadge: '已自訂',
     promptHint: '預設為 note-investment.md。修改後儲存，下次分析生效。',
@@ -69,6 +74,11 @@ const I18N = {
     outputFolderDesc: 'Plain .md files, no Obsidian needed',
     folderLabel: 'Folder Path',
     folderHint: 'Notes will be saved as .md files to this folder',
+    generationSection: 'Note Generator',
+    generationClaudeTitle: 'Claude (default)',
+    generationClaudeDesc: 'Use the existing claude -p flow for stable production notes',
+    generationCodexTitle: 'Codex',
+    generationCodexDesc: 'Use Codex CLI to create analysis.json, then write notes locally',
     transcriptSection: 'Transcription',
     transcriptLocalTitle: 'Local (faster-whisper)',
     transcriptLocalDesc: 'Requires ffmpeg, no API cost, supports GPU',
@@ -80,7 +90,7 @@ const I18N = {
     keySet: 'API Key saved',
     keyHint: 'Key is stored locally only. Leave blank to keep existing key.',
     langLabel: 'Note Output Language',
-    langHint: 'Language Claude uses to write notes (independent of transcript language)',
+    langHint: 'Language used to write notes (independent of transcript language)',
     promptSection: 'Analysis Prompt',
     customBadge: 'Custom',
     promptHint: 'Default is note-investment.md. Changes take effect on next analysis.',
@@ -125,6 +135,14 @@ function applyLang(lang) {
   setText('s-folder-label', t.folderLabel);
   setText('s-folder-hint', t.folderHint);
   setText('d-saveOutputBtn', t.save);
+
+  // Generation section
+  setText('s-generation-label', t.generationSection);
+  setText('s-provider-claude-title', t.generationClaudeTitle);
+  setText('s-provider-claude-desc', t.generationClaudeDesc);
+  setText('s-provider-codex-title', t.generationCodexTitle);
+  setText('s-provider-codex-desc', t.generationCodexDesc);
+  setText('d-saveGenerationBtn', t.save);
 
   // Transcript section
   setText('s-transcript-label', t.transcriptSection);
@@ -484,6 +502,30 @@ function initSettingsDrawer() {
     }
   });
 
+  // Generation provider save
+  document.getElementById('d-saveGenerationBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('d-saveGenerationBtn');
+    const provider = document.querySelector('input[name="generationProvider"]:checked')?.value || 'claude';
+    btn.classList.add('loading'); btn.textContent = '儲存中';
+    try {
+      const r = await fetch(`${serverUrl}/api/settings/generation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      showDrawerStatus(
+        'd-generationStatusMsg',
+        `✅ 已切換為 ${provider === 'codex' ? 'Codex' : 'Claude'}`,
+        true,
+      );
+    } catch (e) {
+      showDrawerStatus('d-generationStatusMsg', `❌ ${e.message}`, false);
+    } finally {
+      btn.classList.remove('loading'); btn.textContent = '儲存';
+    }
+  });
+
   // Prompt edit/preview toggle — button OR clicking the box
   document.getElementById('d-promptEditBtn').addEventListener('click', () => {
     switchToPromptEdit();
@@ -627,6 +669,18 @@ async function loadDrawerSettings() {
       if (cfg.folder_path) document.getElementById('d-folderPath').value = cfg.folder_path;
       document.getElementById('d-folderPathField').style.display =
         cfg.mode === 'folder' ? 'block' : 'none';
+    }
+  } catch (_) {}
+
+  // Generation provider
+  try {
+    const r = await fetch(`${serverUrl}/api/settings/generation`, { signal: AbortSignal.timeout(2000) });
+    if (r.ok) {
+      const cfg = await r.json();
+      const radio = document.querySelector(
+        `input[name="generationProvider"][value="${cfg.provider || 'claude'}"]`,
+      );
+      if (radio) radio.checked = true;
     }
   } catch (_) {}
 

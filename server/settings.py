@@ -3,10 +3,19 @@
 import os
 from pathlib import Path
 
-SKILL_DIR = Path(__file__).resolve().parent.parent / ".agent" / "skills" / "podcast-note"
-DATA_DIR = SKILL_DIR / "data" / "episodes"
-CONFIG_PATH = SKILL_DIR / "config" / "podcasts.json"
-STATIC_DIR = Path(__file__).parent / "static"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+SERVER_DIR = Path(__file__).resolve().parent
+SERVER_DATA_DIR = SERVER_DIR / "data"
+
+SKILL_DIR = PROJECT_ROOT / ".agent" / "skills" / "podcast-note"
+PODCAST_ROOT = PROJECT_ROOT / "podcast-note"
+PODCAST_SCRIPTS_DIR = PODCAST_ROOT / "scripts"
+PODCAST_DATA_DIR = PODCAST_ROOT / "data"
+
+DATA_DIR = PODCAST_DATA_DIR / "episodes"
+CONFIG_PATH = PODCAST_ROOT / "config" / "podcasts.json"
+STATIC_DIR = SERVER_DIR / "static"
+DEFAULT_PROMPT_PATH = PROJECT_ROOT / "instructions" / "note-investment.md"
 
 YT_SKILL_DIR = SKILL_DIR.parent / "transcript-note"
 YT_DATA_DIR = YT_SKILL_DIR / "data" / "transcripts"
@@ -17,8 +26,12 @@ YT_CHANNEL_CFG = YT_SKILL_DIR / "config" / "channels.json"
 _VAULT_ROOT = os.environ.get("VAULT_ROOT", str(Path.home() / "Documents" / "arthurwang_DB"))
 YT_NOTE_DIR = Path(os.environ.get("YT_NOTE_DIR", f"{_VAULT_ROOT}/影片筆記"))
 READING_LIST_PATH = Path(os.environ.get("READING_LIST_PATH", f"{_VAULT_ROOT}/待看影片與Podcast清單.md"))
-INBOX_PATH = SKILL_DIR / "data" / "inbox.json"
-CACHE_DB_PATH = SKILL_DIR / "data" / "server_cache.sqlite3"
+INBOX_PATH = SERVER_DATA_DIR / "inbox.json"
+CACHE_DB_PATH = SERVER_DATA_DIR / "server_cache.sqlite3"
+CUSTOM_PROMPT_PATH = SERVER_DATA_DIR / "custom_prompt.md"
+OUTPUT_SETTINGS_PATH = SERVER_DATA_DIR / "output_settings.json"
+TRANSCRIPTION_SETTINGS_PATH = SERVER_DATA_DIR / "transcription_settings.json"
+GENERATION_SETTINGS_PATH = SERVER_DATA_DIR / "generation_settings.json"
 
 SERVER_HOST = os.environ.get("HOST", "0.0.0.0")
 SERVER_PORT = int(os.environ.get("PORT", "7654"))

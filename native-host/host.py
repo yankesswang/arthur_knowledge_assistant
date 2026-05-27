@@ -48,8 +48,8 @@ def progress(phase: str, pct: int):
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-SKILL_DIR = Path(__file__).parent.parent / '.agent' / 'skills' / 'podcast-note'
-SCRIPTS   = SKILL_DIR / 'scripts'
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+SCRIPTS = PROJECT_ROOT / 'podcast-note' / 'scripts'
 
 
 def run(cmd: list[str], env=None, cwd=None) -> subprocess.CompletedProcess:

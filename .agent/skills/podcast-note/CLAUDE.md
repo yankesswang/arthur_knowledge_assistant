@@ -20,7 +20,7 @@
 
 ## 啟動 Server
 
-> Server 已搬到專案根目錄 `./server/`（v1.3+）。`data/`、`config/`、`scripts/` 仍留在這個 skill 資料夾。
+> Server 在專案根目錄 `./server/`。Podcast pipeline 的 `data/`、`config/`、`scripts/` 已集中到根目錄 `./podcast-note/`，這個 skill 資料夾只保留 Claude Code 指令說明。
 
 從專案根目錄執行：
 
@@ -60,7 +60,7 @@ VAULT_ROOT=/path/to/arthurwang_DB python3.10 main.py
 
 ## YouTube 快取行為
 
-**快取位置**：`data/server_cache.sqlite3`（SQLite，跟隨 skill 目錄）
+**快取位置**：`server/data/server_cache.sqlite3`（SQLite，跟隨 root server）
 
 **啟動流程**：
 1. `preload_yt_db_cache()` ← 同步，把 DB 資料載入記憶體，第一個 request 立即有資料

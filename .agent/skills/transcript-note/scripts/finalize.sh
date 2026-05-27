@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WORK_DIR="$SCRIPT_DIR/../data/transcripts/$VIDEO_ID"
 
 if [ ! -f "$WORK_DIR/analysis.json" ]; then
-  echo "ERROR: $WORK_DIR/analysis.json not found. Claude analysis must run first."; exit 1
+  echo "ERROR: $WORK_DIR/analysis.json not found. LLM analysis must run first."; exit 1
 fi
 
 # ── Step 5: Generate Obsidian note ──────────────────────────────────────────

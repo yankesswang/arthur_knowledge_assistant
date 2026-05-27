@@ -13,7 +13,14 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
-from cache_store import get_all_source_categories, get_source_category, set_source_category
+from cache_store import (
+    get_all_source_categories,
+    get_source_category,
+    list_job_snapshots,
+    load_job_snapshot,
+    save_job_snapshot,
+    set_source_category,
+)
 from config_store import get_podcast_config, load_config, save_config
 from podcast_jobs import _run_download
 from podcast_services import (
@@ -25,7 +32,7 @@ from podcast_services import (
     parse_transcript_txt,
 )
 from reading_routes import _load_inbox, _save_inbox
-from settings import DATA_DIR
+from settings import DATA_DIR, PODCAST_SCRIPTS_DIR
 from state import _jobs, _remote_cache_lock, _remote_pod_cache
 
 router = APIRouter()
@@ -337,6 +344,7 @@ def start_download(body: dict):
         "log":        [],
         "started_at": time.time(),
     }
+    save_job_snapshot(_jobs[job_id])
 
     t = threading.Thread(target=_run_download, args=(job_id, podcast_id, ep_norm), daemon=True)
     t.start()
@@ -381,6 +389,10 @@ def _enrich_job(job: dict) -> dict:
 def get_job(job_id: str):
     """查詢下載進度"""
     job = _jobs.get(job_id)
+    if job:
+        save_job_snapshot(job)
+    else:
+        job = load_job_snapshot(job_id)
     if not job:
         raise HTTPException(404, f"找不到 job: {job_id}")
     return _enrich_job(job)
@@ -389,7 +401,11 @@ def get_job(job_id: str):
 @router.get("/api/jobs")
 def list_jobs():
     """列出所有 jobs（最新 20 個）"""
-    jobs = sorted(_jobs.values(), key=lambda j: j["started_at"], reverse=True)[:20]
+    for job in _jobs.values():
+        save_job_snapshot(job)
+    by_id = {job.get("job_id"): job for job in list_job_snapshots(40)}
+    by_id.update({job.get("job_id"): job for job in _jobs.values()})
+    jobs = sorted(by_id.values(), key=lambda j: j.get("started_at", 0), reverse=True)[:20]
     return [_enrich_job(j) for j in jobs]
 
 
@@ -405,6 +421,7 @@ def confirm_analyze(job_id: str):
     ev = job.get("_analyze_event")
     if ev:
         ev.set()
+    save_job_snapshot(job)
     return {"ok": True}
 
 
@@ -413,6 +430,85 @@ def get_costs():
     """回傳歷史轉錄費用：每筆明細 + 累計總額"""
     from cache_store import get_cost_summary
     return get_cost_summary()
+
+
+@router.get("/api/claude-usage")
+def get_claude_usage():
+    """回傳 Claude CLI 用量：現在 block 的費用、burn rate、近7天每日費用、model 分佈"""
+    import subprocess, shutil
+    from datetime import datetime, timezone, timedelta
+    ccusage = shutil.which("ccusage") or "/home/trx50/.bun/bin/ccusage"
+    try:
+        proc = subprocess.run(
+            ["bun", ccusage, "blocks", "--json"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if proc.returncode != 0:
+            raise HTTPException(500, f"ccusage 失敗: {proc.stderr[:200]}")
+        data = json.loads(proc.stdout)
+    except FileNotFoundError:
+        raise HTTPException(503, "ccusage 未安裝")
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+    blocks = [b for b in data.get("blocks", []) if not b.get("isGap")]
+    active = next((b for b in blocks if b.get("isActive")), None)
+
+    tz8 = timezone(timedelta(hours=8))
+    today = datetime.now(tz8).date()
+
+    today_cost = 0.0
+    today_tokens = 0
+    daily: dict[str, float] = {}   # "MM/DD" -> costUSD, last 14 days
+    models: dict[str, float] = {}  # model -> costUSD, all time
+
+    for b in blocks:
+        start = b.get("startTime", "")
+        if not start:
+            continue
+        dt = datetime.fromisoformat(start.replace("Z", "+00:00")).astimezone(tz8)
+        cost = b.get("costUSD", 0)
+        delta = (today - dt.date()).days
+        if delta == 0:
+            today_cost += cost
+            today_tokens += b.get("totalTokens", 0)
+        if delta < 14:
+            key = dt.strftime("%m/%d")
+            daily[key] = daily.get(key, 0) + cost
+        for m in b.get("models", []):
+            models[m] = models.get(m, 0) + cost
+
+    # build ordered 14-day list (oldest first, skip missing days)
+    daily_list = []
+    for i in range(13, -1, -1):
+        d = today - timedelta(days=i)
+        key = d.strftime("%m/%d")
+        if key in daily:
+            daily_list.append({"date": key, "costUSD": round(daily[key], 4)})
+
+    result = {
+        "today": {"costUSD": today_cost, "totalTokens": today_tokens},
+        "daily": daily_list,
+        "models": [{"model": k, "costUSD": round(v, 4)} for k, v in sorted(models.items(), key=lambda x: -x[1])],
+        "active": None,
+    }
+    if active:
+        br = active.get("burnRate") or {}
+        result["active"] = {
+            "costUSD": active.get("costUSD", 0),
+            "totalTokens": active.get("totalTokens", 0),
+            "burnRatePerHour": br.get("costPerHour"),
+            "tokensPerMinute": br.get("tokensPerMinute"),
+            "models": active.get("models", []),
+        }
+    return result
+
+
+@router.get("/api/codex-usage")
+def get_codex_usage():
+    """回傳由本 server 累積的 Codex CLI token 用量。"""
+    from cache_store import get_llm_usage_summary
+    return get_llm_usage_summary("codex")
 
 
 
@@ -512,14 +608,15 @@ def analyze_episode(episode_id: str):
         "log":        [],
         "started_at": time.time(),
     }
+    save_job_snapshot(_jobs[job_id])
 
     def _run_analyze(job_id, work_dir, podcast_id):
         import os, subprocess as sp
-        from settings import SKILL_DIR
         job = _jobs[job_id]
         job["status"] = "running"
         job["phase"]  = "準備中"
-        analyze_script = SKILL_DIR / "scripts" / "analyze.py"
+        save_job_snapshot(job)
+        analyze_script = PODCAST_SCRIPTS_DIR / "analyze.py"
         proc = sp.Popen(
             ["python3.10", str(analyze_script), str(work_dir), "--podcast", podcast_id],
             stdout=sp.PIPE, stderr=sp.STDOUT, bufsize=1, text=True,
@@ -578,6 +675,7 @@ def analyze_episode(episode_id: str):
             job["status"] = "error"
             job["phase"]  = "分析失敗"
         job["finished_at"] = time.time()
+        save_job_snapshot(job)
 
     t = threading.Thread(target=_run_analyze, args=(job_id, work_dir, podcast_id), daemon=True)
     t.start()
@@ -643,6 +741,22 @@ def highlight_episode(episode_id: str, body: dict):
         return {"status": "already_highlighted"}
     note_path.write_text(new_content, encoding="utf-8")
     return {"status": "ok"}
+
+
+@router.patch("/api/episodes/{episode_id}/note")
+def patch_episode_note(episode_id: str, body: dict):
+    """覆寫 Obsidian .md 筆記內容"""
+    markdown = body.get("markdown")
+    if markdown is None:
+        raise HTTPException(400, "缺少 markdown")
+    parts = episode_id.split("_", 1)
+    podcast_id    = parts[0]
+    episode_label = parts[1] if len(parts) == 2 else episode_id
+    note_path = find_note_for_episode(podcast_id, episode_label)
+    if not note_path:
+        raise HTTPException(404, "此集尚無筆記")
+    note_path.write_text(markdown, encoding="utf-8")
+    return {"status": "ok", "path": str(note_path)}
 
 
 @router.delete("/api/episodes/{episode_id}/note")

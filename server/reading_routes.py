@@ -7,7 +7,16 @@ import urllib.request
 
 from fastapi import APIRouter, HTTPException
 
-from cache_store import get_yt_read_status, set_yt_read_status
+from cache_store import (
+    dismiss_all_inbox_items,
+    dismiss_inbox_item,
+    get_yt_read_status,
+    inbox_has_any_items,
+    load_inbox_items,
+    replace_inbox_items,
+    save_inbox_item,
+    set_yt_read_status,
+)
 from config_store import load_config
 from podcast_services import build_episode_list
 from settings import INBOX_PATH, READING_LIST_PATH
@@ -15,6 +24,15 @@ from settings import INBOX_PATH, READING_LIST_PATH
 router = APIRouter()
 
 def _load_inbox() -> list[dict]:
+    if not inbox_has_any_items() and INBOX_PATH.exists():
+        try:
+            legacy = json.loads(INBOX_PATH.read_text())
+            replace_inbox_items(legacy)
+        except Exception:
+            pass
+    items = load_inbox_items()
+    if items:
+        return items
     if INBOX_PATH.exists():
         try:
             return json.loads(INBOX_PATH.read_text())
@@ -24,8 +42,7 @@ def _load_inbox() -> list[dict]:
 
 
 def _save_inbox(items: list[dict]):
-    INBOX_PATH.parent.mkdir(parents=True, exist_ok=True)
-    INBOX_PATH.write_text(json.dumps(items, ensure_ascii=False, indent=2))
+    replace_inbox_items(items)
 
 
 @router.get("/api/inbox")
@@ -50,22 +67,20 @@ def add_inbox(body: dict):
     if any(i.get("id") == item_id for i in items):
         return {"skipped": item_id}
     body["ts"] = time.time()
-    items.insert(0, body)
-    _save_inbox(items)
-    return {"added": item_id}
+    added = save_inbox_item(body)
+    return {"added": item_id} if added else {"skipped": item_id}
 
 
 @router.post("/api/inbox/{item_id}/dismiss")
 def dismiss_inbox(item_id: str):
     """標記某通知為已讀（從 inbox 移除）"""
-    items = [i for i in _load_inbox() if i.get("id") != item_id]
-    _save_inbox(items)
+    dismiss_inbox_item(item_id)
     return {"dismissed": item_id}
 
 
 @router.post("/api/inbox/dismiss-all")
 def dismiss_all_inbox():
-    _save_inbox([])
+    dismiss_all_inbox_items()
     return {"dismissed": "all"}
 
 

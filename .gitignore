@@ -7,11 +7,11 @@
 *.wav
 *.m4a
 
-# Transcript data (large, generated)
-.agent/skills/podcast-note/data/episodes/*/transcript.txt
-.agent/skills/podcast-note/data/episodes/*/transcript.json
-.agent/skills/podcast-note/data/episodes/*/analysis.json
-.agent/skills/podcast-note/data/episodes/*/audio.*
+# Podcast transcript data (large, generated)
+podcast-note/data/episodes/*/transcript.txt
+podcast-note/data/episodes/*/transcript.json
+podcast-note/data/episodes/*/analysis.json
+podcast-note/data/episodes/*/audio.*
 
 # Python cache
 __pycache__/
@@ -22,9 +22,16 @@ __pycache__/
 logs/
 gallery-dl/
 video_transcript/
-.agent/skills/podcast-note/data/server_cache.sqlite3*
-.agent/skills/podcast-note/data/inbox.json
-.agent/skills/podcast-note/data/episodes/
+server/data/custom_prompt.md
+server/data/inbox.json
+server/data/output_settings.json
+server/data/generation_settings.json
+server/data/claude_cli*.lock
+server/data/codex_cli*.lock
+server/data/server_cache.sqlite3*
+server/data/transcription_settings.json
+podcast-note/data/episodes/
+podcast-note/data/codex-eval/
 .agent/skills/transcript-note/data/queue.txt
 .claude/scheduled_tasks.lock
 .agent/skills/transcript-note/data/transcripts/

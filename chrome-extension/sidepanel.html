@@ -150,6 +150,7 @@ html, body {
 }
 .tb-btn:hover        { background: var(--surface2); color: var(--text); }
 .tb-btn:focus-visible{ outline: 2px solid var(--accent); outline-offset: 1px; }
+.tb-btn:disabled     { opacity: .3; cursor: not-allowed; }
 
 .zoom-controls {
   display: flex;
@@ -982,6 +983,33 @@ iframe {
 
       <hr class="s-divider">
 
+      <!-- Note generation provider -->
+      <div class="s-section">
+        <div class="s-label" id="s-generation-label">筆記生成模型</div>
+        <div class="radio-group">
+          <label class="radio-item">
+            <input type="radio" name="generationProvider" value="claude" id="d-providerClaude" checked>
+            <div class="radio-item-body">
+              <div class="radio-item-title" id="s-provider-claude-title">Claude（預設）</div>
+              <div class="radio-item-desc" id="s-provider-claude-desc">沿用 claude -p，適合保守穩定的產線</div>
+            </div>
+          </label>
+          <label class="radio-item">
+            <input type="radio" name="generationProvider" value="codex" id="d-providerCodex">
+            <div class="radio-item-body">
+              <div class="radio-item-title" id="s-provider-codex-title">Codex</div>
+              <div class="radio-item-desc" id="s-provider-codex-desc">用 Codex CLI 產生 analysis.json，再由本機流程寫入筆記</div>
+            </div>
+          </label>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="d-saveGenerationBtn">儲存</button>
+        </div>
+        <div class="s-status" id="d-generationStatusMsg"></div>
+      </div>
+
+      <hr class="s-divider">
+
       <!-- Transcription mode -->
       <div class="s-section">
         <div class="s-label" id="s-transcript-label">轉錄方式</div>
@@ -1055,7 +1083,7 @@ iframe {
               Auto
             </label>
           </div>
-          <div class="s-hint" id="s-lang-hint">決定 Claude 生成筆記的語言（與轉錄語言無關）</div>
+          <div class="s-hint" id="s-lang-hint">決定筆記輸出語言（與轉錄語言無關）</div>
         </div>
 
         <div class="btn-row" style="margin-top:14px;">

@@ -177,14 +177,6 @@
       "avatar": "https://yt3.googleusercontent.com/RW4500Hm0ofFj_0GpS6fs0lXRSDyT_kqJoy0XSbGcQ16x-TobBbXxySoi5ul1mVRGWzWVadgN_8=s900-c-k-c0x00ffffff-no-rj"
     },
     {
-      "handle": "@NoPriorsPodcast",
-      "name": "No Priors",
-      "limit": 5,
-      "enabled": true,
-      "channel_id": "UCSI7h9hydQ40K5MJHnCrQvw",
-      "avatar": "https://yt3.googleusercontent.com/HQXIpkLms_iVMi_Ob5Cie3PNcZ3smOT7HeNLIAWvBO-lZMdiax2N5LH1blWMxUtMrJCcXyNZ=s900-c-k-c0x00ffffff-no-rj"
-    },
-    {
       "handle": "@CognitiveRevolutionPodcast",
       "name": "The Cognitive Revolution",
       "limit": 5,
@@ -199,6 +191,15 @@
       "enabled": true,
       "channel_id": "UCMLtBahI5DMrt0NPvDSoIRQ",
       "avatar": "https://yt3.googleusercontent.com/15Akj76BG8IsM5ctgqVwKXArl6IfIVFAbuGa1kOomoioRgJgXHHaLmMAW7iHTMRUoEfyjTtq8lg=s900-c-k-c0x00ffffff-no-rj"
+    },
+    {
+      "handle": "@NoPriorsPodcast",
+      "name": "No Priors: AI, Machine Learning, Tech, & Startups",
+      "limit": 5,
+      "display_limit": "all",
+      "enabled": true,
+      "channel_id": "UCSI7h9hydQ40K5MJHnCrQvw",
+      "avatar": "https://yt3.googleusercontent.com/HQXIpkLms_iVMi_Ob5Cie3PNcZ3smOT7HeNLIAWvBO-lZMdiax2N5LH1blWMxUtMrJCcXyNZ=s900-c-k-c0x00ffffff-no-rj"
     }
   ]
 }

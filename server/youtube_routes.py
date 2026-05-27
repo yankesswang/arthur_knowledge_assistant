@@ -16,13 +16,18 @@ from fastapi.responses import Response
 
 from cache_store import (
     add_category,
+    add_youtube_queue_url,
     delete_category,
     get_all_source_categories,
     get_categories,
     get_source_category,
+    remove_youtube_queue_url,
+    remove_youtube_queue_video,
+    save_job_snapshot,
     set_source_category,
     update_category,
 )
+from note_generation import get_note_provider
 from reading_routes import _load_inbox, _save_inbox
 from settings import (
     YT_AUTO_TRANSCRIPT,
@@ -249,15 +254,17 @@ def _canonical_yt_url(video_id: str) -> str:
 
 
 def _yt_remove_from_queue(video_id: str) -> None:
+    remove_youtube_queue_video(video_id)
     queue = _yt_load_queue()
     new_queue = [url for url in queue if _extract_video_id(url) != video_id]
-    if new_queue == queue:
+    if new_queue == queue and not YT_QUEUE_FILE.exists():
         return
-    YT_QUEUE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    YT_QUEUE_FILE.write_text(
-        "\n".join(new_queue) + ("\n" if new_queue else ""),
-        encoding="utf-8",
-    )
+    if YT_QUEUE_FILE.exists():
+        YT_QUEUE_FILE.write_text(
+            "\n".join(new_queue) + ("\n" if new_queue else ""),
+            encoding="utf-8",
+        )
+    remove_youtube_queue_video(video_id)
 
 
 def _yt_append_queue_urls(urls: list[str]) -> int:
@@ -282,16 +289,18 @@ def _yt_append_queue_urls(urls: list[str]) -> int:
             or _has_usable_yt_transcript(video_id)
         ):
             continue
-        added.append(_canonical_yt_url(video_id))
+        canonical_url = _canonical_yt_url(video_id)
+        if add_youtube_queue_url(video_id, canonical_url):
+            added.append(canonical_url)
         known_ids.add(video_id)
 
     if not added:
         return 0
 
-    YT_QUEUE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with YT_QUEUE_FILE.open("a", encoding="utf-8") as f:
-        for url in added:
-            f.write(url + "\n")
+    if YT_QUEUE_FILE.exists():
+        with YT_QUEUE_FILE.open("a", encoding="utf-8") as f:
+            for url in added:
+                f.write(url + "\n")
     return len(added)
 
 
@@ -383,6 +392,7 @@ def _run_yt_transcript_job(job: dict, url: str, video_id: str) -> None:
 
     try:
         job["status"] = "running"
+        save_job_snapshot(job)
         _ensure_yt_transcript(job, url, video_id)
         job["status"] = "done"
         job["phase"] = "逐字稿完成"
@@ -399,6 +409,7 @@ def _run_yt_transcript_job(job: dict, url: str, video_id: str) -> None:
         with _yt_worker_lock:
             _yt_active_ids.discard(video_id)
         job["finished_at"] = time.time()
+        save_job_snapshot(job)
 
 
 def _yt_active_job_id(video_id: str) -> str:
@@ -452,7 +463,9 @@ def _yt_auto_process_once() -> int:
             "log": [],
             "started_at": time.time(),
         }
+        save_job_snapshot(_jobs[job_id])
         _run_yt_transcript_job(_jobs[job_id], url, video_id)
+        save_job_snapshot(_jobs[job_id])
         processed_count += 1
 
     return processed_count
@@ -735,6 +748,27 @@ def yt_highlight(video_id: str, body: dict):
     return {"status": "ok"}
 
 
+@router.patch("/api/youtube/videos/{video_id}/note")
+def yt_patch_note(video_id: str, body: dict):
+    """覆寫 Obsidian .md 筆記內容"""
+    markdown = body.get("markdown")
+    if markdown is None:
+        raise HTTPException(400, "缺少 markdown")
+    vid_dir = YT_DATA_DIR / video_id
+    note_ptr = vid_dir / "note_path.txt"
+    md_path = None
+    if note_ptr.exists():
+        candidate = Path(note_ptr.read_text().strip())
+        if candidate.exists():
+            md_path = candidate
+    if md_path is None:
+        md_path = _yt_find_obsidian_note(video_id)
+    if md_path is None:
+        raise HTTPException(404, "此影片尚無筆記")
+    md_path.write_text(markdown, encoding="utf-8")
+    return {"status": "ok", "path": str(md_path)}
+
+
 @router.delete("/api/youtube/videos/{video_id}/note")
 def yt_delete_note(video_id: str):
     """刪除 Obsidian 筆記檔案"""
@@ -762,7 +796,7 @@ def yt_delete_note(video_id: str):
 
 @router.post("/api/youtube/videos/{video_id}/analyze")
 async def yt_start_analyze(video_id: str, request: Request):
-    """觸發 claude -p 自動分析逐字稿 → 產生 analysis.json + Obsidian 筆記"""
+    """觸發選定 provider 自動分析逐字稿 → 產生 analysis.json + Obsidian 筆記"""
     vid_dir = YT_DATA_DIR / video_id
 
     analyze_script = YT_SKILL_DIR / "scripts" / "analyze.py"
@@ -787,8 +821,10 @@ async def yt_start_analyze(video_id: str, request: Request):
         "phase":      "排隊中",
         "progress":   0,
         "log":        [],
+        "provider":   get_note_provider(),
         "started_at": time.time(),
     }
+    save_job_snapshot(_jobs[job_id])
 
     def _run():
         job = _jobs[job_id]
@@ -812,6 +848,7 @@ async def yt_start_analyze(video_id: str, request: Request):
                     job["_whisper_confirmed"] = None
                     job["status"] = "waiting"
                     job["phase"]  = "awaiting_whisper_confirm"
+                    save_job_snapshot(job)
 
                     confirmed = event.wait(timeout=600)   # 10 分鐘逾時
 
@@ -819,6 +856,7 @@ async def yt_start_analyze(video_id: str, request: Request):
                         job["status"] = "cancelled"
                         job["phase"]  = "已取消（無字幕）"
                         job["finished_at"] = time.time()
+                        save_job_snapshot(job)
                         return
 
                     # User confirmed — run Whisper
@@ -828,14 +866,18 @@ async def yt_start_analyze(video_id: str, request: Request):
                     if not _has_usable_yt_transcript(video_id):
                         raise RuntimeError("Whisper 轉錄完成但無可用逐字稿")
 
+            provider = get_note_provider()
+            job["provider"] = provider
+            log(f"→ 呼叫 {provider.title()} 分析逐字稿...")
             job["phase"]    = "分析中"
+            save_job_snapshot(job)
             proc = subprocess.Popen(
                 ["python3.10", str(analyze_script), video_id],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
                 bufsize=1,
-                env=os.environ.copy(),
+                env={**os.environ.copy(), "JOB_ID": job_id},
                 cwd=str(YT_SKILL_DIR),
             )
             assert proc.stdout is not None
@@ -911,6 +953,7 @@ async def yt_start_analyze(video_id: str, request: Request):
             log(f"✗ 例外：{e}")
 
         job["finished_at"] = time.time()
+        save_job_snapshot(job)
 
     t = threading.Thread(target=_run, daemon=True)
     t.start()
@@ -932,6 +975,7 @@ def yt_confirm_whisper(video_id: str):
         raise HTTPException(404, "找不到等待確認的 job")
     waiting["_whisper_confirmed"] = True
     waiting["_whisper_event"].set()
+    save_job_snapshot(waiting)
     return {"ok": True}
 
 
@@ -949,6 +993,7 @@ def yt_cancel_whisper(video_id: str):
         raise HTTPException(404, "找不到等待確認的 job")
     waiting["_whisper_confirmed"] = False
     waiting["_whisper_event"].set()
+    save_job_snapshot(waiting)
     return {"ok": True}
 
 
@@ -997,9 +1042,8 @@ def yt_add_to_queue(body: dict):
     already_queued = url in queue or any(video_id in q for q in queue)
 
     if not already_queued:
-        YT_QUEUE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with YT_QUEUE_FILE.open("a", encoding="utf-8") as f:
-            f.write(url + "\n")
+        added = add_youtube_queue_url(video_id, _canonical_yt_url(video_id))
+        already_queued = not added
 
     # try to find title from remote cache
     setup_title = ""
@@ -1023,10 +1067,12 @@ def yt_add_to_queue(body: dict):
         "log":        [],
         "started_at": time.time(),
     }
+    save_job_snapshot(_jobs[job_id])
 
     def _run():
         job = _jobs[job_id]
         _run_yt_transcript_job(job, url, video_id)
+        save_job_snapshot(job)
 
     threading.Thread(target=_run, daemon=True).start()
 
@@ -1046,7 +1092,9 @@ def yt_clear_queue_item(body: dict):
         raise HTTPException(400, "缺少 url")
     queue = _yt_load_queue()
     new_q = [q for q in queue if q != url]
-    YT_QUEUE_FILE.write_text("\n".join(new_q) + ("\n" if new_q else ""), encoding="utf-8")
+    remove_youtube_queue_url(url)
+    if YT_QUEUE_FILE.exists():
+        YT_QUEUE_FILE.write_text("\n".join(new_q) + ("\n" if new_q else ""), encoding="utf-8")
     return {"removed": url, "queue_size": len(new_q)}
 
 

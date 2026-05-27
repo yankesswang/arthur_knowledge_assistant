@@ -8,22 +8,22 @@ import threading
 import time
 from pathlib import Path
 
+from cache_store import save_job_snapshot
 from config_store import get_podcast_config
-from settings import SKILL_DIR
+from note_generation import get_note_provider
+from settings import DATA_DIR, PODCAST_SCRIPTS_DIR, TRANSCRIPTION_SETTINGS_PATH
 from state import _jobs
 
 def get_transcription_settings():
     import json as _json
-    from pathlib import Path as _Path
-    p = SKILL_DIR / "data" / "transcription_settings.json"
-    if p.exists():
+    if TRANSCRIPTION_SETTINGS_PATH.exists():
         try:
-            return _json.loads(p.read_text(encoding="utf-8"))
+            return _json.loads(TRANSCRIPTION_SETTINGS_PATH.read_text(encoding="utf-8"))
         except Exception:
             pass
     return {"mode": "local"}
 
-DOWNLOAD_SH = SKILL_DIR / "scripts" / "download.sh"
+DOWNLOAD_SH = PODCAST_SCRIPTS_DIR / "download.sh"
 
 _PROGRESS_RE = re.compile(r'\[download\]\s+(\d+(?:\.\d+)?)%\s+of\s+([\d.]+\S+)(?:\s+at\s+([\d.]+\S+))?(?:\s+ETA\s+(\S+))?')
 
@@ -37,6 +37,7 @@ def _run_download(job_id: str, podcast_id: str, episode: str):
     job["speed"]    = ""
     job["eta"]      = ""
     job["phase"]    = "準備中"  # 準備中 / 解析 / 下載中 / 完成
+    save_job_snapshot(job)
 
     def log(line: str):
         job["log"].append(line)
@@ -91,18 +92,20 @@ def _run_download(job_id: str, podcast_id: str, episode: str):
             job["phase"]  = "下載失敗"
             log(f"✗ 下載失敗（exit {proc.returncode}）")
             job["finished_at"] = time.time()
+            save_job_snapshot(job)
             return
 
         log("✓ 下載完成")
 
         # ── Step 2: 轉錄 ──────────────────────────────────────
-        work_dir = SKILL_DIR / "data" / "episodes" / f"{podcast_id}_ep{episode}"
+        work_dir = DATA_DIR / f"{podcast_id}_ep{episode}"
         audio    = next(work_dir.glob("audio.*"), None)
         if not audio:
             job["status"] = "error"
             job["phase"]  = "找不到音頻"
             log("✗ 找不到音頻檔，無法轉錄")
             job["finished_at"] = time.time()
+            save_job_snapshot(job)
             return
 
         # 從 env.sh 取 EPISODE_LABEL（如 EP663）
@@ -171,7 +174,7 @@ def _run_download(job_id: str, podcast_id: str, episode: str):
 
         transcribe_cmd = [
             "python3.10",
-            str(SKILL_DIR / "scripts" / "transcribe.py"),
+            str(PODCAST_SCRIPTS_DIR / "transcribe.py"),
             str(work_dir),
             "--lang",    lang,
             "--model",   model,
@@ -238,6 +241,7 @@ def _run_download(job_id: str, podcast_id: str, episode: str):
             job["phase"]  = "轉錄失敗"
             log(f"✗ 轉錄失敗（exit {t_proc.returncode}）")
             job["finished_at"] = time.time()
+            save_job_snapshot(job)
             return
 
         log("✓ 轉錄完成")
@@ -264,28 +268,33 @@ def _run_download(job_id: str, podcast_id: str, episode: str):
         job["_work_dir"]          = str(work_dir)
         job["_episode_label"]     = episode_label
         log("⏸ 等待確認是否產生筆記...")
+        save_job_snapshot(job)
 
         confirmed = ev.wait(timeout=3600)  # 最多等 1 小時
         if not confirmed or not job.get("_analyze_confirmed"):
             job["status"]      = "done"
             job["phase"]       = "轉錄完成（未產生筆記）"
             job["finished_at"] = time.time()
+            save_job_snapshot(job)
             return
 
-        # ── Step 4: Claude 分析逐字稿 → 筆記 ────────────────
+        # ── Step 4: LLM 分析逐字稿 → 筆記 ──────────────────
+        provider = get_note_provider()
         job["status"]   = "running"
         job["phase"]    = "分析中"
         job["progress"] = 0
-        log("→ 呼叫 Claude 分析逐字稿...")
+        job["provider"]  = provider
+        log(f"→ 呼叫 {provider.title()} 分析逐字稿...")
+        save_job_snapshot(job)
 
-        analyze_script = SKILL_DIR / "scripts" / "analyze.py"
+        analyze_script = PODCAST_SCRIPTS_DIR / "analyze.py"
         a_proc = subprocess.Popen(
             ["python3.10", str(analyze_script), str(job["_work_dir"]), "--podcast", podcast_id],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             bufsize=1,
             text=True,
-            env={**_os.environ, "PODCAST_ID": podcast_id},
+            env={**_os.environ, "PODCAST_ID": podcast_id, "JOB_ID": job_id},
         )
 
         for a_line in a_proc.stdout:
@@ -314,3 +323,4 @@ def _run_download(job_id: str, podcast_id: str, episode: str):
         job["log"].append(f"✗ 例外：{e}")
 
     job["finished_at"] = time.time()
+    save_job_snapshot(job)

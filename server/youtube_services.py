@@ -10,7 +10,7 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from cache_store import load_cached_youtube_videos, save_cached_youtube_videos
+from cache_store import add_youtube_queue_url, load_cached_youtube_videos, load_youtube_queue, save_cached_youtube_videos
 from settings import (
     YT_CHANNEL_CFG,
     YT_DATA_DIR,
@@ -35,9 +35,14 @@ def _yt_load_channels() -> list[dict]:
     return json.loads(YT_CHANNEL_CFG.read_text()).get("channels", [])
 
 def _yt_load_queue() -> list[str]:
-    if not YT_QUEUE_FILE.exists():
-        return []
-    return [l.strip() for l in YT_QUEUE_FILE.read_text().splitlines() if l.strip()]
+    queue = load_youtube_queue()
+    if YT_QUEUE_FILE.exists():
+        for url in [l.strip() for l in YT_QUEUE_FILE.read_text().splitlines() if l.strip()]:
+            video_id = _extract_video_id(url)
+            if video_id:
+                add_youtube_queue_url(video_id, url)
+        queue = load_youtube_queue()
+    return queue
 
 def _yt_load_processed() -> set[str]:
     if not YT_PROC_FILE.exists():

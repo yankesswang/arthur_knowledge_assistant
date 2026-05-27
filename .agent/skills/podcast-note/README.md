@@ -8,36 +8,20 @@ Podcast 音頻 → faster-whisper 轉錄 → Claude 分析 → Obsidian 投資�
 ## 目錄結構
 
 ```
-podcast-note/
+.agent/skills/podcast-note/
 ├── SKILL.md                      # Claude Code skill 定義（/podcast-note 指令）
-├── config/
-│   └── podcasts.json             # Podcast 訂閱清單（id、RSS、語言）
-├── data/
-│   ├── episodes/                 # 每集工作目錄（音頻、逐字稿、analysis.json）
-│   ├── inbox.json                # Server 收件匣（待整理條目）
-│   └── server_cache.sqlite3      # YouTube 遠端快取（SQLite）
-├── docs/
-│   └── analyze-method-comparison.md  # 分析方法三版本比較與演進紀錄
-├── scripts/                      # 批次處理 pipeline
-│   ├── download.sh               # RSS → yt-dlp → audio.mp3 + env.sh
-│   ├── transcribe.py             # MP3 → faster-whisper → transcript.txt / .json
-│   ├── analyze.py                # transcript.txt → analysis.json（v3 架構）
-│   ├── generate_note.py          # analysis.json → Obsidian 投資筆記
-│   └── update_reading_list.py    # 更新待看影片與Podcast清單.md
-└── server/                       # FastAPI web server
-    ├── run.sh                    # 啟動腳本（自動清除佔用 port）
-    ├── main.py                   # FastAPI 入口，掛載三組 router
-    ├── settings.py               # 所有路徑與環境變數設定
-    ├── state.py                  # 跨 module 共用狀態（jobs、快取）
-    ├── cache_store.py            # SQLite 快取讀寫
-    ├── config_store.py           # podcasts.json 讀寫
-    ├── podcast_routes.py         # Podcast API（/api/podcasters, /api/jobs, ...）
-    ├── podcast_services.py       # Podcast 業務邏輯（RSS、筆記解析）
-    ├── podcast_jobs.py           # 下載 + 分析非同步 job
-    ├── reading_routes.py         # 待看清單 API（/api/reading-list, /api/inbox）
-    ├── remote.py                 # 啟動時背景預抓遠端清單
-    ├── youtube_routes.py         # YouTube API（/api/youtube/channels, ...）
-    └── youtube_services.py       # YouTube 業務邏輯（yt-dlp、transcript、avatar）
+├── README.md
+└── CLAUDE.md
+
+podcast-note/
+├── config/podcasts.json          # Podcast 訂閱清單（id、RSS、語言）
+├── data/episodes/                # 每集工作目錄（音頻、逐字稿、analysis.json）
+├── docs/analyze-method-comparison.md
+└── scripts/                      # 批次處理 pipeline
+
+server/
+├── data/                         # Server runtime 狀態（cache、inbox、settings）
+└── *.py                          # FastAPI web server
 ```
 
 ---
@@ -50,7 +34,7 @@ bash run.sh
 # → http://localhost:7654
 ```
 
-> Server 已搬到專案根目錄 `./server/`；`data/`、`config/`、`scripts/` 仍留在這個 skill 資料夾。
+> Server 在專案根目錄 `./server/`；Podcast pipeline 資產在根目錄 `./podcast-note/`。skill 目錄只保留 `/podcast-note` 指令說明。
 
 `run.sh` 會：
 1. 自動載入 `.env`（專案根目錄或 server/ 目錄）
@@ -75,7 +59,7 @@ bash run.sh
 
 ---
 
-## Podcast 設定（config/podcasts.json）
+## Podcast 設定（podcast-note/config/podcasts.json）
 
 ```json
 {

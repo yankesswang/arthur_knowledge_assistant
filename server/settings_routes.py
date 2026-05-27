@@ -1,20 +1,21 @@
 """Settings API — custom prompt read/write + output mode."""
 
 import json
-from pathlib import Path
 
 from fastapi import APIRouter
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
-router = APIRouter()
+from settings import (
+    CUSTOM_PROMPT_PATH,
+    DEFAULT_PROMPT_PATH,
+    GENERATION_SETTINGS_PATH,
+    OUTPUT_SETTINGS_PATH,
+    TRANSCRIPTION_SETTINGS_PATH,
+)
+from note_generation import normalize_note_provider
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SKILL_DIR = PROJECT_ROOT / ".agent" / "skills" / "podcast-note"
-DEFAULT_PROMPT_PATH = PROJECT_ROOT / "instructions" / "note-investment.md"
-CUSTOM_PROMPT_PATH = SKILL_DIR / "data" / "custom_prompt.md"
-OUTPUT_SETTINGS_PATH = SKILL_DIR / "data" / "output_settings.json"
-TRANSCRIPTION_SETTINGS_PATH = SKILL_DIR / "data" / "transcription_settings.json"
+router = APIRouter()
 
 DEFAULT_OUTPUT = {
     "mode": "obsidian",       # "obsidian" | "folder"
@@ -26,6 +27,10 @@ DEFAULT_TRANSCRIPTION = {
     "openai_api_key": "",
     "whisper_model": "medium", # for local mode
     "language": "zh",         # zh | en | auto
+}
+
+DEFAULT_GENERATION = {
+    "provider": "claude",     # "claude" | "codex"
 }
 
 
@@ -43,6 +48,10 @@ class TranscriptionSettingsBody(BaseModel):
     openai_api_key: str = ""
     whisper_model: str = "medium"
     language: str = "zh"  # zh | en | auto
+
+
+class GenerationSettingsBody(BaseModel):
+    provider: str = "claude"
 
 
 @router.get("/api/settings/prompt", response_class=PlainTextResponse)
@@ -116,4 +125,28 @@ async def save_transcription_settings(body: TranscriptionSettingsBody):
     api_key = body.openai_api_key or existing.get("openai_api_key", "")
     data = {"mode": body.mode, "openai_api_key": api_key, "whisper_model": body.whisper_model, "language": body.language}
     TRANSCRIPTION_SETTINGS_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"ok": True}
+
+
+# ── Note generation provider ─────────────────────────────────────────────────
+
+@router.get("/api/settings/generation")
+async def get_generation_settings():
+    if GENERATION_SETTINGS_PATH.exists():
+        try:
+            data = json.loads(GENERATION_SETTINGS_PATH.read_text(encoding="utf-8"))
+            return {"provider": normalize_note_provider(data.get("provider"))}
+        except Exception:
+            pass
+    return DEFAULT_GENERATION
+
+
+@router.post("/api/settings/generation")
+async def save_generation_settings(body: GenerationSettingsBody):
+    GENERATION_SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    data = {"provider": normalize_note_provider(body.provider)}
+    GENERATION_SETTINGS_PATH.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
     return {"ok": True}

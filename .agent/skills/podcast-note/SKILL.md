@@ -30,12 +30,12 @@ description: Podcast 音頻 → faster-whisper 轉錄 → Claude 分析 → 投�
 ## Vault Paths
 
 - **投資筆記**：`/home/trx50/Documents/arthurwang_DB/投資/`
-- **工作目錄**：`<SKILL_DIR>/data/episodes/<podcast_id>_ep<episode>/`
+- **工作目錄**：`<PROJECT_ROOT>/podcast-note/data/episodes/<podcast_id>_ep<episode>/`
 - **待看影片與Podcast清單**：`/home/trx50/Documents/arthurwang_DB/待看影片與Podcast清單.md`
 
 ## Config
 
-`config/podcasts.json` 管理訂閱清單，目前已設定：
+`podcast-note/config/podcasts.json` 管理訂閱清單，目前已設定：
 - `gooaye`：股癌 Gooaye（RSS: soundon.fm，語言: zh，格式: investment）
 
 新增 Podcast 只需在 `podcasts` 陣列加一筆：
@@ -55,7 +55,7 @@ description: Podcast 音頻 → faster-whisper 轉錄 → Claude 分析 → 投�
 ## Scripts
 
 ```
-scripts/
+podcast-note/scripts/
 ├── download.sh           # RSS → yt-dlp 下載 MP3 → 寫 env.sh
 ├── transcribe.py         # MP3 → faster-whisper → transcript.txt + .json
 ├── generate_note.py      # analysis.json → Obsidian 筆記
@@ -81,13 +81,15 @@ scripts/
 
 ```bash
 SKILL_DIR="$(dirname "$(realpath "$0")")"  # SKILL.md 所在目錄
+PROJECT_ROOT="$(cd "$SKILL_DIR/../../.." && pwd)"
+PODCAST_ROOT="$PROJECT_ROOT/podcast-note"
 
 # 確認 podcast_id 在 config
 PODCAST_ID="<user_input>"  # e.g. gooaye
 EPISODE="${episode_arg:-latest}"
 
-bash "$SKILL_DIR/scripts/download.sh" "$PODCAST_ID" "$EPISODE"
-source "$SKILL_DIR/data/episodes/${PODCAST_ID}_ep${EPISODE}/env.sh"
+bash "$PODCAST_ROOT/scripts/download.sh" "$PODCAST_ID" "$EPISODE"
+source "$PODCAST_ROOT/data/episodes/${PODCAST_ID}_ep${EPISODE}/env.sh"
 ```
 
 `env.sh` 會設定：`EPISODE_MP3`、`EPISODE_TITLE`、`EPISODE_DATE`、`WORK_DIR`、`PODCAST_ID`、`LANG_CODE`
@@ -96,7 +98,7 @@ source "$SKILL_DIR/data/episodes/${PODCAST_ID}_ep${EPISODE}/env.sh"
 ```bash
 export EPISODE_MP3="<user_provided_path>"
 export PODCAST_ID="<podcast_id>"
-export WORK_DIR="$SKILL_DIR/data/episodes/${PODCAST_ID}_manual_$(date +%Y%m%d)"
+export WORK_DIR="$PODCAST_ROOT/data/episodes/${PODCAST_ID}_manual_$(date +%Y%m%d)"
 mkdir -p "$WORK_DIR"
 cp "$EPISODE_MP3" "$WORK_DIR/audio.mp3"
 ```
@@ -116,7 +118,7 @@ print(m.group(0) if m else title[:20])
 
 # faster-whisper 轉錄（GPU 優先，medium 模型）
 # 逐字稿同時存到 work_dir（供分析）和 Obsidian Podcast/<podcaster>/transcripts/（永久）
-python3.10 "$SKILL_DIR/scripts/transcribe.py" "$WORK_DIR" \
+python3.10 "$PODCAST_ROOT/scripts/transcribe.py" "$WORK_DIR" \
   --lang "${LANG_CODE:-zh}" \
   --model medium \
   --device auto \
@@ -227,7 +229,7 @@ python3.10 "$SKILL_DIR/scripts/transcribe.py" "$WORK_DIR" \
 
 ```bash
 export PODCAST_ID="gooaye"  # 確保環境變數已設定
-python3.10 "$SKILL_DIR/scripts/generate_note.py" "$WORK_DIR"
+python3.10 "$PODCAST_ROOT/scripts/generate_note.py" "$WORK_DIR"
 
 # 筆記路徑記錄在 $WORK_DIR/note_path.txt
 NOTE_PATH=$(cat "$WORK_DIR/note_path.txt")
@@ -241,7 +243,7 @@ echo "筆記：$NOTE_PATH"
 ### Step 5 — 更新待看影片與Podcast清單
 
 ```bash
-python3.10 "$SKILL_DIR/scripts/update_reading_list.py" "$WORK_DIR"
+python3.10 "$PODCAST_ROOT/scripts/update_reading_list.py" "$WORK_DIR"
 ```
 
 ---
