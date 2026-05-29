@@ -108,10 +108,7 @@ async def save_output_settings(body: OutputSettingsBody):
 async def get_transcription_settings():
     if TRANSCRIPTION_SETTINGS_PATH.exists():
         data = json.loads(TRANSCRIPTION_SETTINGS_PATH.read_text(encoding="utf-8"))
-        # mask key for display
-        if data.get("openai_api_key"):
-            data["openai_api_key_set"] = True
-            data["openai_api_key"] = ""
+        data["openai_api_key_set"] = bool(data.get("openai_api_key"))
         return data
     return {**DEFAULT_TRANSCRIPTION, "openai_api_key_set": False}
 
@@ -164,11 +161,13 @@ class NotificationSettingsBody(BaseModel):
 async def get_notification_settings():
     if NOTIFICATION_SETTINGS_PATH.exists():
         data = json.loads(NOTIFICATION_SETTINGS_PATH.read_text(encoding="utf-8"))
+        token = data.get("telegram_bot_token", "")
         return {
-            "telegram_bot_token_set": bool(data.get("telegram_bot_token")),
+            "telegram_bot_token_set": bool(token),
+            "telegram_bot_token": token,
             "telegram_chat_id": data.get("telegram_chat_id", ""),
         }
-    return {"telegram_bot_token_set": False, "telegram_chat_id": ""}
+    return {"telegram_bot_token_set": False, "telegram_bot_token": "", "telegram_chat_id": ""}
 
 
 @router.post("/api/settings/notification")

@@ -59,6 +59,8 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,Bl
 
 /* ── TOP NAV ── */
 #nav{height:64px;background:#ffffff;border-bottom:1px solid #dadad3;display:flex;align-items:center;padding:0 20px;gap:0;position:sticky;top:0;z-index:100}
+#provider-pill{font-size:9px;font-family:ui-monospace,monospace;font-weight:700;letter-spacing:.06em;padding:3px 8px;border-radius:4px;background:#0e0e0e;color:#e8e8e2;border:1px solid #2a2a2a;margin-left:4px;flex-shrink:0;cursor:pointer;text-transform:lowercase;transition:background .15s,border-color .15s;user-select:none}
+#provider-pill:hover{background:#1e1e1e;border-color:#3a3a3a}
 #nav h1{font-size:15px;font-weight:700;margin-right:24px;white-space:nowrap}
 .nav-tab{padding:6px 14px;font-size:13px;cursor:pointer;color:var(--text-dim);border-bottom:2px solid transparent;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none}
 .nav-tab:hover{color:var(--text)}
@@ -414,6 +416,13 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,Bl
 .job-resume-btn:hover{background:#a7f3d0;color:#064e3b;}
 .job-cancel-btn{font-size:9px;color:#b45309;margin-left:4px;flex-shrink:0;padding:1px 6px;border-radius:3px;border:1px solid #fde68a;background:#fef9ee;cursor:pointer;transition:all .15s}
 .job-cancel-btn:hover{background:#fde68a;color:#7c2d12;}
+.job-cancel-confirm{display:inline-flex;align-items:center;gap:5px;margin-left:6px;animation:fadeIn .15s ease}
+.job-cancel-confirm-text{font-size:9px;color:var(--text-muted)}
+.job-cancel-confirm-yes{font-size:9px;font-weight:600;color:#fff;background:#dc2626;padding:1px 7px;border-radius:3px;cursor:pointer;transition:background .15s}
+.job-cancel-confirm-yes:hover{background:#b91c1c}
+.job-cancel-confirm-no{font-size:9px;color:var(--text-muted);padding:1px 5px;border-radius:3px;cursor:pointer;transition:color .15s}
+.job-cancel-confirm-no:hover{color:var(--text)}
+@keyframes fadeIn{from{opacity:0;transform:translateX(-4px)}to{opacity:1;transform:translateX(0)}}
 .job-meta{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-dim)}
 .job-phase{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .job-bar-wrap{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:5px;cursor:pointer}
@@ -439,20 +448,41 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,Bl
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* ── Cost Dashboard ── */
-.cost-stat-card{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:14px 16px}
-.cost-stat-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
-.cost-stat-value{font-size:22px;font-weight:700;color:var(--text);line-height:1.1}
-.cost-stat-sub{font-size:10px;color:var(--text-dim);margin-top:2px}
+.cost-summary-bar{display:flex;align-items:stretch;gap:18px;margin:12px 16px 0;padding:18px 22px;background:linear-gradient(135deg,var(--surface2) 0%,var(--surface) 100%);border:1px solid var(--border);border-radius:16px;position:relative}
+.cost-summary-item{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
+.cost-summary-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;font-weight:700;margin-bottom:6px}
+.cost-summary-value{font-size:24px;font-weight:700;color:var(--text);line-height:1.1;font-variant-numeric:tabular-nums}
+.cost-summary-sub{font-size:11px;color:var(--text-dim);margin-top:3px;font-variant-numeric:tabular-nums}
+.cost-summary-divider{width:1px;background:var(--border);flex-shrink:0}
+.cost-summary-bars{display:flex;flex-direction:column;gap:4px;min-width:140px;margin-top:2px}
+.cost-summary-bar-row{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-dim)}
+.cost-summary-bar-row .lbl{width:54px;flex-shrink:0}
+.cost-summary-bar-row .track{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.cost-summary-bar-row .fill{height:100%;border-radius:3px;transition:width .3s}
+.cost-summary-bar-row .val{width:46px;text-align:right;font-variant-numeric:tabular-nums;color:var(--text-muted)}
+#cost-refresh-btn{position:absolute;top:10px;right:10px;background:transparent;border:1px solid var(--border);color:var(--text-muted);cursor:pointer;padding:5px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+#cost-refresh-btn:hover{color:var(--text);border-color:var(--text-muted);background:var(--surface)}
+
+.cost-stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.cost-stat-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;font-weight:700}
+.cost-stat-value{font-size:20px;font-weight:700;color:var(--text);line-height:1.1;font-variant-numeric:tabular-nums}
+.cost-stat-sub{font-size:10px;color:var(--text-dim);margin-top:2px;font-variant-numeric:tabular-nums}
 #cost-table tbody tr{border-bottom:1px solid var(--border)}
 #cost-table tbody tr:last-child{border-bottom:none}
 #cost-table tbody tr:hover{background:var(--surface2)}
 /* cost dashboard tabs */
-.cost-dash-tab{padding:5px 14px;border-radius:9999px;border:1px solid var(--border);background:transparent;font-size:12px;font-weight:600;color:var(--text-dim);cursor:pointer;transition:all .15s}
-.cost-dash-tab:hover{background:var(--surface2)}
-.cost-dash-tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.cost-dash-tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);padding:0 16px;margin-top:6px}
+.cost-dash-tab{padding:9px 14px;border:none;border-bottom:2px solid transparent;background:transparent;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all .15s;margin-bottom:-1px}
+.cost-dash-tab:hover{color:var(--text)}
+.cost-dash-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 /* charts */
 .chart-panel{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:14px 16px}
-.chart-title{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.chart-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.chart-title{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin:0}
+.period-tabs{display:flex;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px}
+.period-tab{padding:3px 9px;border:none;background:transparent;font-size:10px;font-weight:600;color:var(--text-muted);cursor:pointer;border-radius:4px;transition:all .15s}
+.period-tab:hover{color:var(--text)}
+.period-tab.active{background:var(--accent);color:#fff}
 .bar-chart-wrap{width:100%;overflow:hidden}
 .bar-chart-svg{width:100%;height:120px;display:block}
 .pie-chart-svg{width:120px;height:120px;display:block;margin:0 auto}
@@ -484,15 +514,32 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2480;outline:2px solid #fbb
 #settings-overlay.open{opacity:1;pointer-events:all}
 
 /* ── Settings drawer ── */
-#settings-drawer{position:fixed;top:0;right:0;width:min(420px,100vw);height:100vh;background:var(--canvas,#fff);border-left:1px solid var(--border);z-index:510;transform:translateX(100%);transition:transform 240ms cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden;box-shadow:-4px 0 24px rgba(0,0,0,.08)}
+#settings-drawer{position:fixed;top:0;right:0;width:min(480px,100vw);height:100vh;background:var(--canvas,#fff);border-left:1px solid var(--border);z-index:510;transform:translateX(100%);transition:transform 240ms cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden;box-shadow:-4px 0 24px rgba(0,0,0,.08)}
 #settings-drawer.open{transform:translateX(0)}
 #drawer-header{display:flex;align-items:center;gap:10px;padding:0 16px;height:64px;background:var(--canvas,#fff);border-bottom:1px solid var(--border);flex-shrink:0}
 #drawer-header h2{font-size:15px;font-weight:700;color:var(--text);flex:1;letter-spacing:-.3px}
 #drawer-close{background:none;border:none;cursor:pointer;color:var(--text-muted);padding:6px;border-radius:8px;display:flex;align-items:center;transition:background 150ms,color 150ms}
 #drawer-close:hover{background:var(--surface2);color:var(--text)}
-#drawer-body{flex:1;overflow-y:auto;padding:24px 18px 40px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-#drawer-body::-webkit-scrollbar{width:4px}
-#drawer-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+/* Left nav + right content layout */
+#drawer-inner{flex:1;display:flex;flex-direction:row;overflow:hidden;position:relative}
+#settings-nav{width:80px;flex-shrink:0;border-left:1px solid var(--border);padding:12px 0;background:var(--surface2);display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+#bmc-link{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 8px;cursor:pointer;font-size:10px;font-weight:600;color:var(--text-muted);text-align:center;text-decoration:none;margin-top:auto;border-top:1px solid var(--border);transition:all .15s}
+#bmc-link:hover{color:#f7a300;background:rgba(247,163,0,.08)}
+.s-nav-item{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 8px;cursor:pointer;border-radius:0;font-size:10px;font-weight:600;color:var(--text-muted);transition:all .15s;text-align:center;border:none;background:none;width:100%;border-left:2px solid transparent}
+.s-nav-item:hover{color:var(--text);background:var(--surface)}
+.s-nav-item.active{color:var(--accent);background:var(--surface);border-left:2px solid var(--accent)}
+#settings-content{flex:1;overflow-y:auto;padding:24px 20px 40px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+#settings-content::-webkit-scrollbar{width:4px}
+#settings-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.s-pane{display:none}
+.s-pane.active{display:block}
+/* Segmented control */
+.seg-ctrl{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:3px}
+.seg-btn{padding:6px 14px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--text-muted);transition:all .15s;font-family:inherit}
+.seg-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+/* Auto-save toast */
+#autosave-toast{position:absolute;bottom:20px;left:20px;background:#0e0e0e;color:#e8e8e2;font-size:11px;font-family:ui-monospace,monospace;letter-spacing:.06em;padding:7px 14px;border-radius:4px;border:1px solid #2a2a2a;box-shadow:0 0 0 1px #1a1a1a,0 8px 24px rgba(0,0,0,.5);z-index:600;opacity:0;transition:opacity .25s ease,transform .25s ease;pointer-events:none;transform:translateY(6px)}
+#autosave-toast.show{opacity:1;transform:translateY(0)}
 
 /* ── Settings sections ── */
 .s-section{margin-bottom:28px}
@@ -572,6 +619,9 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2480;outline:2px solid #fbb
 .key-status{display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:8px;font-size:11px;font-weight:500;margin-bottom:8px;border:1px solid transparent}
 .key-status.saved{background:#d4f4e2;border-color:#a8dfc0;color:#1a6636}
 .key-status.empty{background:#fef3c7;border-color:#fde68a;color:#92560a}
+.key-badge{display:inline-flex;align-items:center;padding:1px 7px;border-radius:9999px;font-size:9px;font-weight:700;margin-left:6px;vertical-align:middle;letter-spacing:.02em}
+.key-badge.saved{background:#d4f4e2;color:#1a6636}
+.key-badge.empty{background:var(--surface2,#f0f0ec);color:var(--text-muted,#8a8a85);border:1px solid var(--border,#e0e0d9)}
 
 /* ── Lang pills ── */
 .lang-pills{display:flex;gap:6px}
@@ -606,6 +656,7 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2480;outline:2px solid #fbb
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
     <span class="fab-badge" id="jobs-fab-badge"></span>
   </div>
+  <div id="provider-pill" title="筆記生成模型">claude</div>
   <button id="settings-btn" title="設定" style="margin-left:4px;background:none;border:none;cursor:pointer;color:var(--text-muted);padding:6px;border-radius:8px;display:flex;align-items:center;transition:color .15s;flex-shrink:0">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
       <circle cx="12" cy="12" r="3"/>
@@ -675,13 +726,41 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2480;outline:2px solid #fbb
 
 <!-- Cost Dashboard page -->
 <div id="page-cost" class="page">
-  <div class="page-toolbar" style="justify-content:space-between">
-    <div id="cost-dash-tabs" style="display:flex;gap:4px">
-      <button class="cost-dash-tab active" data-panel="claude">🤖 Claude</button>
-      <button class="cost-dash-tab" data-panel="codex">⚙️ Codex</button>
-      <button class="cost-dash-tab" data-panel="whisper">🎙 Whisper</button>
+  <!-- Summary bar: combined cost across all services -->
+  <div class="cost-summary-bar">
+    <div class="cost-summary-item">
+      <div class="cost-summary-label">今日總花費</div>
+      <div class="cost-summary-value" id="cost-summary-today">$0.00</div>
+      <div class="cost-summary-sub" id="cost-summary-today-twd">≈ NT$0</div>
     </div>
-    <button id="cost-refresh-btn" class="add-ch-btn" style="background:transparent;border-color:var(--border);color:var(--text-muted)">重新整理</button>
+    <div class="cost-summary-divider"></div>
+    <div class="cost-summary-item">
+      <div class="cost-summary-label">本月累計</div>
+      <div class="cost-summary-value" id="cost-summary-month">$0.00</div>
+      <div class="cost-summary-sub" id="cost-summary-month-twd">≈ NT$0</div>
+    </div>
+    <div class="cost-summary-divider"></div>
+    <div class="cost-summary-item">
+      <div class="cost-summary-label">歷史累計</div>
+      <div class="cost-summary-value" id="cost-summary-total">$0.00</div>
+      <div class="cost-summary-sub" id="cost-summary-total-twd">≈ NT$0</div>
+    </div>
+    <div class="cost-summary-divider"></div>
+    <div class="cost-summary-item" style="flex:0 0 auto">
+      <div class="cost-summary-label">服務分佈</div>
+      <div id="cost-summary-bars" class="cost-summary-bars"></div>
+    </div>
+    <button id="cost-refresh-btn" title="重新整理" aria-label="重新整理">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    </button>
+  </div>
+
+  <div class="page-toolbar" style="justify-content:flex-start">
+    <div id="cost-dash-tabs" class="cost-dash-tabs">
+      <button class="cost-dash-tab active" data-panel="claude">Claude</button>
+      <button class="cost-dash-tab" data-panel="codex">Codex</button>
+      <button class="cost-dash-tab" data-panel="whisper">Whisper</button>
+    </div>
   </div>
 
   <!-- ── Claude Dashboard ── -->
@@ -707,7 +786,15 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2480;outline:2px solid #fbb
     <!-- charts row -->
     <div style="display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start">
       <div class="chart-panel">
-        <div class="chart-title">近 14 天每日費用（USD）</div>
+        <div class="chart-head">
+          <div class="chart-title" id="cu-bar-title">近 14 天每日費用（USD）</div>
+          <div class="period-tabs" data-target="claude">
+            <button class="period-tab active" data-period="daily">日</button>
+            <button class="period-tab" data-period="weekly">週</button>
+            <button class="period-tab" data-period="monthly">月</button>
+            <button class="period-tab" data-period="yearly">年</button>
+          </div>
+        </div>
         <div id="cu-bar-wrap" class="bar-chart-wrap">
           <svg id="cu-bar-svg" class="bar-chart-svg"></svg>
         </div>
@@ -741,7 +828,15 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2480;outline:2px solid #fbb
       </div>
     </div>
     <div class="chart-panel">
-      <div class="chart-title">近 14 天 Codex token 用量</div>
+      <div class="chart-head">
+        <div class="chart-title" id="codex-bar-title">近 14 天 Codex token 用量</div>
+        <div class="period-tabs" data-target="codex">
+          <button class="period-tab active" data-period="daily">日</button>
+          <button class="period-tab" data-period="weekly">週</button>
+          <button class="period-tab" data-period="monthly">月</button>
+          <button class="period-tab" data-period="yearly">年</button>
+        </div>
+      </div>
       <div class="bar-chart-wrap">
         <svg id="codex-bar-svg" class="bar-chart-svg"></svg>
       </div>
@@ -788,7 +883,15 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2480;outline:2px solid #fbb
     <!-- charts row -->
     <div style="display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start;margin-bottom:20px">
       <div class="chart-panel">
-        <div class="chart-title">近 14 天每日轉錄時長（分鐘）</div>
+        <div class="chart-head">
+          <div class="chart-title" id="wh-bar-title">近 14 天每日轉錄時長（分鐘）</div>
+          <div class="period-tabs" data-target="whisper">
+            <button class="period-tab active" data-period="daily">日</button>
+            <button class="period-tab" data-period="weekly">週</button>
+            <button class="period-tab" data-period="monthly">月</button>
+            <button class="period-tab" data-period="yearly">年</button>
+          </div>
+        </div>
         <div id="wh-bar-wrap" class="bar-chart-wrap">
           <svg id="wh-bar-svg" class="bar-chart-svg"></svg>
         </div>
@@ -975,195 +1078,190 @@ body.hl-mode #detail-body mark:hover{background:#fbbf2480;outline:2px solid #fbb
     </button>
     <h2>設定</h2>
   </div>
-  <div id="drawer-body">
+  <div id="drawer-inner">
 
-    <!-- Output mode -->
-    <div class="s-section">
-      <div class="s-label">筆記輸出位置</div>
-      <div class="radio-group">
-        <label class="radio-item">
-          <input type="radio" name="outputMode" value="obsidian" id="d-modeObsidian" checked>
-          <div class="radio-item-body">
-            <div class="radio-item-title">Obsidian Vault</div>
-            <div class="radio-item-desc">依 podcasts.json 設定的 note_dir 儲存</div>
+    <!-- Left content -->
+    <div id="settings-content">
+
+      <!-- Pipeline pane -->
+      <div class="s-pane active" id="pane-pipeline">
+
+        <div class="s-section">
+          <div class="s-label">筆記輸出</div>
+          <div class="seg-ctrl" id="seg-outputMode">
+            <button class="seg-btn active" data-value="obsidian">Obsidian Vault</button>
+            <button class="seg-btn" data-value="folder">自訂資料夾</button>
           </div>
-        </label>
-        <label class="radio-item">
-          <input type="radio" name="outputMode" value="folder" id="d-modeFolder">
-          <div class="radio-item-body">
-            <div class="radio-item-title">自訂資料夾</div>
-            <div class="radio-item-desc">不需 Obsidian，純 .md 檔案</div>
+          <div class="s-hint" style="margin-top:6px;">依 podcasts.json 設定的 note_dir 儲存 / 純 .md 檔案</div>
+          <div class="s-field" id="d-folderPathField" style="display:none;margin-top:10px;">
+            <label for="d-folderPath">資料夾路徑</label>
+            <input type="text" id="d-folderPath" value="~/Documents/AlphaNote" placeholder="~/Documents/AlphaNote">
+            <div class="s-hint">筆記將以 .md 格式存入此資料夾</div>
           </div>
-        </label>
-      </div>
-      <div class="s-field" id="d-folderPathField" style="display:none;margin-top:10px;">
-        <label for="d-folderPath">資料夾路徑</label>
-        <input type="text" id="d-folderPath" value="~/Documents/AlphaNote" placeholder="~/Documents/AlphaNote">
-        <div class="s-hint">筆記將以 .md 格式存入此資料夾</div>
-      </div>
-      <div class="btn-row">
-        <button class="s-btn s-btn-primary" id="d-saveOutputBtn">儲存</button>
-      </div>
-      <div class="s-status" id="d-outputStatusMsg"></div>
-    </div>
+          <div class="s-status" id="d-outputStatusMsg"></div>
+        </div>
 
-    <hr class="s-divider">
-
-    <!-- Note generation provider -->
-    <div class="s-section">
-      <div class="s-label">筆記生成模型</div>
-      <div class="radio-group">
-        <label class="radio-item">
-          <input type="radio" name="generationProvider" value="claude" id="d-providerClaude" checked>
-          <div class="radio-item-body">
-            <div class="radio-item-title">Claude（預設）</div>
-            <div class="radio-item-desc">沿用 claude -p，適合保守穩定的產線</div>
+        <div class="s-section" style="margin-top:24px;">
+          <div class="s-label">生成模型</div>
+          <div class="seg-ctrl" id="seg-generationProvider">
+            <button class="seg-btn active" data-value="claude">Claude</button>
+            <button class="seg-btn" data-value="codex">Codex</button>
           </div>
-        </label>
-        <label class="radio-item">
-          <input type="radio" name="generationProvider" value="codex" id="d-providerCodex">
-          <div class="radio-item-body">
-            <div class="radio-item-title">Codex</div>
-            <div class="radio-item-desc">用 Codex CLI 產生 analysis.json，再由本機流程寫入筆記</div>
+          <div class="s-hint" id="d-generationDesc" style="margin-top:6px;">沿用 claude -p，適合保守穩定的產線</div>
+          <div class="s-status" id="d-generationStatusMsg"></div>
+        </div>
+
+      </div>
+
+      <!-- Transcription pane -->
+      <div class="s-pane" id="pane-transcription">
+
+        <div class="s-section">
+          <div class="s-label">轉錄方式</div>
+          <div class="seg-ctrl" id="seg-transcriptMode">
+            <button class="seg-btn active" data-value="local">本地 Whisper</button>
+            <button class="seg-btn" data-value="api">雲端 API</button>
           </div>
-        </label>
-      </div>
-      <div class="btn-row">
-        <button class="s-btn s-btn-primary" id="d-saveGenerationBtn">儲存</button>
-      </div>
-      <div class="s-status" id="d-generationStatusMsg"></div>
-    </div>
+          <div class="sub-fields visible" id="d-localModelField" style="margin-top:12px;">
+            <div class="s-field">
+              <label for="d-whisperModel">模型大小</label>
+              <select id="d-whisperModel">
+                <option value="tiny">tiny — 最快，品質低</option>
+                <option value="base">base</option>
+                <option value="small">small</option>
+                <option value="medium" selected>medium — 建議</option>
+                <option value="large-v2">large-v2</option>
+                <option value="large-v3">large-v3 — 最準，最慢</option>
+              </select>
+            </div>
+          </div>
+          <div class="sub-fields" id="d-apiKeyField" style="margin-top:12px;">
+            <div class="s-field">
+              <label for="d-openaiKey">OpenAI API Key <span class="key-badge empty" id="d-keyStatus"><span id="d-keyStatusText">未設定</span></span></label>
+              <div class="key-input-wrap">
+                <input type="password" id="d-openaiKey" placeholder="sk-proj-..." autocomplete="off" spellcheck="false">
+                <button class="key-toggle" id="d-keyToggle" type="button">
+                  <svg id="d-eyeIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+              <div class="s-hint" style="margin-top:6px;">Key 僅存在本機 server，留空則保留已儲存的 Key。</div>
+            </div>
+          </div>
+          <div class="s-status" id="d-transcriptStatusMsg"></div>
+        </div>
 
-    <hr class="s-divider">
+        <div class="s-section" style="margin-top:24px;">
+          <div class="s-label">筆記語言</div>
+          <div class="seg-ctrl" id="seg-analysisLang">
+            <button class="seg-btn active" data-value="zh">繁中</button>
+            <button class="seg-btn" data-value="en">English</button>
+            <button class="seg-btn" data-value="auto">Auto</button>
+          </div>
+          <div class="s-hint" style="margin-top:6px;">決定筆記輸出語言</div>
+        </div>
 
-    <!-- Transcription mode -->
-    <div class="s-section">
-      <div class="s-label">轉錄方式</div>
-      <div class="radio-group">
-        <label class="radio-item">
+        <!-- Hidden radio inputs kept for JS compat -->
+        <div style="display:none">
           <input type="radio" name="transcriptMode" value="local" id="d-modeLocal" checked>
-          <div class="radio-item-body">
-            <div class="radio-item-title">本地（faster-whisper）</div>
-            <div class="radio-item-desc">需要 ffmpeg，不花 API 費用，支援 GPU 加速</div>
-          </div>
-        </label>
-        <label class="radio-item">
           <input type="radio" name="transcriptMode" value="api" id="d-modeApi">
-          <div class="radio-item-body">
-            <div class="radio-item-title">雲端（Whisper API）</div>
-            <div class="radio-item-desc">需要 OpenAI API Key，不需要本地模型</div>
+          <input type="radio" name="analysisLang" value="zh" id="d-lang-zh" checked>
+          <input type="radio" name="analysisLang" value="en" id="d-lang-en">
+          <input type="radio" name="analysisLang" value="auto" id="d-lang-auto">
+        </div>
+
+      </div>
+
+      <!-- Notification pane -->
+      <div class="s-pane" id="pane-notification">
+
+        <div class="s-section">
+          <div class="s-label">Telegram <span class="key-badge empty" id="d-tgStatus"><span id="d-tgStatusText">未設定</span></span></div>
+          <div class="s-field">
+            <label for="d-tgToken">Bot Token</label>
+            <div class="key-input-wrap">
+              <input type="password" id="d-tgToken" placeholder="123456789:ABC..." autocomplete="off" spellcheck="false">
+              <button class="key-toggle" id="d-tgTokenToggle" type="button" aria-label="顯示/隱藏" tabindex="-1">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <div class="s-hint">從 @BotFather 取得，留空則保留舊值</div>
           </div>
-        </label>
-      </div>
-      <div class="sub-fields visible" id="d-localModelField" style="margin-top:9px;">
-        <div class="s-field">
-          <label for="d-whisperModel">本地模型大小</label>
-          <select id="d-whisperModel">
-            <option value="tiny">tiny — 最快，品質低</option>
-            <option value="base">base</option>
-            <option value="small">small</option>
-            <option value="medium" selected>medium — 建議</option>
-            <option value="large-v2">large-v2</option>
-            <option value="large-v3">large-v3 — 最準，最慢</option>
-          </select>
-        </div>
-      </div>
-      <div class="sub-fields" id="d-apiKeyField" style="margin-top:9px;">
-        <div class="s-field">
-          <label for="d-openaiKey">OpenAI API Key</label>
-          <div class="key-status empty" id="d-keyStatus">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span id="d-keyStatusText">尚未設定 API Key</span>
+          <div class="s-field">
+            <label for="d-tgChatId">Chat ID</label>
+            <input type="text" id="d-tgChatId" placeholder="-100xxxxxxxxxx 或你的 user ID">
+            <div class="s-hint">傳訊息給 @userinfobot 取得你的 Chat ID</div>
           </div>
-          <div class="key-input-wrap">
-            <input type="password" id="d-openaiKey" placeholder="sk-proj-..." autocomplete="off" spellcheck="false">
-            <button class="key-toggle" id="d-keyToggle" type="button">
-              <svg id="d-eyeIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            </button>
+          <div class="btn-row">
+            <button class="s-btn s-btn-secondary" id="d-testTgBtn">測試通知</button>
           </div>
-          <div class="s-hint" style="margin-top:6px;">Key 僅存在本機 server，留空則保留已儲存的 Key。</div>
+          <div class="s-status" id="d-tgStatusMsg"></div>
         </div>
-      </div>
-      <div class="s-field" style="margin-top:14px;">
-        <label>筆記輸出語言</label>
-        <div class="lang-pills">
-          <label class="lang-pill"><input type="radio" name="analysisLang" value="zh" id="d-lang-zh" checked>繁中</label>
-          <label class="lang-pill"><input type="radio" name="analysisLang" value="en" id="d-lang-en">English</label>
-          <label class="lang-pill"><input type="radio" name="analysisLang" value="auto" id="d-lang-auto">Auto</label>
-        </div>
-        <div class="s-hint">決定筆記輸出語言</div>
-      </div>
-      <div class="btn-row" style="margin-top:14px;">
-        <button class="s-btn s-btn-primary" id="d-saveTranscriptBtn">儲存</button>
-      </div>
-      <div class="s-status" id="d-transcriptStatusMsg"></div>
-    </div>
 
-    <hr class="s-divider">
+      </div>
 
-    <!-- Telegram notification -->
-    <div class="s-section">
-      <div class="s-label">通知設定</div>
-      <div class="key-status empty" id="d-tgStatus">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <span id="d-tgStatusText">尚未設定 Telegram</span>
-      </div>
-      <div class="s-field">
-        <label for="d-tgToken">Bot Token</label>
-        <div class="key-input-wrap">
-          <input type="password" id="d-tgToken" placeholder="123456789:ABC..." autocomplete="off" spellcheck="false">
-          <button class="key-toggle" id="d-tgTokenToggle" type="button" aria-label="顯示/隱藏" tabindex="-1">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
-        </div>
-        <div class="s-hint">從 @BotFather 取得，留空則保留舊值</div>
-      </div>
-      <div class="s-field">
-        <label for="d-tgChatId">Chat ID</label>
-        <input type="text" id="d-tgChatId" placeholder="-100xxxxxxxxxx 或你的 user ID">
-        <div class="s-hint">傳訊息給 @userinfobot 取得你的 Chat ID</div>
-      </div>
-      <div class="s-btn-row">
-        <button class="s-btn s-btn-primary" id="d-saveTgBtn">儲存</button>
-        <button class="s-btn s-btn-secondary" id="d-testTgBtn">測試通知</button>
-      </div>
-      <div class="s-status" id="d-tgStatusMsg"></div>
-    </div>
+      <!-- Prompt pane -->
+      <div class="s-pane" id="pane-prompt">
 
-    <hr class="s-divider">
+        <div class="s-section">
+          <div class="prompt-label-row">
+            <div class="s-label" style="margin-bottom:0;">分析 Prompt</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="custom-badge" id="d-customBadge">已自訂</span>
+              <button class="prompt-mode-btn" id="d-promptEditBtn">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                編輯
+              </button>
+            </div>
+          </div>
+          <div class="prompt-box previewing" id="d-promptBox">
+            <div class="prompt-preview" id="d-promptPreview"><div class="prompt-preview-loading">載入中...</div></div>
+            <div class="prompt-edit-hint" id="d-promptEditHint">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              點擊編輯
+            </div>
+            <textarea id="d-promptEditor" style="display:none" placeholder="在此輸入自訂 prompt…" spellcheck="false"></textarea>
+            <div id="d-promptPreviewFooter" style="padding:8px 14px;border-top:1px solid var(--border);display:flex;gap:6px;">
+              <button class="s-btn s-btn-secondary s-btn-sm" id="d-reloadPromptBtn">重新載入</button>
+              <button class="s-btn s-btn-danger s-btn-sm" id="d-resetPromptBtn">恢復預設</button>
+            </div>
+            <div id="d-promptEditFooter" style="padding:8px 14px;border-top:1px solid var(--border);gap:6px;display:none;">
+              <button class="s-btn s-btn-primary" id="d-savePromptBtn">儲存</button>
+              <button class="s-btn s-btn-secondary" id="d-cancelPromptBtn">取消</button>
+            </div>
+          </div>
+          <div class="s-status" id="d-promptStatusMsg"></div>
+        </div>
 
-    <!-- Prompt editor -->
-    <div class="s-section">
-      <div class="prompt-label-row">
-        <div class="s-label" style="margin-bottom:0;">分析 Prompt</div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span class="custom-badge" id="d-customBadge">已自訂</span>
-          <button class="prompt-mode-btn" id="d-promptEditBtn">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            編輯
-          </button>
-        </div>
       </div>
-      <div class="prompt-box previewing" id="d-promptBox">
-        <div class="prompt-preview" id="d-promptPreview"><div class="prompt-preview-loading">載入中...</div></div>
-        <div class="prompt-edit-hint" id="d-promptEditHint">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          點擊編輯
-        </div>
-        <textarea id="d-promptEditor" style="display:none" placeholder="在此輸入自訂 prompt…" spellcheck="false"></textarea>
-        <div id="d-promptPreviewFooter" style="padding:8px 14px;border-top:1px solid var(--border);display:flex;gap:6px;">
-          <button class="s-btn s-btn-secondary s-btn-sm" id="d-reloadPromptBtn">重新載入</button>
-          <button class="s-btn s-btn-danger s-btn-sm" id="d-resetPromptBtn">恢復預設</button>
-        </div>
-        <div id="d-promptEditFooter" style="padding:8px 14px;border-top:1px solid var(--border);gap:6px;display:none;">
-          <button class="s-btn s-btn-primary" id="d-savePromptBtn">儲存</button>
-          <button class="s-btn s-btn-secondary" id="d-cancelPromptBtn">取消</button>
-        </div>
-      </div>
-      <div class="s-status" id="d-promptStatusMsg"></div>
-    </div>
 
-  </div>
+    </div><!-- /settings-content -->
+
+    <!-- Right nav -->
+    <nav id="settings-nav">
+      <button class="s-nav-item active" data-pane="pipeline">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        Pipeline
+      </button>
+      <button class="s-nav-item" data-pane="transcription">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        轉錄
+      </button>
+      <button class="s-nav-item" data-pane="notification">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        通知
+      </button>
+      <button class="s-nav-item" data-pane="prompt">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Prompt
+      </button>
+      <a id="bmc-link" href="https://www.buymeacoffee.com/alphanotelabs" target="_blank" rel="noopener" title="Buy Me a Coffee">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+        支持
+      </a>
+    </nav>
+
+  <div id="autosave-toast">saved ✓</div>
+  </div><!-- /drawer-inner -->
 </div>
 
 <script>
@@ -1653,6 +1751,93 @@ function svgEl(tag, attrs={}){
 
 // Draw horizontal bar chart into <svg id>
 // items: [{label, value}], valueLabel: fn(v)->string, barColor: string
+// 把任意格式的 date 字串 normalize 成 YYYY-MM-DD
+// 支援：YYYY-MM-DD、MM/DD（補今年）、M/D
+function normalizeDate(str){
+  if(!str) return '';
+  if(/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  // MM/DD or M/D → 補今年
+  const m=str.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if(m){
+    const year=new Date().getFullYear();
+    return `${year}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;
+  }
+  return str;
+}
+
+// 補齊近 N 天，缺的日期填 0，回傳 [{label, value}]（label=MM/DD）
+function fillDailyWindow(items, days=14){
+  const map=new Map((items||[]).map(x=>[normalizeDate(x.label||x.date), x.value]));
+  const out=[];
+  const today=new Date();
+  for(let i=days-1;i>=0;i--){
+    const d=new Date(today); d.setDate(today.getDate()-i);
+    const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const short=`${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+    out.push({label:short, value:map.get(key)||0});
+  }
+  return out;
+}
+
+// 把 [{date,value}] aggregate 成 daily/weekly/monthly/yearly window
+function aggregateByPeriod(items, period){
+  const data=(items||[]).map(x=>({date:normalizeDate(x.label||x.date), value:x.value}));
+  const today=new Date();
+  const out=[];
+  if(period==='daily'){
+    return fillDailyWindow(items, 14);
+  }
+  if(period==='weekly'){
+    const buckets=new Map();
+    for(const {date,value} of data){
+      if(!date) continue;
+      const d=new Date(date+'T00:00:00');
+      // week-start = Monday
+      const day=(d.getDay()+6)%7;
+      const ws=new Date(d); ws.setDate(d.getDate()-day);
+      const key=`${ws.getFullYear()}-${String(ws.getMonth()+1).padStart(2,'0')}-${String(ws.getDate()).padStart(2,'0')}`;
+      buckets.set(key, (buckets.get(key)||0)+value);
+    }
+    for(let i=11;i>=0;i--){
+      const ws=new Date(today);
+      ws.setDate(today.getDate()-((today.getDay()+6)%7)-i*7);
+      const key=`${ws.getFullYear()}-${String(ws.getMonth()+1).padStart(2,'0')}-${String(ws.getDate()).padStart(2,'0')}`;
+      const short=`${String(ws.getMonth()+1).padStart(2,'0')}/${String(ws.getDate()).padStart(2,'0')}`;
+      out.push({label:short, value:buckets.get(key)||0});
+    }
+    return out;
+  }
+  if(period==='monthly'){
+    const buckets=new Map();
+    for(const {date,value} of data){
+      if(!date) continue;
+      const key=date.slice(0,7);
+      buckets.set(key, (buckets.get(key)||0)+value);
+    }
+    for(let i=11;i>=0;i--){
+      const d=new Date(today.getFullYear(), today.getMonth()-i, 1);
+      const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      const short=`${String(d.getMonth()+1).padStart(2,'0')}月`;
+      out.push({label:short, value:buckets.get(key)||0});
+    }
+    return out;
+  }
+  if(period==='yearly'){
+    const buckets=new Map();
+    for(const {date,value} of data){
+      if(!date) continue;
+      const key=date.slice(0,4);
+      buckets.set(key, (buckets.get(key)||0)+value);
+    }
+    for(let i=4;i>=0;i--){
+      const y=today.getFullYear()-i;
+      out.push({label:String(y), value:buckets.get(String(y))||0});
+    }
+    return out;
+  }
+  return [];
+}
+
 function drawBarChart(svgId, items, valueLabel, barColor='#e60023'){
   const svg=document.getElementById(svgId);
   if(!svg) return;
@@ -1663,20 +1848,25 @@ function drawBarChart(svgId, items, valueLabel, barColor='#e60023'){
     svg.appendChild(t);
     return;
   }
-  const W=svg.getBoundingClientRect().width||300;
+  // getBoundingClientRect returns 0 when panel is display:none; fall back to parent width or 300
+  const W=svg.getBoundingClientRect().width||svg.parentElement?.getBoundingClientRect().width||300;
   const H=120;
   const padL=36, padR=8, padT=8, padB=20;
   const n=items.length;
   const maxV=Math.max(...items.map(i=>i.value),0.0001);
-  const slotW=(W-padL-padR)/n;
-  const barW=Math.max(slotW*0.55,4);
+  const targetSlotW=(W-padL-padR)/n;
+  const slotW=Math.min(targetSlotW, 56);
+  const barW=Math.min(Math.max(slotW*0.55,4),32);
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+
+  // 資料少時讓 x 軸線寬度跟著 bars 走，避免右側空白看起來奇怪
+  const xAxisEnd=Math.min(W-padR, padL+slotW*n+4);
 
   // y-axis gridlines + labels (3 lines)
   for(let i=0;i<=2;i++){
     const v=(maxV*i/2);
     const y=padT+(H-padT-padB)*(1-i/2);
-    const line=svgEl('line',{x1:padL,y1:y,x2:W-padR,y2:y,stroke:'var(--border)',
+    const line=svgEl('line',{x1:padL,y1:y,x2:xAxisEnd,y2:y,stroke:'var(--border)',
       'stroke-width':'0.5','stroke-dasharray': i===0?'0':'3,3'});
     svg.appendChild(line);
     if(i>0){
@@ -1775,8 +1965,8 @@ async function loadClaudeUsage(){
       $('cu-burn-rate').textContent='—';
     }
     // bar chart: daily cost
-    const dailyItems=(d.daily||[]).map(x=>({label:x.date,value:x.costUSD}));
-    drawBarChart('cu-bar-svg', dailyItems, v=>`$${v.toFixed(2)}`,'#e60023');
+    _chartState.claude.raw=(d.daily||[]).map(x=>({date:x.date, value:x.costUSD}));
+    renderChartForService('claude');
     // pie chart: model breakdown (shorten model names)
     const modelSlices=(d.models||[]).map(x=>({
       label: x.model.replace('claude-','').replace(/-\d{8}$/,''),
@@ -1799,8 +1989,8 @@ async function loadCodexUsage(){
     $('codex-total-tokens').textContent=fmtTokens(total.totalTokens);
     $('codex-total-runs').textContent=`${total.runs||0} runs`;
 
-    const dailyItems=(d.daily||[]).map(x=>({label:x.date,value:x.totalTokens}));
-    drawBarChart('codex-bar-svg',dailyItems,fmtTokens,'#0076d3');
+    _chartState.codex.raw=(d.daily||[]).map(x=>({date:x.date, value:x.totalTokens}));
+    renderChartForService('codex');
 
     const tbody=$('codex-usage-table-body');
     const rows=d.entries||[];
@@ -1824,9 +2014,90 @@ async function loadCodexUsage(){
   }
 }
 
+// Per-service chart state (raw daily data + current period)
+const _chartState={
+  claude:  {raw:[], period:'daily', svgId:'cu-bar-svg',   titleId:'cu-bar-title',   color:'#e60023', fmt:v=>`$${v.toFixed(2)}`,                                   unit:'費用（USD）'},
+  codex:   {raw:[], period:'daily', svgId:'codex-bar-svg',titleId:'codex-bar-title',color:'#0076d3', fmt:v=>fmtTokens(v),                                          unit:'Codex token 用量'},
+  whisper: {raw:[], period:'daily', svgId:'wh-bar-svg',   titleId:'wh-bar-title',   color:'#0076d3', fmt:v=>v>=60?`${(v/60).toFixed(1)}h`:`${Math.round(v)}m`,     unit:'轉錄時長（分鐘）'},
+};
+const _periodLabel={daily:'近 14 天每日', weekly:'近 12 週每週', monthly:'近 12 個月每月', yearly:'近 5 年每年'};
+
+function renderChartForService(svc){
+  const st=_chartState[svc];
+  if(!st) return;
+  const items=aggregateByPeriod(st.raw, st.period);
+  const title=document.getElementById(st.titleId);
+  if(title) title.textContent=`${_periodLabel[st.period]} ${st.unit}`;
+  // defer 2 frames so the panel is visible and getBoundingClientRect returns correct width
+  requestAnimationFrame(()=>requestAnimationFrame(()=>drawBarChart(st.svgId, items, st.fmt, st.color)));
+}
+
+// Wire up period tab clicks (delegate from page-cost)
+document.addEventListener('click',e=>{
+  const btn=e.target.closest('.period-tab');
+  if(!btn) return;
+  const wrap=btn.closest('.period-tabs');
+  if(!wrap) return;
+  const svc=wrap.dataset.target;
+  const period=btn.dataset.period;
+  if(!svc||!period||!_chartState[svc]) return;
+  _chartState[svc].period=period;
+  wrap.querySelectorAll('.period-tab').forEach(b=>b.classList.toggle('active', b===btn));
+  renderChartForService(svc);
+});
+
+async function loadCostSummary(){
+  try{
+    const [claude, costs] = await Promise.all([
+      api('/api/claude-usage').catch(()=>({})),
+      api('/api/costs').catch(()=>({entries:[],total_usd:0})),
+    ]);
+
+    const todayStr=new Date().toISOString().slice(0,10);
+    const monthStr=todayStr.slice(0,7);
+
+    // Claude
+    const claudeToday=claude.today?.costUSD||0;
+    const claudeDaily=claude.daily||[];
+    const claudeMonth=claudeDaily.filter(x=>(x.date||'').startsWith(monthStr)).reduce((s,x)=>s+(x.costUSD||0),0);
+    const claudeTotal=claudeDaily.reduce((s,x)=>s+(x.costUSD||0),0);
+
+    // Whisper
+    const whisperEntries=costs.entries||[];
+    const whisperToday=whisperEntries.filter(r=>new Date(r.ts*1000).toISOString().slice(0,10)===todayStr).reduce((s,r)=>s+r.cost_usd,0);
+    const whisperMonth=whisperEntries.filter(r=>new Date(r.ts*1000).toISOString().slice(0,7)===monthStr).reduce((s,r)=>s+r.cost_usd,0);
+    const whisperTotal=costs.total_usd||0;
+
+    const today=claudeToday+whisperToday;
+    const month=claudeMonth+whisperMonth;
+    const total=claudeTotal+whisperTotal;
+
+    $('cost-summary-today').textContent=`$${today.toFixed(2)}`;
+    $('cost-summary-today-twd').textContent=`≈ NT$${Math.round(today*USD_TO_TWD).toLocaleString()}`;
+    $('cost-summary-month').textContent=`$${month.toFixed(2)}`;
+    $('cost-summary-month-twd').textContent=`≈ NT$${Math.round(month*USD_TO_TWD).toLocaleString()}`;
+    $('cost-summary-total').textContent=`$${total.toFixed(2)}`;
+    $('cost-summary-total-twd').textContent=`≈ NT$${Math.round(total*USD_TO_TWD).toLocaleString()}`;
+
+    // service distribution bars (by monthly cost)
+    const bars=[
+      {label:'Claude', value:claudeMonth, color:'#e60023'},
+      {label:'Whisper', value:whisperMonth, color:'#0076d3'},
+    ];
+    const maxV=Math.max(...bars.map(b=>b.value), 0.001);
+    $('cost-summary-bars').innerHTML=bars.map(b=>`
+      <div class="cost-summary-bar-row">
+        <span class="lbl">${b.label}</span>
+        <span class="track"><span class="fill" style="width:${(b.value/maxV*100).toFixed(0)}%;background:${b.color}"></span></span>
+        <span class="val">$${b.value.toFixed(2)}</span>
+      </div>`).join('');
+  }catch(_){}
+}
+
 async function loadCostDashboard(){
   loadClaudeUsage();
   loadCodexUsage();
+  loadCostSummary();
   const tbody=$('cost-table-body');
   const tfoot=$('cost-table-foot');
   tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">載入中…</td></tr>';
@@ -1847,8 +2118,8 @@ async function loadCostDashboard(){
     $('cost-total-count').textContent=totalCount;
 
     // bar chart: daily minutes
-    const dailyItems=(data.daily||[]).map(x=>({label:x.date,value:x.minutes}));
-    drawBarChart('wh-bar-svg', dailyItems, v=>v>=60?`${(v/60).toFixed(1)}h`:`${Math.round(v)}m`,'#0076d3');
+    _chartState.whisper.raw=(data.daily||[]).map(x=>({date:x.date, value:x.minutes}));
+    renderChartForService('whisper');
     // pie chart: by_type
     const typeSlices=(data.by_type||[]).map(x=>({label:x.type,value:x.costUSD}));
     drawPieChart('wh-pie-svg','wh-pie-legend',typeSlices);
@@ -1893,8 +2164,8 @@ document.querySelectorAll('.cost-dash-tab').forEach(btn=>{
     const panel=btn.dataset.panel;
     document.querySelectorAll('.cost-dash-tab').forEach(b=>b.classList.toggle('active',b===btn));
     document.querySelectorAll('.cost-panel').forEach(p=>p.style.display=p.id===`cost-panel-${panel}`?'':'none');
-    // redraw bar charts now that the panel is visible (getBoundingClientRect needs layout)
-    requestAnimationFrame(()=>loadCostDashboard());
+    // redraw chart for this panel now that it's visible
+    requestAnimationFrame(()=>requestAnimationFrame(()=>renderChartForService(panel)));
   });
 });
 $('nav-title')?.addEventListener('click',()=>showPage('notes'));
@@ -3779,14 +4050,21 @@ function renderJobsDash(){
       }catch(err){alert('繼續失敗：'+err.message);}
     });
 
-    // 終止按鈕 → cancel job
-    row.querySelector('.job-cancel-btn')?.addEventListener('click',async e=>{
+    // 終止按鈕 → inline confirm
+    row.querySelector('.job-cancel-btn')?.addEventListener('click',e=>{
       e.stopPropagation();
-      if(!confirm('確定要終止此任務？')) return;
-      try{
-        await api(`/api/jobs/${job.job_id}/cancel`,{method:'POST'});
-        await refreshJobsDash();
-      }catch(err){alert('終止失敗：'+err.message);}
+      const titleEl=row.querySelector('.job-title');
+      if(titleEl.querySelector('.job-cancel-confirm'))return;
+      const frag=document.createElement('span');
+      frag.className='job-cancel-confirm';
+      frag.innerHTML=`<span class="job-cancel-confirm-text">確定終止？</span><span class="job-cancel-confirm-yes">終止</span><span class="job-cancel-confirm-no">取消</span>`;
+      frag.querySelector('.job-cancel-confirm-yes').addEventListener('click',async ev=>{
+        ev.stopPropagation();
+        try{await api(`/api/jobs/${job.job_id}/cancel`,{method:'POST'});await refreshJobsDash();}
+        catch(err){frag.remove();}
+      });
+      frag.querySelector('.job-cancel-confirm-no').addEventListener('click',ev=>{ev.stopPropagation();frag.remove();});
+      titleEl.appendChild(frag);
     });
 
     // 點 log 按鈕 → 展開/收起 log
@@ -3947,6 +4225,7 @@ $('jobs-clear-all')?.addEventListener('click',()=>{
   localStorage.setItem('dismissedNewVideos',JSON.stringify([..._dismissedNewVideos]));
   _allJobs=_allJobs.filter(j=>j.status==='pending'||j.status==='running'||j.status==='waiting');
   renderJobsDash();
+  if(!_allJobs.length)$('jobs-panel').classList.remove('open');
 });
 
 // ── Resize & Fullscreen ───────────────────────────────────────
@@ -4053,33 +4332,152 @@ init();
     overlay.classList.remove('open');
   }
 
-  // Output mode toggle
-  document.querySelectorAll('input[name="outputMode"]').forEach(r=>{
-    r.addEventListener('change',()=>{
-      const isFolder=document.querySelector('input[name="outputMode"]:checked')?.value==='folder';
-      document.getElementById('d-folderPathField').style.display=isFolder?'block':'none';
+  // ── Nav switching ──
+  document.querySelectorAll('.s-nav-item').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.s-nav-item').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.s-pane').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('pane-'+btn.dataset.pane).classList.add('active');
     });
   });
 
-  // Transcription mode toggle
-  document.querySelectorAll('input[name="transcriptMode"]').forEach(r=>{
-    r.addEventListener('change',syncTranscriptFields);
+  // ── Auto-save toast ──
+  let _toastTimer=null;
+  function showAutoSaveToast(){
+    const toast=document.getElementById('autosave-toast');
+    toast.classList.add('show');
+    if(_toastTimer)clearTimeout(_toastTimer);
+    _toastTimer=setTimeout(()=>toast.classList.remove('show'),1500);
+  }
+
+  // ── Segmented control helper ──
+  function initSegCtrl(id, onChange){
+    const ctrl=document.getElementById(id);
+    if(!ctrl)return;
+    ctrl.querySelectorAll('.seg-btn').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        ctrl.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        onChange(btn.dataset.value);
+      });
+    });
+  }
+  function segValue(id){
+    const ctrl=document.getElementById(id);
+    return ctrl?.querySelector('.seg-btn.active')?.dataset.value||null;
+  }
+  function setSegValue(id, value){
+    const ctrl=document.getElementById(id);
+    if(!ctrl)return;
+    ctrl.querySelectorAll('.seg-btn').forEach(b=>{
+      b.classList.toggle('active', b.dataset.value===value);
+    });
+  }
+
+  // ── Output mode segmented ──
+  initSegCtrl('seg-outputMode', async(mode)=>{
+    document.getElementById('d-folderPathField').style.display=mode==='folder'?'block':'none';
+    const folder_path=document.getElementById('d-folderPath').value.trim()||'~/Documents/AlphaNote';
+    try{
+      const r=await fetch(`${SERVER}/api/settings/output`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({mode,folder_path}),
+      });
+      if(!r.ok)throw new Error(`HTTP ${r.status}`);
+      showAutoSaveToast();
+    }catch(e){showStatus('d-outputStatusMsg','❌ '+e.message,false);}
+  });
+  // Also save when folder path changes (blur)
+  document.getElementById('d-folderPath').addEventListener('change',async()=>{
+    const mode=segValue('seg-outputMode')||'obsidian';
+    const folder_path=document.getElementById('d-folderPath').value.trim()||'~/Documents/AlphaNote';
+    try{
+      const r=await fetch(`${SERVER}/api/settings/output`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({mode,folder_path}),
+      });
+      if(!r.ok)throw new Error(`HTTP ${r.status}`);
+      showAutoSaveToast();
+    }catch(e){showStatus('d-outputStatusMsg','❌ '+e.message,false);}
   });
 
-  // Language pill auto-save
-  document.querySelectorAll('input[name="analysisLang"]').forEach(r=>{
-    r.addEventListener('change',async()=>{
-      const lang=r.value;
-      const mode=document.querySelector('input[name="transcriptMode"]:checked')?.value||'local';
-      const whisper_model=document.getElementById('d-whisperModel').value;
-      try{
-        await fetch(`${SERVER}/api/settings/transcription`,{
-          method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({mode,whisper_model,openai_api_key:'',language:lang}),
-        });
-        showStatus('d-transcriptStatusMsg','✅ 語言已儲存',true);
-      }catch(e){showStatus('d-transcriptStatusMsg','❌ '+e.message,false);}
-    });
+  // ── Generation provider segmented ──
+  const _genDescs={claude:'沿用 claude -p，適合保守穩定的產線',codex:'用 Codex CLI 產生 analysis.json，再由本機流程寫入筆記'};
+  function updateProviderPill(p){const el=document.getElementById('provider-pill');if(el)el.textContent=p||'claude';}
+  document.getElementById('provider-pill').addEventListener('click',async()=>{
+    const cur=segValue('seg-generationProvider')||'claude';
+    const next=cur==='claude'?'codex':'claude';
+    setSegValue('seg-generationProvider',next);
+    document.getElementById('d-generationDesc').textContent=_genDescs[next]||'';
+    updateProviderPill(next);
+    try{
+      const r=await fetch(`${SERVER}/api/settings/generation`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:next})});
+      if(!r.ok)throw new Error(`HTTP ${r.status}`);
+      showAutoSaveToast();
+    }catch(e){updateProviderPill(cur);setSegValue('seg-generationProvider',cur);}
+  });
+  initSegCtrl('seg-generationProvider', async(provider)=>{
+    document.getElementById('d-generationDesc').textContent=_genDescs[provider]||'';
+    updateProviderPill(provider);
+    try{
+      const r=await fetch(`${SERVER}/api/settings/generation`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({provider}),
+      });
+      if(!r.ok)throw new Error(`HTTP ${r.status}`);
+      showAutoSaveToast();
+    }catch(e){showStatus('d-generationStatusMsg','❌ '+e.message,false);}
+  });
+
+  // ── Transcription mode segmented ──
+  initSegCtrl('seg-transcriptMode', async(mode)=>{
+    // sync hidden radio for compat
+    const radio=document.getElementById(mode==='local'?'d-modeLocal':'d-modeApi');
+    if(radio)radio.checked=true;
+    syncTranscriptFields();
+    const whisper_model=document.getElementById('d-whisperModel').value;
+    const language=segValue('seg-analysisLang')||'zh';
+    try{
+      const r=await fetch(`${SERVER}/api/settings/transcription`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({mode,whisper_model,openai_api_key:'',language}),
+      });
+      if(!r.ok)throw new Error(`HTTP ${r.status}`);
+      showAutoSaveToast();
+    }catch(e){showStatus('d-transcriptStatusMsg','❌ '+e.message,false);}
+  });
+
+  // Whisper model select auto-save
+  document.getElementById('d-whisperModel').addEventListener('change',async()=>{
+    const mode=segValue('seg-transcriptMode')||'local';
+    const whisper_model=document.getElementById('d-whisperModel').value;
+    const language=segValue('seg-analysisLang')||'zh';
+    try{
+      const r=await fetch(`${SERVER}/api/settings/transcription`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({mode,whisper_model,openai_api_key:'',language}),
+      });
+      if(!r.ok)throw new Error(`HTTP ${r.status}`);
+      showAutoSaveToast();
+    }catch(e){showStatus('d-transcriptStatusMsg','❌ '+e.message,false);}
+  });
+
+  // ── Language segmented ──
+  initSegCtrl('seg-analysisLang', async(lang)=>{
+    // sync hidden radio for compat
+    const radio=document.getElementById('d-lang-'+lang);
+    if(radio)radio.checked=true;
+    const mode=segValue('seg-transcriptMode')||'local';
+    const whisper_model=document.getElementById('d-whisperModel').value;
+    try{
+      const r=await fetch(`${SERVER}/api/settings/transcription`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({mode,whisper_model,openai_api_key:'',language:lang}),
+      });
+      if(!r.ok)throw new Error(`HTTP ${r.status}`);
+      showAutoSaveToast();
+    }catch(e){showStatus('d-transcriptStatusMsg','❌ '+e.message,false);}
   });
 
   // API key toggle
@@ -4093,59 +4491,24 @@ init();
       :'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
   });
 
-  // Transcription save
-  document.getElementById('d-saveTranscriptBtn').addEventListener('click',async()=>{
-    const btn=document.getElementById('d-saveTranscriptBtn');
-    const mode=document.querySelector('input[name="transcriptMode"]:checked')?.value||'local';
-    const whisper_model=document.getElementById('d-whisperModel').value;
+  // OpenAI key save on change (blur)
+  let _loadedOaiKey='';
+  document.getElementById('d-openaiKey').addEventListener('change',async()=>{
     const openai_api_key=document.getElementById('d-openaiKey').value.trim();
-    const language=document.querySelector('input[name="analysisLang"]:checked')?.value||'zh';
-    btn.disabled=true;btn.textContent='儲存中…';
+    if(!openai_api_key||openai_api_key===_loadedOaiKey)return;
+    const mode=segValue('seg-transcriptMode')||'local';
+    const whisper_model=document.getElementById('d-whisperModel').value;
+    const language=segValue('seg-analysisLang')||'zh';
     try{
       const r=await fetch(`${SERVER}/api/settings/transcription`,{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({mode,whisper_model,openai_api_key,language}),
       });
       if(!r.ok)throw new Error(`HTTP ${r.status}`);
-      document.getElementById('d-openaiKey').value='';
-      document.getElementById('d-openaiKey').type='password';
-      if(mode==='api'&&openai_api_key) updateKeyStatus(true);
-      showStatus('d-transcriptStatusMsg','✅ 已儲存',true);
+      _loadedOaiKey=openai_api_key;
+      updateKeyStatus(true);
+      showAutoSaveToast();
     }catch(e){showStatus('d-transcriptStatusMsg','❌ '+e.message,false);}
-    finally{btn.disabled=false;btn.textContent='儲存';}
-  });
-
-  // Output save
-  document.getElementById('d-saveOutputBtn').addEventListener('click',async()=>{
-    const btn=document.getElementById('d-saveOutputBtn');
-    const mode=document.querySelector('input[name="outputMode"]:checked')?.value||'obsidian';
-    const folder_path=document.getElementById('d-folderPath').value.trim()||'~/Documents/AlphaNote';
-    btn.disabled=true;btn.textContent='儲存中…';
-    try{
-      const r=await fetch(`${SERVER}/api/settings/output`,{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({mode,folder_path}),
-      });
-      if(!r.ok)throw new Error(`HTTP ${r.status}`);
-      showStatus('d-outputStatusMsg','✅ 已儲存',true);
-    }catch(e){showStatus('d-outputStatusMsg','❌ '+e.message,false);}
-    finally{btn.disabled=false;btn.textContent='儲存';}
-  });
-
-  // Generation provider save
-  document.getElementById('d-saveGenerationBtn').addEventListener('click',async()=>{
-    const btn=document.getElementById('d-saveGenerationBtn');
-    const provider=document.querySelector('input[name="generationProvider"]:checked')?.value||'claude';
-    btn.disabled=true;btn.textContent='儲存中…';
-    try{
-      const r=await fetch(`${SERVER}/api/settings/generation`,{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({provider}),
-      });
-      if(!r.ok)throw new Error(`HTTP ${r.status}`);
-      showStatus('d-generationStatusMsg',`✅ 已切換為 ${provider==='codex'?'Codex':'Claude'}`,true);
-    }catch(e){showStatus('d-generationStatusMsg','❌ '+e.message,false);}
-    finally{btn.disabled=false;btn.textContent='儲存';}
   });
 
   // Prompt toggle
@@ -4192,21 +4555,21 @@ init();
   });
 
   function syncTranscriptFields(){
-    const mode=document.querySelector('input[name="transcriptMode"]:checked')?.value;
+    const mode=segValue('seg-transcriptMode')||document.querySelector('input[name="transcriptMode"]:checked')?.value||'local';
     document.getElementById('d-localModelField').classList.toggle('visible',mode==='local');
     document.getElementById('d-apiKeyField').classList.toggle('visible',mode==='api');
   }
   function updateTgStatus(isSet){
     const el=document.getElementById('d-tgStatus');
     const text=document.getElementById('d-tgStatusText');
-    if(isSet){el.className='key-status saved';el.querySelector('svg').innerHTML='<polyline points="20 6 9 17 4 12"/>';text.textContent='Telegram 已設定';}
-    else{el.className='key-status empty';el.querySelector('svg').innerHTML='<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';text.textContent='尚未設定 Telegram';}
+    el.className=isSet?'key-badge saved':'key-badge empty';
+    text.textContent=isSet?'已設定':'未設定';
   }
   function updateKeyStatus(isSet){
     const el=document.getElementById('d-keyStatus');
     const text=document.getElementById('d-keyStatusText');
-    if(isSet){el.className='key-status saved';el.querySelector('svg').innerHTML='<polyline points="20 6 9 17 4 12"/>';text.textContent='API Key 已設定';}
-    else{el.className='key-status empty';el.querySelector('svg').innerHTML='<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>';text.textContent='尚未設定 API Key';}
+    el.className=isSet?'key-badge saved':'key-badge empty';
+    text.textContent=isSet?'已設定':'未設定';
   }
   function switchToPromptPreview(){
     const box=document.getElementById('d-promptBox');
@@ -4264,8 +4627,7 @@ init();
       const r=await fetch(`${SERVER}/api/settings/output`,{signal:AbortSignal.timeout(2000)});
       if(r.ok){
         const cfg=await r.json();
-        const radio=document.querySelector(`input[name="outputMode"][value="${cfg.mode}"]`);
-        if(radio)radio.checked=true;
+        setSegValue('seg-outputMode', cfg.mode||'obsidian');
         if(cfg.folder_path)document.getElementById('d-folderPath').value=cfg.folder_path;
         document.getElementById('d-folderPathField').style.display=cfg.mode==='folder'?'block':'none';
       }
@@ -4274,19 +4636,27 @@ init();
       const r=await fetch(`${SERVER}/api/settings/generation`,{signal:AbortSignal.timeout(2000)});
       if(r.ok){
         const cfg=await r.json();
-        const radio=document.querySelector(`input[name="generationProvider"][value="${cfg.provider||'claude'}"]`);
-        if(radio)radio.checked=true;
+        const prov=cfg.provider||'claude';
+        setSegValue('seg-generationProvider', prov);
+        document.getElementById('d-generationDesc').textContent=_genDescs[prov]||'';
+        updateProviderPill(prov);
       }
     }catch(_){}
     try{
       const r=await fetch(`${SERVER}/api/settings/transcription`,{signal:AbortSignal.timeout(2000)});
       if(r.ok){
         const cfg=await r.json();
-        const radio=document.querySelector(`input[name="transcriptMode"][value="${cfg.mode}"]`);
+        setSegValue('seg-transcriptMode', cfg.mode||'local');
+        // sync hidden radio
+        const radio=document.getElementById(cfg.mode==='api'?'d-modeApi':'d-modeLocal');
         if(radio)radio.checked=true;
         if(cfg.whisper_model)document.getElementById('d-whisperModel').value=cfg.whisper_model;
         updateKeyStatus(!!cfg.openai_api_key_set);
-        const langRadio=document.querySelector(`input[name="analysisLang"][value="${cfg.language||'zh'}"]`);
+        if(cfg.openai_api_key){const f=document.getElementById('d-openaiKey');f.value=cfg.openai_api_key;f.type='password';_loadedOaiKey=cfg.openai_api_key;}
+
+        const lang=cfg.language||'zh';
+        setSegValue('seg-analysisLang', lang);
+        const langRadio=document.getElementById('d-lang-'+lang);
         if(langRadio)langRadio.checked=true;
         syncTranscriptFields();
       }
@@ -4296,7 +4666,8 @@ init();
       if(r.ok){
         const cfg=await r.json();
         updateTgStatus(cfg.telegram_bot_token_set);
-        if(cfg.telegram_chat_id)document.getElementById('d-tgChatId').value=cfg.telegram_chat_id;
+        if(cfg.telegram_bot_token){const f=document.getElementById('d-tgToken');f.value=cfg.telegram_bot_token;_loadedTgToken=cfg.telegram_bot_token;}
+        if(cfg.telegram_chat_id){document.getElementById('d-tgChatId').value=cfg.telegram_chat_id;_loadedTgChatId=cfg.telegram_chat_id;}
       }
     }catch(_){}
     await loadPromptInDrawer();
@@ -4305,20 +4676,21 @@ init();
     const input=document.getElementById('d-tgToken');
     input.type=input.type==='password'?'text':'password';
   });
-  document.getElementById('d-saveTgBtn').addEventListener('click',async()=>{
-    const btn=document.getElementById('d-saveTgBtn');
+  let _loadedTgToken='',_loadedTgChatId='';
+  async function saveTgSettings(){
     const token=document.getElementById('d-tgToken').value.trim();
     const chat_id=document.getElementById('d-tgChatId').value.trim();
-    btn.classList.add('loading');btn.textContent='儲存中';
+    if(token===_loadedTgToken&&chat_id===_loadedTgChatId)return;
     try{
       const r=await fetch(`${SERVER}/api/settings/notification`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({telegram_bot_token:token,telegram_chat_id:chat_id})});
       if(!r.ok)throw new Error(`HTTP ${r.status}`);
-      document.getElementById('d-tgToken').value='';
+      _loadedTgToken=token;_loadedTgChatId=chat_id;
       if(token||chat_id)updateTgStatus(true);
-      showStatus('d-tgStatusMsg','✅ 已儲存',true);
+      showAutoSaveToast();
     }catch(e){showStatus('d-tgStatusMsg','❌ '+e.message,false);}
-    finally{btn.classList.remove('loading');btn.textContent='儲存';}
-  });
+  }
+  document.getElementById('d-tgToken').addEventListener('change',saveTgSettings);
+  document.getElementById('d-tgChatId').addEventListener('change',saveTgSettings);
   document.getElementById('d-testTgBtn').addEventListener('click',async()=>{
     const btn=document.getElementById('d-testTgBtn');
     btn.classList.add('loading');btn.textContent='發送中';

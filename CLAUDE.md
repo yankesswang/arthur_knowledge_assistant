@@ -65,9 +65,18 @@ Arthur 的 Obsidian 知識管理 + 投資筆記 + 內容創作 AI 助理。
 - 判斷依據相同：有資訊內容的保留，純裝飾的刪除
 - 整理筆記時若重寫段落內容，**必須回頭確認對應圖片是否遺漏**，並補回到正確段落後
 
-### 筆記完成後更新待看影片與Podcast清單
+### 筆記完成後更新閱讀清單
 
-清單路徑：`/Users/yankesswang/Documents/arthurwang_DB/待看影片與Podcast清單.md`
+> **重要：兩份清單用途不同，不可混用。**
+>
+> | 清單 | 路徑 | 用途 |
+> |------|------|------|
+> | `待閱讀清單.md` | `/home/trx50/Documents/arthurwang_DB/待閱讀清單.md` | **文章、筆記**（Clippings、Substack、論文、技術文章）|
+> | `待看影片與Podcast清單.md` | `/home/trx50/Documents/arthurwang_DB/待看影片與Podcast清單.md` | **影片、Podcast 集數**（YouTube、股癌、曼報、財報狗等）|
+>
+> 整理 Clippings 或文章筆記後，一律加到 **`待閱讀清單.md`**，不加到待看影片清單。
+
+清單路徑（文章用）：`/home/trx50/Documents/arthurwang_DB/待閱讀清單.md`
 
 #### 閱讀清單結構（時間分層）
 
