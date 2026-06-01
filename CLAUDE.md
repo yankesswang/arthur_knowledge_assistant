@@ -32,7 +32,7 @@ Arthur 的 Obsidian 知識管理 + 投資筆記 + 內容創作 AI 助理。
 整理完 Clippings 內的筆記後，**不直接刪除原始檔案**，一律移動到：
 
 ```
-/home/trx50/Documents/arthurwang_DB/待檢查/
+/Users/yankesswang/Documents/arthurwang_DB/待檢查/
 ```
 
 ---
@@ -164,18 +164,18 @@ Arthur 的 Obsidian 知識管理 + 投資筆記 + 內容創作 AI 助理。
 
 ### Vault 位置
 
-- 主 Vault：`/home/trx50/Documents/arthurwang_DB/`
-- 投資筆記：`/home/trx50/Documents/arthurwang_DB/投資/`
-- AI Knowledge：`/home/trx50/Documents/arthurwang_DB/AI Knowledge/`
-- 文章輸出：`/home/trx50/Documents/arthurwang_DB/Arthur_Blog/Posts/`
-- 待看影片與Podcast清單：`/home/trx50/Documents/arthurwang_DB/待看影片與Podcast清單.md`
-- 操作建議總表（一般）：`/home/trx50/Documents/arthurwang_DB/投資/投資操作建議總表.md`
-- 操作建議總表（mimi）：`/home/trx50/Documents/arthurwang_DB/投資/mimi操作建議總表.md`
-- **影片筆記**：`/home/trx50/Documents/arthurwang_DB/影片筆記/<頻道名稱>/`
+- 主 Vault：`/Users/yankesswang/Documents/arthurwang_DB/`
+- 投資筆記：`/Users/yankesswang/Documents/arthurwang_DB/投資/`
+- AI Knowledge：`/Users/yankesswang/Documents/arthurwang_DB/AI Knowledge/`
+- 文章輸出：`/Users/yankesswang/Documents/arthurwang_DB/Arthur_Blog/Posts/`
+- 待看影片與Podcast清單：`/Users/yankesswang/Documents/arthurwang_DB/待看影片與Podcast清單.md`
+- 操作建議總表（一般）：`/Users/yankesswang/Documents/arthurwang_DB/投資/投資操作建議總表.md`
+- 操作建議總表（mimi）：`/Users/yankesswang/Documents/arthurwang_DB/投資/mimi操作建議總表.md`
+- **影片筆記**：`/Users/yankesswang/Documents/arthurwang_DB/影片筆記/<頻道名稱>/`
 
 ### 影片筆記存放規則
 
-影片筆記一律存到 **`/home/trx50/Documents/arthurwang_DB/影片筆記/<頻道名稱>/`**，以頻道名稱建子資料夾：
+影片筆記一律存到 **`/Users/yankesswang/Documents/arthurwang_DB/影片筆記/<頻道名稱>/`**，以頻道名稱建子資料夾：
 
 ```
 影片筆記/
@@ -217,7 +217,7 @@ Arthur 的 Obsidian 知識管理 + 投資筆記 + 內容創作 AI 助理。
 
 若 Arthur 說「要」或「好」，立即用以下格式寫入：
 
-路徑：`/home/trx50/Documents/arthurwang_DB/AI Knowledge/知識創作/洞見/Decision Log.md`
+路徑：`/Users/yankesswang/Documents/arthurwang_DB/AI Knowledge/知識創作/洞見/Decision Log.md`
 
 格式（追加到檔案頂端，header 之後）：
 

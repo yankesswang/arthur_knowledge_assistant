@@ -12,7 +12,10 @@
 YYYY-MM-DD 自訂標題.md
 ```
 
-- **日期**：使用整理日期（`date` frontmatter 的值），格式 `YYYY-MM-DD`
+- **日期**：使用**原文發布日期**，格式 `YYYY-MM-DD`
+  - 來源為 Clipping 的 `published` 欄位
+  - 若無 `published` 欄位，則看原文頁面或 URL 中的日期
+  - **不使用整理日期（今天的日期）**
 - **標題**：不需要照搬原文標題，自行提煉「核心標的 + 核心論點」
 - 標題要讓人光看檔名就知道「這篇在說誰、說什麼」
 
@@ -36,7 +39,7 @@ ARM架構分析.md                            ← 沒有日期
 ```yaml
 ---
 title: 中文標題（與檔名標題一致）
-date: YYYY-MM-DD（整理日期）
+date: YYYY-MM-DD（原文發布日期，取自 Clipping 的 published 欄位）
 sector: 投資板塊（中文）
 tags:
   - 核心主題1
@@ -212,7 +215,7 @@ Code block 不只用來放計算，這兩篇最有效的用法是**結構化的�
 
 ## 8. Vault 位置
 
-- 投資筆記目錄：`/home/trx50/Documents/arthurwang_DB/投資/`
+- 投資筆記目錄：`/Users/yankesswang/Documents/arthurwang_DB/投資/`
 
 ```
 投資/
@@ -250,16 +253,17 @@ Code block 不只用來放計算，這兩篇最有效的用法是**結構化的�
 
 > 如有疑慮，**預設寫入一般總表**（`投資操作建議總表.md`），不猜測。
 
-### 9b. 更新格式（兩份總表共用）
+### 9b. 更新格式（mimi 總表專用）
 
-每篇筆記在對應總表新增一個個股操作區塊，格式：
+每篇筆記在 mimi 總表新增一個個股操作區塊，格式：
 
 **標題**：`#### TICKER（公司名）— 一句話定位`
 
-**1. 操作建議表格**（必填）：
+**1. 操作建議表格**（必填，`首推日期` 必須是第一行）：
 
-| 欄位 | 內容 |
+| 項目 | 數值 |
 |------|------|
+| 首推日期 | YYYY-MM-DD（[[筆記標題]]）|
 | 現價 / 推薦時股價 | |
 | 進場區間或觀察點 | |
 | 目標價（第一目標） | |
@@ -274,9 +278,41 @@ Code block 不只用來放計算，這兩篇最有效的用法是**結構化的�
 **4. 來源 wikilink**（必填）：`📖 參考來源：[[筆記標題]]`
 
 **更新注意**：
-- 若對應總表已有該 ticker，更新數字和時間點，不重複新增區塊
+- 若對應總表已有該 ticker，**保留舊 block，在同章節新增一個獨立 block**（不同時間點 = 不同筆記 = 不同 block）
 - 更新日期需同步修改對應總表 frontmatter 的 `date` 欄位
-- 板塊區對應：AI半導體 / 太空 / 能源 / 宏觀策略 / 科技軟體
+
+### 9c. mimi 總表章節分配規則
+
+新增 block 必須放進正確的 `## ` 章節，依 ticker 對應如下：
+
+| 章節 | 包含標的 |
+|------|---------|
+| 一、AI ASIC / GPU / CPU | MRVL、AVGO、NVDA、ARM、INTC、NVDA/TSM 供應鏈 |
+| 二、光通訊 / 矽光子 | COHR、GLW、KEYS、MTSI、VIAV、TSEM、SMTC |
+| 三、類比 / 工業半導體 / 轉機 | ADI、CRUS、WOLF、MTRN、NVTS（一般）、DIOD、QCOM Edge AI |
+| 四、半導體設備 / 耗材 / 測試 / 先進封裝 | AMAT、ENTG、TER、KLIC、ACMR、QUIK |
+| 五、EMS / 代工 | FLEX、CLS、JBL、SANM |
+| 六、AI 液冷 / 電源 / 散熱 / 儲能 | EOSE、PH、VICR、ALGM、NVTS（800V GaN）|
+| 七、太空板塊 | ASTS、IRDM、BKSY、DXYZ |
+| 八、無人機 / 國防 | UMAC、LTRX、PDYN |
+| 九、加密 / 資安 | PANW、CRCL、COIN、GLXY、WULF、IREN、BB |
+| 十、軟體 | INTU、ORCL、NOW、ADBE、WDAY |
+| 十一、房建板塊 | TOL、DHI、LEN、PHM、ITB |
+| 十二、AI 手機供應鏈 | 2454.TW（聯發科）、QCOM、002475（立訊）|
+| 十三、邊緣 AI / 物理 AI / 感知 | PI、OUST、IMOS、AMBA、VUZI |
+| 十四、宏觀 / 事件交易 / 大盤 | IWM、SOXX、IGV、MP、BA、DJT、PHM/BNY |
+
+> 不確定章節時，先 `grep -n "^## " mimi操作建議總表.md` 確認現有結構，再放到最接近的章節末尾。
+
+### 9d. JSON 更新
+
+每次 mimi 總表寫入或修改後，重新生成 JSON 供 AI 查詢：
+
+```bash
+python3 /Users/yankesswang/Desktop/Projects/Arthur_App/stock-radar/scripts/export_mimi_json.py
+```
+
+輸出：`/Users/yankesswang/Documents/arthurwang_DB/投資/mimi操作建議總表.json`
 
 ---
 
