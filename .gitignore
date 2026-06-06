@@ -30,6 +30,7 @@ server/data/claude_cli*.lock
 server/data/codex_cli*.lock
 server/data/server_cache.sqlite3*
 server/data/transcription_settings.json
+server/data/notification_settings.json
 podcast-note/data/episodes/
 podcast-note/data/codex-eval/
 .agent/skills/transcript-note/data/queue.txt
@@ -41,3 +42,11 @@ translate_gemini.py
 
 # Temp
 .DS_Store
+
+# Horizon AI Digest
+ai_digest/horizon/.venv/
+ai_digest/horizon/data/summaries/
+ai_digest/horizon/docs/_posts/
+ai_digest/output/
+ai_digest/migration_backup/
+ai_digest/horizon/
