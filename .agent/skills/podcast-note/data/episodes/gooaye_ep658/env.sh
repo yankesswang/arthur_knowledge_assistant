@@ -1,6 +1,0 @@
-export EPISODE_MP3="/home/trx50/Project/arthur_knowledge_assistant/.agent/skills/podcast-note/data/episodes/gooaye_ep658/audio.mp3"
-export EPISODE_TITLE="EP658 | 🪿"
-export EPISODE_DATE="2026-05-02"
-export WORK_DIR="/home/trx50/Project/arthur_knowledge_assistant/.agent/skills/podcast-note/data/episodes/gooaye_ep658"
-export PODCAST_ID="gooaye"
-export LANG_CODE="zh"
