@@ -1,0 +1,92 @@
+[
+  {
+    "abs_start": 0,
+    "abs_end": 90,
+    "slug": "01-anthropic-arr-saas-10yr",
+    "moment_start": 23.7,
+    "moment_dur": 3.5,
+    "label_line1": "Anthropic 1 個月",
+    "label_line2": "= SaaS 三家 10 年"
+  },
+  {
+    "abs_start": 1560,
+    "abs_end": 1650,
+    "slug": "07-tsmc-ai-bubble-firewall",
+    "moment_start": 0.0,
+    "moment_dur": 3.5,
+    "label_line1": "TSMC 若放開",
+    "label_line2": "Nvidia 可賣 $3 兆 GPU"
+  },
+  {
+    "abs_start": 540,
+    "abs_end": 690,
+    "slug": "03-urr-unconstrained-revenue",
+    "moment_start": 22.5,
+    "moment_dur": 3.0,
+    "label_line1": "真實 ARR 可能是",
+    "label_line2": "$150B 而非 $50B"
+  },
+  {
+    "abs_start": 2280,
+    "abs_end": 2370,
+    "slug": "04-claude-opus-lobotomized",
+    "moment_start": 6.0,
+    "moment_dur": 3.5,
+    "label_line1": "你在用",
+    "label_line2": "降智 70% 的 Claude"
+  },
+  {
+    "abs_start": 960,
+    "abs_end": 1110,
+    "slug": "06-orbital-compute-reframe",
+    "moment_start": 35.0,
+    "moment_dur": 3.0,
+    "label_line1": "太空中的",
+    "label_line2": "Blackwell 機架"
+  },
+  {
+    "abs_start": 270,
+    "abs_end": 360,
+    "slug": "02-deepseek-signal-gpu-asia",
+    "moment_start": 1.5,
+    "moment_dur": 3.0,
+    "label_line1": "DeepSeek 崩盤當天",
+    "label_line2": "GPU 亞洲租金翻倍"
+  },
+  {
+    "abs_start": 690,
+    "abs_end": 780,
+    "slug": "05-elon-valuation-superpower",
+    "moment_start": 39.5,
+    "moment_dur": 3.0,
+    "label_line1": "SpaceX 20 年複利",
+    "label_line2": "秘密：永不貪婪估值"
+  },
+  {
+    "abs_start": 2400,
+    "abs_end": 2520,
+    "slug": "08-continual-learning-fire",
+    "moment_start": 5.0,
+    "moment_dur": 3.0,
+    "label_line1": "人類碰火一次",
+    "label_line2": "AI 需碰 100 萬次"
+  },
+  {
+    "abs_start": 3540,
+    "abs_end": 3630,
+    "slug": "10-last-samurai-machine-gun",
+    "moment_start": 76.5,
+    "moment_dur": 3.0,
+    "label_line1": "50 歲武士",
+    "label_line2": "拿機關槍仍能贏"
+  },
+  {
+    "abs_start": 4020,
+    "abs_end": 4140,
+    "slug": "09-ai-correlation-breakdown",
+    "moment_start": 0.0,
+    "moment_dur": 3.0,
+    "label_line1": "AI basket",
+    "label_line2": "2026/1 相關性崩解"
+  }
+]

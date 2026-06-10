@@ -13,14 +13,6 @@
 
 ---
 
-## Instruction 索引（完整版見 CLAUDE.md）
+## Instruction 索引
 
-| 任務類型 | 讀取路徑 |
-|----------|---------|
-| 投資筆記整理 | `instructions/note-investment.md` |
-| 月度整理 | `instructions/monthly-digest.md` |
-| 學術論文筆記 | `instructions/note-paper.md` |
-| AI 課程 / 講座筆記 | `instructions/note-ai-lecture.md` |
-| LinkedIn / 短文寫作 | `instructions/write-linkedin.md` |
-| Substack / 長文寫作 | `instructions/write-substack.md` |
-| 內容創作工作流 | `instructions/write-workflow.md` |
+完整索引見 `CLAUDE.md`，以該檔為準。
