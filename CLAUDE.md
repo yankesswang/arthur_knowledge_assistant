@@ -15,6 +15,7 @@ Arthur 的 Obsidian 知識管理 + 投資筆記 + 內容創作 AI 助理。
 | 月度整理（Finance Digest） | 月度整理、月底整理、月度總攬、幫我整理X月、FOMO SOC 整理 | `instructions/monthly-digest.md` |
 | arXiv / 學術論文筆記 | 論文筆記、paper note、整理論文、論文摘要 | `instructions/note-paper.md` |
 | AI 課程 / 講座筆記 | 技術筆記、課程筆記、整理筆記、tech note、LLM 評估、Agentic Framework | `instructions/note-ai-lecture.md` |
+| X 推文 / 短文剪報 | X 推文、Twitter、短貼文、社群剪報、觀點短文（非投資、非深度論文） | `instructions/note-clipping-x.md` |
 | LinkedIn / 短文寫作 | 寫貼文、LinkedIn、draft、short post、社群 | `instructions/write-social.md` |
 | Substack / 長文寫作 | substack、長文、技術文章、按我的風格寫 | `instructions/write-longform.md` |
 | 內容創作工作流 | 出個 Brief、找連結、每週連結、捕捉觀察 | `instructions/write-workflow.md` |
@@ -274,6 +275,7 @@ instructions/
 ├── monthly-digest.md     # 月度整理（Finance Digest/FOMO SOC 月度格式化 + 月度總攬生成）
 ├── note-paper.md         # 學術論文筆記（arXiv 為主，先直覺後背景）
 ├── note-ai-lecture.md    # AI 課程/講座筆記（課程型 A + 論文混合型 B/C）
+├── note-clipping-x.md    # X 推文/短文剪報（濃縮條列、不複述原文）
 ├── write-linkedin.md     # LinkedIn/短文寫作（聲音、人設、貼文公式）
 ├── write-substack.md     # Substack 長文（英文技術文 + 中文敘事文）
 └── write-workflow.md     # 內容創作工作流（每日捕捉、週連結、Content Brief）
