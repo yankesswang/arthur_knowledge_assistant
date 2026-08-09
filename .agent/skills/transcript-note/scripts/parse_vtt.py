@@ -75,18 +75,30 @@ buckets = {}
 for secs, text in timeline:
     buckets.setdefault(int(secs) // interval, []).append(text)
 
-def dedupe_keep_order(items):
-    seen, out = set(), []
-    for x in items:
-        x = re.sub(r'\s+', ' ', x).strip()
-        if x and x not in seen:
-            seen.add(x); out.append(x)
-    return out
+def dedup_rolling(texts):
+    """YouTube auto-captions use a rolling window — each sentence appears 2-3x.
+    Merge by finding the longest suffix-prefix overlap between consecutive blocks."""
+    result_words = []
+    for text in texts:
+        text = re.sub(r'\s+', ' ', text).strip()
+        if not text:
+            continue
+        words = text.split()
+        if not result_words:
+            result_words.extend(words)
+            continue
+        # Find longest overlap: suffix of result_words == prefix of words
+        overlap = 0
+        for n in range(min(len(words), min(len(result_words), 25)), 0, -1):
+            if result_words[-n:] == words[:n]:
+                overlap = n
+                break
+        result_words.extend(words[overlap:])
+    return " ".join(result_words)
 
 condensed_lines = []
 for b in sorted(buckets):
-    texts  = dedupe_keep_order(buckets[b])
-    merged = " ".join(texts)
+    merged = dedup_rolling(buckets[b])
     m2, s2 = divmod(b * interval, 60)
     h2, m2 = divmod(m2, 60)
     ts = f"{h2:02d}:{m2:02d}:{s2:02d}" if h2 else f"{m2:02d}:{s2:02d}"

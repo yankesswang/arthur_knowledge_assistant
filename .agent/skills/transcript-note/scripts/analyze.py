@@ -202,7 +202,19 @@ def main():
     else:
         system_prompt, user_prompt = build_prompt(video_id, work_dir)
 
-        print(f"→ 呼叫 claude -p 分析逐字稿（{video_id}）...", flush=True)
+        # 依影片長度選模型：>45 分鐘用 Sonnet，否則用 Haiku
+        condensed_path = work_dir / "condensed.txt"
+        condensed_chars = condensed_path.stat().st_size if condensed_path.exists() else 0
+        meta_path = work_dir / "meta.json"
+        duration_sec = 0
+        if meta_path.exists():
+            try:
+                duration_sec = int(json.load(open(meta_path)).get("duration", 0))
+            except Exception:
+                pass
+        use_sonnet = duration_sec > 2700 or condensed_chars > 80_000  # >45min 或 >80KB
+        model = "claude-sonnet-4-6" if use_sonnet else "claude-haiku-4-5-20251001"
+        print(f"→ 呼叫 claude -p 分析逐字稿（{video_id}，model={model}）...", flush=True)
         print("PROGRESS:5:啟動中", flush=True)
 
         with claude_cli_lock(
@@ -214,7 +226,7 @@ def main():
                 [
                     "claude", "-p", user_prompt,
                     "--system-prompt", system_prompt,
-                    "--model", "claude-haiku-4-5-20251001",
+                    "--model", model,
                     "--dangerously-skip-permissions",
                     "--add-dir", str(PROJECT_ROOT),
                     "--output-format", "stream-json",
