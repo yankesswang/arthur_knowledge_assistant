@@ -9,9 +9,12 @@ SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 CONFIG_FILE="$HOME/.hn-daily-digest/config.json"
 LOG_FILE="$HOME/.hn-daily-digest/digest.log"
 OUTPUT_DIR="$SKILL_DIR/output"
-IMAGE_PICKER_SCRIPT="${IMAGE_PICKER_SCRIPT:-/Users/yankesswang/Desktop/Projects/Arthur_App/scripts/select-digest-images.mjs}"
+# Use the real ~/Projects path, NOT the ~/Desktop symlink — Node's ESM loader
+# opens the literal path and macOS TCC blocks Desktop-folder access for the
+# launchd digest job (→ EPERM). ~/Projects is not a TCC-protected folder.
+IMAGE_PICKER_SCRIPT="${IMAGE_PICKER_SCRIPT:-/Users/yankesswang/Projects/Arthur_App/scripts/select-digest-images.mjs}"
 GOLEM_ENV_DEFAULT="$HOME/.hn-daily-digest/.env"
-GOLEM_ENV_MAIN="/Users/yankesswang/Desktop/Projects/Arthur_App/.env"
+GOLEM_ENV_MAIN="/Users/yankesswang/Projects/Arthur_App/.env"
 GOLEM_ENV_FALLBACK="/Users/yankesswang/openclaw_backup/.env"
 GOLEM_ENV="${GOLEM_ENV:-$GOLEM_ENV_DEFAULT}"
 
@@ -33,6 +36,9 @@ mkdir -p "$OUTPUT_DIR"
 mkdir -p "$HOME/.hn-daily-digest"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG_FILE"; }
+
+LINE_NOTIFY_SH="/Users/yankesswang/Projects/Arthur_App/scripts/lib/line_notify.sh"
+[ -f "$LINE_NOTIFY_SH" ] && source "$LINE_NOTIFY_SH"
 notify() {
   local title="$1" msg="$2" sound="${3:-Glass}"
   launchctl asuser "$(id -u)" osascript -e "display notification \"$msg\" with title \"$title\" sound name \"$sound\"" 2>/dev/null || true
@@ -40,13 +46,15 @@ notify() {
 
 telegram_notify() {
   local msg="$1"
+  local telegram_msg="$msg"
   if [ -z "${TELEGRAM_TOKEN:-}" ] || [ -z "${TELEGRAM_ADMIN_ID:-}" ]; then
     log "Telegram 通知略過：未設定 TELEGRAM_TOKEN 或 ADMIN_ID（env=$GOLEM_ENV）"
+    declare -F line_notify_text >/dev/null 2>&1 && line_notify_text "$msg"
     return 0
   fi
 
-  if [ ${#msg} -gt 3500 ]; then
-    msg="${msg:0:3500}…"
+  if [ ${#telegram_msg} -gt 3500 ]; then
+    telegram_msg="${telegram_msg:0:3500}…"
   fi
 
   local tmp_resp http_code
@@ -54,7 +62,7 @@ telegram_notify() {
   http_code=$(curl -sS -o "$tmp_resp" -w "%{http_code}" \
     -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
     --data-urlencode "chat_id=${TELEGRAM_ADMIN_ID}" \
-    --data-urlencode "text=${msg}" \
+    --data-urlencode "text=${telegram_msg}" \
     2>> "$LOG_FILE" || true)
 
   if [ "$http_code" = "200" ]; then
@@ -65,6 +73,7 @@ telegram_notify() {
     log "WARNING: Telegram 通知發送失敗（HTTP ${http_code:-unknown}）：$body"
   fi
   rm -f "$tmp_resp"
+  declare -F line_notify_text >/dev/null 2>&1 && line_notify_text "$msg"
 }
 
 telegram_notify_photo() {
@@ -94,6 +103,7 @@ telegram_notify_photo() {
 
   if [ "$http_code" = "200" ]; then
     log "Telegram 圖片通知已發送：$photo_url"
+    declare -F line_notify_photo >/dev/null 2>&1 && line_notify_photo "$photo_url" "$msg"
   else
     local body
     body="$(tr '\n' ' ' < "$tmp_resp" | cut -c1-500)"
@@ -146,6 +156,7 @@ process.stdout.write(JSON.stringify(media));
 
   if [ "$http_code" = "200" ]; then
     log "Telegram 相簿通知已發送：${photo_count} 張"
+    declare -F line_notify_album >/dev/null 2>&1 && line_notify_album "$photos" "$msg"
   else
     local body
     body="$(tr '\n' ' ' < "$tmp_resp" | cut -c1-500)"
@@ -289,9 +300,9 @@ notify "📰 AI Daily Digest ✅" "$NOTIFY_MSG" "Glass"
 # --- Telegram 通知 ---
 OBSIDIAN_NOTE_PATH="AI Knowledge/Digest/digest-$DATE"
 OBSIDIAN_OPEN_URL="$(obsidian_open_link "$OBSIDIAN_NOTE_PATH")"
-TG_MSG="今日 AI 精選 — $(date '+%Y-%m-%d')
+TG_MSG="📰 AI 科技日報 — $(date '+%Y-%m-%d')
 
-今日必讀 Top 3
+🔥 今日必追 Top 3
 
 ${TOP3_SUMMARY}
 

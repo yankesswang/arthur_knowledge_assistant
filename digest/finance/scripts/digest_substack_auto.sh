@@ -44,6 +44,9 @@ mkdir -p "$HOME/.yt-digest"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"; }
 
+LINE_NOTIFY_SH="/Users/yankesswang/Projects/Arthur_App/scripts/lib/line_notify.sh"
+[ -f "$LINE_NOTIFY_SH" ] && source "$LINE_NOTIFY_SH"
+
 notify() {
   local title="$1" msg="$2" sound="${3:-Glass}"
   launchctl asuser "$(id -u)" osascript \
@@ -53,20 +56,24 @@ notify() {
 
 telegram_notify() {
   local msg="$1"
+  local telegram_msg="$msg"
+
   if [ -z "${TELEGRAM_TOKEN:-}" ] || [ -z "${TELEGRAM_ADMIN_ID:-}" ]; then
-    return 0
+    log "Telegram 通知略過：未設定 token/id"
+  else
+    if [ ${#telegram_msg} -gt 3500 ]; then
+      telegram_msg="${telegram_msg:0:3500}…"
+    fi
+
+    curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+      --data-urlencode "chat_id=${TELEGRAM_ADMIN_ID}" \
+      --data-urlencode "text=${telegram_msg}" \
+      > /dev/null 2>&1 \
+      && log "Telegram 通知已發送" \
+      || log "WARNING: Telegram 通知發送失敗"
   fi
 
-  if [ ${#msg} -gt 3500 ]; then
-    msg="${msg:0:3500}…"
-  fi
-
-  curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
-    --data-urlencode "chat_id=${TELEGRAM_ADMIN_ID}" \
-    --data-urlencode "text=${msg}" \
-    > /dev/null 2>&1 \
-    && log "Telegram 通知已發送" \
-    || log "WARNING: Telegram 通知發送失敗"
+  declare -F line_notify_text >/dev/null 2>&1 && line_notify_text "$msg"
 }
 
 log "========== Substack Digest Start =========="

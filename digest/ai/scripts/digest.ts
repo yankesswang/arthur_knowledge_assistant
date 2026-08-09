@@ -1,5 +1,5 @@
-import { writeFile, mkdir } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { appendFile, writeFile, mkdir } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import process from 'node:process';
 
 // ============================================================================
@@ -11,6 +11,21 @@ const FEED_FETCH_TIMEOUT_MS = 15_000;
 const FEED_CONCURRENCY = 10;
 const GEMINI_BATCH_SIZE = 5;
 const MAX_CONCURRENT_GEMINI = 1;
+const PROMPT_TRACE_PATH = process.env.AI_DIGEST_PROMPT_TRACE_PATH
+  || join(process.env.HOME || '.', '.hn-daily-digest', 'prompts', `digest-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.jsonl`);
+const RUN_ID = new Date().toISOString();
+
+// Shared LLM cost ledger — one JSON line per run. Real token counts come from
+// Gemini's usageMetadata; the gateway applies USD pricing from a central table.
+const COST_LOG_DIR = process.env.DIGEST_COST_LOG_DIR
+  || join(process.env.HOME || '.', '.arthur-digest', 'cost_log');
+type CostStage = 'scoring' | 'summary' | 'highlights';
+type StageUsage = { input_tokens: number; output_tokens: number; calls: number };
+const usageByStage: Record<CostStage, StageUsage> = {
+  scoring: { input_tokens: 0, output_tokens: 0, calls: 0 },
+  summary: { input_tokens: 0, output_tokens: 0, calls: 0 },
+  highlights: { input_tokens: 0, output_tokens: 0, calls: 0 },
+};
 
 // 90 RSS feeds from Hacker News Popularity Contest 2025 (curated by Karpathy)
 const RSS_FEEDS: Array<{ name: string; xmlUrl: string; htmlUrl: string }> = [
@@ -370,7 +385,7 @@ async function fetchAllFeeds(feeds: typeof RSS_FEEDS): Promise<Article[]> {
 // Gemini API
 // ============================================================================
 
-async function callGemini(prompt: string, apiKey: string): Promise<string> {
+async function callGemini(prompt: string, apiKey: string, stage: CostStage): Promise<string> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
 
   const response = await fetch(url, {
@@ -392,9 +407,71 @@ async function callGemini(prompt: string, apiKey: string): Promise<string> {
 
   const data = await response.json() as {
     candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number };
   };
 
+  // Accumulate real token usage for the cost ledger, attributed to the stage.
+  const meta = data.usageMetadata;
+  if (meta) {
+    const input = meta.promptTokenCount || 0;
+    const total = meta.totalTokenCount || 0;
+    const output = meta.candidatesTokenCount ?? Math.max(0, total - input);
+    const s = usageByStage[stage];
+    s.input_tokens += input;
+    s.output_tokens += output;
+    s.calls += 1;
+  }
+
   return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+async function recordRunCost(): Promise<void> {
+  try {
+    const stages = Object.entries(usageByStage).filter(
+      ([, s]) => s.input_tokens > 0 || s.output_tokens > 0,
+    );
+    if (stages.length === 0) return;
+    const totalIn = stages.reduce((n, [, s]) => n + s.input_tokens, 0);
+    const totalOut = stages.reduce((n, [, s]) => n + s.output_tokens, 0);
+    const totalCalls = stages.reduce((n, [, s]) => n + s.calls, 0);
+    const now = new Date();
+    const record = {
+      ts: now.toISOString(),
+      date: now.toISOString().slice(0, 10).replace(/-/g, ''),
+      digest: 'ai',
+      provider: 'gemini',
+      model: GEMINI_MODEL,
+      input_tokens: totalIn,
+      output_tokens: totalOut,
+      calls: totalCalls,
+      stages: Object.fromEntries(stages),
+    };
+    await mkdir(COST_LOG_DIR, { recursive: true });
+    await appendFile(join(COST_LOG_DIR, 'ai.jsonl'), `${JSON.stringify(record)}\n`);
+  } catch {
+    // Cost logging must never break the digest.
+  }
+}
+
+async function resetPromptTrace(): Promise<void> {
+  await mkdir(dirname(PROMPT_TRACE_PATH), { recursive: true });
+  await writeFile(PROMPT_TRACE_PATH, '');
+}
+
+async function recordPromptTrace(
+  stage: 'scoring' | 'summary' | 'highlights',
+  prompt: string,
+  meta: Record<string, unknown>
+): Promise<void> {
+  const line = JSON.stringify({
+    runId: RUN_ID,
+    timestamp: new Date().toISOString(),
+    stage,
+    model: GEMINI_MODEL,
+    prompt,
+    meta,
+  });
+  await appendFile(PROMPT_TRACE_PATH, `${line}\n`);
 }
 
 function parseJsonResponse<T>(text: string): T {
@@ -493,10 +570,16 @@ async function scoreArticlesWithAI(
   
   for (let i = 0; i < batches.length; i += MAX_CONCURRENT_GEMINI) {
     const batchGroup = batches.slice(i, i + MAX_CONCURRENT_GEMINI);
-    const promises = batchGroup.map(async (batch) => {
+    const promises = batchGroup.map(async (batch, batchOffset) => {
       try {
         const prompt = buildScoringPrompt(batch);
-        const responseText = await callGemini(prompt, apiKey);
+        await recordPromptTrace('scoring', prompt, {
+          batch: i + batchOffset + 1,
+          batchSize: batch.length,
+          totalBatches: batches.length,
+          articleIndexes: batch.map((item) => item.index),
+        });
+        const responseText = await callGemini(prompt, apiKey, 'scoring');
         const parsed = parseJsonResponse<GeminiScoringResult>(responseText);
         
         if (parsed.results && Array.isArray(parsed.results)) {
@@ -602,10 +685,17 @@ async function summarizeArticles(
   
   for (let i = 0; i < batches.length; i += MAX_CONCURRENT_GEMINI) {
     const batchGroup = batches.slice(i, i + MAX_CONCURRENT_GEMINI);
-    const promises = batchGroup.map(async (batch) => {
+    const promises = batchGroup.map(async (batch, batchOffset) => {
       try {
         const prompt = buildSummaryPrompt(batch, lang);
-        const responseText = await callGemini(prompt, apiKey);
+        await recordPromptTrace('summary', prompt, {
+          batch: i + batchOffset + 1,
+          batchSize: batch.length,
+          totalBatches: batches.length,
+          lang,
+          articleIndexes: batch.map((item) => item.index),
+        });
+        const responseText = await callGemini(prompt, apiKey, 'summary');
         const parsed = parseJsonResponse<GeminiSummaryResult>(responseText);
         
         if (parsed.results && Array.isArray(parsed.results)) {
@@ -664,7 +754,11 @@ ${articleList}
 直接返回纯文本总结，不要 JSON，不要 markdown 格式。`;
 
   try {
-    const text = await callGemini(prompt, apiKey);
+    await recordPromptTrace('highlights', prompt, {
+      articleCount: articles.length,
+      lang,
+    });
+    const text = await callGemini(prompt, apiKey, 'highlights');
     return text.trim();
   } catch (error) {
     console.warn(`[digest] Highlights generation failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -1009,6 +1103,8 @@ async function main(): Promise<void> {
   console.log(`[digest] Top N: ${topN}`);
   console.log(`[digest] Language: ${lang}`);
   console.log(`[digest] Output: ${outputPath}`);
+  await resetPromptTrace();
+  console.log(`[digest] Prompt trace: ${PROMPT_TRACE_PATH}`);
   console.log('');
   
   console.log(`[digest] Step 1/5: Fetching ${RSS_FEEDS.length} RSS feeds...`);
@@ -1092,10 +1188,18 @@ async function main(): Promise<void> {
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, report);
   
+  await recordRunCost();
+
   console.log('');
   console.log(`[digest] ✅ Done!`);
   console.log(`[digest] 📁 Report: ${outputPath}`);
   console.log(`[digest] 📊 Stats: ${successfulSources.size} sources → ${allArticles.length} articles → ${recentArticles.length} recent → ${finalArticles.length} selected`);
+  console.log(
+    `[digest] 🧮 Tokens by stage: ` +
+      Object.entries(usageByStage)
+        .map(([k, s]) => `${k}=${s.input_tokens}/${s.output_tokens}`)
+        .join('  '),
+  );
   
   if (finalArticles.length > 0) {
     console.log('');
