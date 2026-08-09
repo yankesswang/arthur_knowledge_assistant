@@ -3,11 +3,33 @@
 
 set -e
 
+# launchd 預設 C locale → bash 字串運算按位元組算，中文訊息截斷時會切壞多位元組
+# 字元，Telegram 回 400「strings must be encoded in UTF-8」。強制 UTF-8 改以字元為單位。
+export LANG="en_US.UTF-8"
+export LC_ALL="en_US.UTF-8"
+
 LOG_DIR="$HOME/Library/Logs/stock-digest"
 mkdir -p "$LOG_DIR"
 LOG="$LOG_DIR/$(date +%Y-%m-%d).log"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> "$LOG"; }
+
+LINE_NOTIFY_SH="/Users/yankesswang/Projects/Arthur_App/scripts/lib/line_notify.sh"
+[ -f "$LINE_NOTIFY_SH" ] && source "$LINE_NOTIFY_SH"
+
+# ── 模式判斷 ──
+# daily（預設，週一～五 07:00）：近 24h 日報
+# weekly（週六 10:00）：整周復盤，回看 7 天（168h），確保涵蓋週五美股收盤
+MODE="${1:-daily}"
+if [ "$MODE" = "weekly" ]; then
+    HORIZON_ARGS="--hours 168"
+    DIGEST_LABEL="整周復盤"
+    DIGEST_EMOJI="🗓️"
+else
+    HORIZON_ARGS=""
+    DIGEST_LABEL="Stock Digest"
+    DIGEST_EMOJI="📊"
+fi
 
 # ── 讀取 Telegram 憑證
 GOLEM_ENV="$HOME/.config/digest/.env"
@@ -21,24 +43,26 @@ fi
 
 telegram_send() {
     local msg="$1"
+    local telegram_msg="$msg"
     if [ -z "${TELEGRAM_TOKEN:-}" ] || [ -z "${ADMIN_ID:-}" ]; then
         log "Telegram 通知略過：未設定 token"
-        return 0
-    fi
-    if [ ${#msg} -gt 4000 ]; then msg="${msg:0:4000}…"; fi
-    local tmp http_code
-    tmp="$(mktemp)"
-    http_code=$(curl -sS -o "$tmp" -w "%{http_code}" \
-        -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
-        --data-urlencode "chat_id=${ADMIN_ID}" \
-        --data-urlencode "text=${msg}" \
-        2>> "$LOG" || true)
-    if [ "$http_code" = "200" ]; then
-        log "✅ Telegram 發送成功"
     else
-        log "⚠️  Telegram 失敗 HTTP ${http_code}: $(cat "$tmp" | cut -c1-200)"
+        if [ ${#telegram_msg} -gt 4000 ]; then telegram_msg="${telegram_msg:0:4000}…"; fi
+        local tmp http_code
+        tmp="$(mktemp)"
+        http_code=$(curl -sS -o "$tmp" -w "%{http_code}" \
+            -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${ADMIN_ID}" \
+            --data-urlencode "text=${telegram_msg}" \
+            2>> "$LOG" || true)
+        if [ "$http_code" = "200" ]; then
+            log "✅ Telegram 發送成功"
+        else
+            log "⚠️  Telegram 失敗 HTTP ${http_code}: $(cat "$tmp" | cut -c1-200)"
+        fi
+        rm -f "$tmp"
     fi
-    rm -f "$tmp"
+    declare -F line_notify_text >/dev/null 2>&1 && line_notify_text "$msg"
 }
 
 # 從 md 檔案萃取指定 section 的內容（到下一個頂層 --- 或同層 ## 為止）
@@ -57,20 +81,63 @@ extract_section() {
     ' "$file" 2>/dev/null || true
 }
 
+# ── 確保 stock-radar 當天持倉快照已生成 ──
+# digest 讀 portfolio_snapshots 的 MAX(snapshot_date)；若當天快照還沒寫，
+# 會抓到前一天的持倉。這裡先觸發 stock-radar 每日報告並等它寫完當天快照。
+SR_HEALTH="http://127.0.0.1:6000/api/health"
+SR_REPORT="http://127.0.0.1:6000/api/scheduler/report/run"
+SR_DB="/Users/yankesswang/Desktop/Projects/Arthur_App/stock-radar/backend/stock_valuation.db"
+
+ensure_stockradar_snapshot() {
+    local today; today=$(date +%Y-%m-%d)
+
+    if ! curl -sf -o /dev/null --max-time 5 "$SR_HEALTH" 2>/dev/null; then
+        log "⚠️  stock-radar backend 未啟動（:6000），跳過快照刷新，digest 使用既有最新快照"
+        return 0
+    fi
+
+    local cur
+    cur=$(sqlite3 "$SR_DB" "SELECT MAX(snapshot_date) FROM portfolio_snapshots;" 2>/dev/null || echo "")
+    if [ "$cur" = "$today" ]; then
+        log "✅ stock-radar 當天快照已存在（$today），略過刷新"
+        return 0
+    fi
+
+    log "📸 觸發 stock-radar 每日報告（產生 $today 快照）…"
+    curl -sf -X POST --max-time 10 "$SR_REPORT" >> "$LOG" 2>&1 || true
+
+    # 報告為背景非阻塞執行，輪詢直到當天快照出現（最多 ~180s）
+    local i
+    for i in $(seq 1 60); do
+        sleep 3
+        cur=$(sqlite3 "$SR_DB" "SELECT MAX(snapshot_date) FROM portfolio_snapshots;" 2>/dev/null || echo "")
+        if [ "$cur" = "$today" ]; then
+            log "✅ stock-radar 快照已更新到 $today（等待 $((i*3))s）"
+            return 0
+        fi
+    done
+    log "⚠️  等待 stock-radar 快照逾時，digest 改用既有最新快照（$cur）"
+}
+
 # ── 主流程 ──
-log "========== Stock Digest Start =========="
+log "========== Stock Digest Start（mode=$MODE）=========="
+
+ensure_stockradar_snapshot
 
 cd /Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/digest/stock/horizon
 
-if ! /Users/yankesswang/.local/bin/uv run horizon >> "$LOG" 2>&1; then
+if ! /Users/yankesswang/.local/bin/uv run horizon $HORIZON_ARGS >> "$LOG" 2>&1; then
     log "ERROR: horizon pipeline 執行失敗"
-    telegram_send "❌ *Stock Digest 失敗*（$(date '+%Y-%m-%d %H:%M')）
+    telegram_send "❌ *${DIGEST_LABEL} 失敗*（$(date '+%Y-%m-%d %H:%M')）
 請查看 log：$LOG"
     exit 1
 fi
 
 # Sync to Digest
 TODAY=$(date +%Y-%m-%d)
+# 整周復盤的涵蓋區間（週六往回：週一 ~ 週五）
+WEEK_START=$(date -v-5d +%Y-%m-%d 2>/dev/null || echo "$TODAY")
+WEEK_END=$(date -v-1d +%Y-%m-%d 2>/dev/null || echo "$TODAY")
 # horizon 用 UTC 時間命名，找最新輸出避免時區差
 STOCK_HORIZON_SUMMARIES="/Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/digest/stock/horizon/data/summaries"
 HORIZON_DATE=$(ls -t "$STOCK_HORIZON_SUMMARIES/" 2>/dev/null | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' | head -1 || echo "$TODAY")
@@ -140,7 +207,13 @@ fi
 TOKENS=$(grep "Token usage this run" "$LOG" | tail -1 | grep -oE '[0-9,]+ tokens' | head -1 || echo "")
 
 # ── 組合訊息（分段，保持可讀性）──
-MSG="📊 *Stock Digest — ${TODAY}*
+if [ "$MODE" = "weekly" ]; then
+    MSG_HEADER="${DIGEST_EMOJI} *${DIGEST_LABEL} — ${WEEK_START} ~ ${WEEK_END}*"
+else
+    MSG_HEADER="${DIGEST_EMOJI} *${DIGEST_LABEL} — ${TODAY}*"
+fi
+
+MSG="${MSG_HEADER}
 
 ${ONE_LINER:+▌ ${ONE_LINER}
 }"

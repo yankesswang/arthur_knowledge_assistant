@@ -8,21 +8,27 @@
 
 ## 1. 一句話定位
 
-每天 08:00 從 **50 個 RSS + 6 個 Reddit** 抓近 24 小時內容 → GPT-4o-mini 評分過濾 → 對照 `stock-radar` 持倉/watchlist + Finnhub 即時數據 → 生成三份繁中報告，rsync 到 Obsidian。
+**週一～五 07:00**（近 24h 日報）＋**週六 10:00**（整周復盤，回看 7 天）從 **50 個 RSS + 6 個 Reddit** 抓內容 → GPT-4o-mini 評分過濾 → 對照 `stock-radar` 持倉/watchlist + Finnhub 即時數據 → 生成三份繁中報告，rsync 到 Obsidian。週日不跑。
 
 ---
 
 ## 2. 觸發與排程
 
 ```
-LaunchAgent 08:00
-  com.arthurwang.stock-digest.plist
-    → ~/Library/Scripts/stock-digest.sh   ← 實際運行腳本（repo 外）
-        → uv run horizon                  ← = python -m src.main，預設 24h
+LaunchAgent 週一～五 07:00              LaunchAgent 週六 10:00
+  com.arthurwang.stock-digest.plist      com.arthurwang.stock-digest-weekly.plist
+    → ~/Library/Scripts/stock-digest.sh    → ~/Library/Scripts/stock-digest.sh weekly
+        （MODE=daily，無參數）                  （MODE=weekly，第 1 參數 = "weekly"）
+        → ensure_stockradar_snapshot      ← 先確保 stock-radar 當天持倉快照存在（見 §9）
+        → uv run horizon [$HORIZON_ARGS]  ← daily 預設 24h；weekly 帶 --hours 168（回看 7 天）
             → HorizonOrchestrator.run()
         → cp（5 次重試）data/summaries/<最新>/ → Obsidian「Digest/stock/<日期>/」
-        → telegram_send（從報告萃取重點推播，見 §7）
+        → telegram_send（從報告萃取重點推播，weekly 標題為「🗓️ 整周復盤 — 週一~週五」，見 §7）
 ```
+
+> **為什麼週六 10:00 跑整周復盤？** 週五美股收盤 = 週六 04:00（台），盤後/財報數據要更晚才齊。
+> 週六 10:00 跑、回看 168h，確保**週五當天**的盤後動態完整納入——這是日報（週一～五 07:00）涵蓋不到的。
+> 週日不跑（無新交易日）。
 
 > ⚠️ **真正在跑的是 `~/Library/Scripts/stock-digest.sh`，不在這個 repo 裡。**
 > repo 內的 `horizon/run_daily.sh` 與 `digest/stock/scripts/stock-digest-auto.sh` 是**過時副本**
@@ -30,9 +36,10 @@ LaunchAgent 08:00
 
 | 項目 | 值 |
 |------|-----|
-| 觸發時間 | 每天 **08:00** |
-| LaunchAgent | `~/Library/LaunchAgents/com.arthurwang.stock-digest.plist` |
-| **實際入口腳本** | **`~/Library/Scripts/stock-digest.sh`**（repo 外，含 Telegram + sync） |
+| 觸發時間 | 日報 **週一～五 07:00**；整周復盤 **週六 10:00**（週日不跑） |
+| LaunchAgent（日報） | `~/Library/LaunchAgents/com.arthurwang.stock-digest.plist`（`StartCalendarInterval` array：Weekday 1–5 @ 07:00） |
+| LaunchAgent（週報） | `~/Library/LaunchAgents/com.arthurwang.stock-digest-weekly.plist`（Weekday 6 @ 10:00，傳第 1 參數 `weekly`） |
+| **實際入口腳本** | **`~/Library/Scripts/stock-digest.sh [weekly]`**（repo 外，含 Telegram + sync；無參數=daily 24h，`weekly`=回看 168h） |
 | WorkingDirectory | `…/Desktop/Projects/Arthur_App/…/horizon`（Desktop 是 symlink → repo） |
 | 引擎指令 | `uv run horizon`（= `horizon/src/main.py`，預設 24h 視窗） |
 | 核心管線 | `horizon/src/orchestrator.py` → `HorizonOrchestrator.run()` |
@@ -46,10 +53,14 @@ LaunchAgent 08:00
 手動執行：
 
 ```bash
-launchctl start com.arthurwang.stock-digest
-# 或
+launchctl start com.arthurwang.stock-digest          # 日報（24h）
+launchctl start com.arthurwang.stock-digest-weekly   # 整周復盤（168h）
+# 或直接跑腳本
+~/Library/Scripts/stock-digest.sh                    # daily
+~/Library/Scripts/stock-digest.sh weekly             # weekly（整周復盤）
+# 或只跑引擎
 cd digest/stock/horizon && uv run horizon            # 預設 24h
-cd digest/stock/horizon && uv run horizon --hours 48 # 指定時間窗
+cd digest/stock/horizon && uv run horizon --hours 168 # 整周復盤視窗
 ```
 
 ---
@@ -221,12 +232,18 @@ done
      ```
      （LaunchAgent 載入的是 `~/Library/Scripts/` 那份，repo 版為 source of truth）
 
-3. **launchd 下寫 ~/Documents 會 EDEADLK**
+3. **持倉快照 race（已處理 ✅）**
+   - digest 讀 `portfolio_snapshots` 的 `MAX(snapshot_date)`；過去與 stock-radar 的 `stocks-daily-report` 同在 08:00 跑、無依賴順序，偶爾會讀到前一天快照。
+   - 現行腳本開頭新增 `ensure_stockradar_snapshot()`：先 health check `:6000` → 查 DB 是否已有當天快照 → 沒有就 `POST /api/scheduler/report/run` 並輪詢（每 3s，最多 ~180s）直到當天快照寫入，才開始跑 digest。
+   - backend 未啟動或逾時 → 記 log 並 fallback 用既有最新快照，digest 不中斷。
+   - 即時報價仍走 Finnhub（與快照無關）。
+
+4. **launchd 下寫 ~/Documents 會 EDEADLK**
    - log 出現 `[Errno 11] Resource deadlock avoided`（Python `shutil` 寫 Obsidian 時）。
    - 現行腳本已改用 `cp -f` + 5 次重試規避；舊的 `shutil`/`rsync` 版會 `sync 失敗`。
    - 若日後改寫同步邏輯，避免在 launchd context 用 Python/Node 直接寫 `~/Documents`。
 
-4. **Obsidian 目的地已遷移**
+5. **Obsidian 目的地已遷移**
    - 新：`~/Documents/arthurwang_DB/Digest/stock/<日期>/`（最新持續更新）
    - 舊：`~/Documents/arthurwang_DB/投資/Stock Digest/<日期>/`（停在 2026-06-10，過時腳本殘留）
 
