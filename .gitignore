@@ -1,52 +1,59 @@
-# Local env (machine-specific)
+# === Local env (machine-specific) ===
 .env
+.env.local
 
-# Audio & large media
+# === OS / editor cruft ===
+.DS_Store
+**/.DS_Store
+
+# === Python ===
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+**/.venv/
+.ruff_cache/
+
+# === Node ===
+node_modules/
+**/node_modules/
+
+# === Audio & large media ===
 *.mp3
 *.mp4
 *.wav
 *.m4a
 
-# Podcast transcript data (large, generated)
-podcast-note/data/episodes/*/transcript.txt
-podcast-note/data/episodes/*/transcript.json
-podcast-note/data/episodes/*/analysis.json
-podcast-note/data/episodes/*/audio.*
+# === Vendored third-party git clones (each has its own .git) ===
+# 上游來源：
+#   skills/                            -> github.com/anthropics/skills
+#   graphify/                          -> github.com/safishamsi/graphify
+#   tools/OpenCLI/                     -> github.com/jackwener/OpenCLI
+#   tools/x-article-in-obsidian-built/ -> github.com/Icy-Cat/x-article-in-obsidian
+#   tools/substack-in-obsidian-built/  -> 本地 build 產物（無 remote）
+/skills/
+/graphify/
+/tools/OpenCLI/
+/tools/x-article-in-obsidian-built/
+/tools/substack-in-obsidian-built/
 
-# Python cache
-__pycache__/
-*.pyc
-*.pyo
+# === Horizon digest（vendored 上游 + .venv + 每日產出資料，共 ~870M）===
+digest/ai/horizon/
+digest/stock/horizon/
 
-# Runtime data
+# === Generated output / runtime data ===
+digest/ai/output/
+digest/ai/migration_backup/
+digest/*/data/
+graphify-out/
+tmp_obsidian/
+zhihu-articles/
 logs/
 gallery-dl/
 video_transcript/
-server/data/custom_prompt.md
-server/data/inbox.json
-server/data/output_settings.json
-server/data/generation_settings.json
-server/data/claude_cli*.lock
-server/data/codex_cli*.lock
-server/data/server_cache.sqlite3*
-server/data/transcription_settings.json
-server/data/notification_settings.json
-podcast-note/data/episodes/
-podcast-note/data/codex-eval/
 .agent/skills/transcript-note/data/queue.txt
-.claude/scheduled_tasks.lock
 .agent/skills/transcript-note/data/transcripts/
-scripts/hardware_event_logger.py
-scripts/lmstudio_crash_test.py
-translate_gemini.py
+.claude/*.lock
 
-# Temp
-.DS_Store
-
-# Horizon AI Digest
-ai_digest/horizon/.venv/
-ai_digest/horizon/data/summaries/
-ai_digest/horizon/docs/_posts/
-ai_digest/output/
-ai_digest/migration_backup/
-ai_digest/horizon/
+# 空的 marker 檔，保留在磁碟但不版控
+.codex
