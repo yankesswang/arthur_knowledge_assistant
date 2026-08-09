@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kakao Map Favorites"
+  short_description: "Save batches of places into Kakao Maps."
+  default_prompt: "Use $kakao-map-favorites to save these Seoul addresses into my Kakao Maps favorites."

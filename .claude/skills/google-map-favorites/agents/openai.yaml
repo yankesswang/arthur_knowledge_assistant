@@ -1,0 +1,4 @@
+interface:
+  display_name: "Google Map Favorites"
+  short_description: "Save batches of places into Google Maps."
+  default_prompt: "Use $google-map-favorites to save these addresses into my Google Maps list."
