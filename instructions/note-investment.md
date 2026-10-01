@@ -2,7 +2,7 @@
 
 每次整理投資筆記（Substack 分析文、podcast、訪談、財報），必須遵循以下格式。
 
-> **語言、圖片判斷、速查表格式**見 CLAUDE.md 全域規範，本文不重複。
+> **語言、圖片判斷、速查表格式、正文條列化規範**見 CLAUDE.md 全域規範，本文不重複。
 
 ---
 
@@ -135,7 +135,13 @@ Code block 不只用來放計算，這兩篇最有效的用法是**結構化的�
 - 多個利多/利空的集中引爆邏輯
 - 因果鏈（A 發生 → B 成立 → C 受益）
 
-### 4d. 深度標準（防止過度壓縮）
+### 4d. 正文呈現方式
+
+正文一律依 **CLAUDE.md 全域規範 §正文條列化規範** 處理：粗體小標分區、數字對比抽表格、因果鏈用 `→`、情境分岔並列列點。
+
+連續推理鏈、callout、code block、投資框架不拆。
+
+### 4e. 深度標準（防止過度壓縮）
 
 - **每個投資觀點的「為什麼」必須完整**：因果推論、邏輯鏈、類比說明都要保留，不能只寫結論句
 - **對比分析必須完整重現**：「舊模式 vs. 新模式」、「A 公司 vs. B 公司」不得壓縮成一句話
@@ -248,8 +254,8 @@ Code block 不只用來放計算，這兩篇最有效的用法是**結構化的�
 
 | 條件 | 寫入目標 |
 |------|---------|
-| 筆記 `url` 包含 `mimi`、`mimivsjames`，或來源明確標示為 MimiVsJames | `/Users/yankesswang/Documents/arthurwang_DB/投資/mimi操作建議總表.md` |
-| 其他所有來源（podcast、財報、訪談、其他 Substack、Uncle Stock、宏觀策略等） | `/Users/yankesswang/Documents/arthurwang_DB/投資/投資操作建議總表.md` |
+| 筆記 `url` 包含 `mimi`、`mimivsjames`，或來源明確標示為 MimiVsJames | `/home/trx50/Documents/arthurwang_DB/投資/mimi操作建議總表.md` |
+| 其他所有來源（podcast、財報、訪談、其他 Substack、Uncle Stock、宏觀策略等） | `/home/trx50/Documents/arthurwang_DB/投資/投資操作建議總表.md` |
 
 > 如有疑慮，**預設寫入一般總表**（`投資操作建議總表.md`），不猜測。
 
