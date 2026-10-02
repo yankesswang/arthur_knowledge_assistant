@@ -7,7 +7,13 @@ set -euo pipefail
 
 SKILL_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG_FILE="$HOME/.yt-digest/substack-digest.log"
-VAULT_PATH="${OBSIDIAN_VAULT_PATH:-/Users/yankesswang/Documents/arthurwang_DB}"
+REPO_ENV="$(cd "$SKILL_DIR/../.." && pwd)/.env"
+VAULT_PATH="${OBSIDIAN_VAULT_PATH:-}"
+if [ -z "$VAULT_PATH" ] && [ -f "$REPO_ENV" ]; then
+  VAULT_PATH=$(grep '^VAULT_ROOT=' "$REPO_ENV" | cut -d= -f2- || true)
+fi
+VAULT_PATH="${VAULT_PATH:-$HOME/Documents/arthurwang_DB}"
+export OBSIDIAN_VAULT_PATH="$VAULT_PATH"
 GOLEM_ENV_MAIN="/Users/yankesswang/Desktop/Projects/Arthur_App/.env"
 GOLEM_ENV_FALLBACK="/Users/yankesswang/openclaw_backup/.env"
 GOLEM_ENV="${GOLEM_ENV:-$GOLEM_ENV_MAIN}"
@@ -25,6 +31,14 @@ if [ -f "$GOLEM_ENV" ]; then
   GEMINI_FIRST_FROM_ENV="${GEMINI_KEYS_FROM_ENV%%,*}"
   export GEMINI_API_KEY="${GEMINI_API_KEY:-${GEMINI_FROM_ENV:-${GEMINI_FIRST_FROM_ENV:-}}}"
 fi
+
+# FOMO SOC 付費文章 cookie：環境變數 > repo .env > Golem .env
+for env_file in "$REPO_ENV" "$GOLEM_ENV"; do
+  if [ -z "${FOMOSOC_COOKIE:-}" ] && [ -f "$env_file" ]; then
+    FOMOSOC_COOKIE=$(grep '^FOMOSOC_COOKIE=' "$env_file" | cut -d= -f2- || true)
+  fi
+done
+export FOMOSOC_COOKIE="${FOMOSOC_COOKIE:-}"
 
 mkdir -p "$HOME/.yt-digest"
 
@@ -81,6 +95,33 @@ touch "$RUN_MARK"
 log "參數：hours=$HOURS, topN=$TOP_N, lang=$LANG${SCRAPE_FLAG:+, no-scrape}"
 log "Vault：$VAULT_PATH"
 log "Digest 輸出：$DIGEST_FILE"
+
+# --- FOMO SOC 增量爬取（付費全文 → Finance Digest/FOMO SOC/原文），失敗不中斷 digest ---
+FOMOSOC_NEW=""
+FOMOSOC_NOTE=""
+if [ "${DIGEST_NO_FOMOSOC:-0}" = "1" ]; then
+  log "跳過 FOMO SOC 爬取（DIGEST_NO_FOMOSOC=1）"
+else
+  if [ -z "$FOMOSOC_COOKIE" ]; then
+    log "WARNING: 未設定 FOMOSOC_COOKIE，FOMO SOC 只能抓免費文章"
+    FOMOSOC_NOTE="⚠️ 未設定 FOMOSOC_COOKIE，只抓到免費文章"
+  fi
+  FOMOSOC_OUT="$(mktemp)"
+  if SCRAPE_MAX_PAGES="${FOMOSOC_MAX_PAGES:-4}" bun "$SKILL_DIR/scrape-fomosoc.ts" > "$FOMOSOC_OUT" 2>&1; then
+    FOMOSOC_RESULT=$(grep '^FOMOSOC_RESULT' "$FOMOSOC_OUT" | tail -n 1 | sed 's/^FOMOSOC_RESULT //' || true)
+    FOMOSOC_NEW=$(echo "$FOMOSOC_RESULT" | sed -n 's/.*downloaded=\([0-9]*\).*/\1/p')
+    FOMOSOC_EMPTY=$(echo "$FOMOSOC_RESULT" | sed -n 's/.*empty=\([0-9]*\).*/\1/p')
+    log "FOMO SOC 爬取完成：$FOMOSOC_RESULT"
+    if [ "${FOMOSOC_EMPTY:-0}" -gt 0 ] && [ -z "$FOMOSOC_NOTE" ]; then
+      FOMOSOC_NOTE="⚠️ ${FOMOSOC_EMPTY} 篇內容為空，cookie 可能已過期"
+    fi
+  else
+    log "WARNING: scrape-fomosoc.ts 執行失敗，繼續執行 digest"
+    FOMOSOC_NOTE="⚠️ FOMO SOC 爬取失敗，詳見日誌"
+  fi
+  cat "$FOMOSOC_OUT" >> "$LOG_FILE"
+  rm -f "$FOMOSOC_OUT"
+fi
 
 # --- 執行爬取 + 生成摘要 ---
 if ! bun "$SKILL_DIR/digest-substack.ts" \
@@ -158,6 +199,8 @@ TG_MSG="📊 財經電子報精選 — $(date '+%Y-%m-%d')
 ${TOP3_SUMMARY:-（摘要提取失敗）}
 
 📚 精選 ${ARTICLE_COUNT} 篇 | 新增筆記 ${NOTES_COUNT} 個
+🗞 FOMO SOC 新增 ${FOMOSOC_NEW:-0} 篇${FOMOSOC_NOTE:+
+$FOMOSOC_NOTE}
 📁 Obsidian: Finance Digest/${DATE} digest"
 telegram_notify "$TG_MSG"
 

@@ -17,9 +17,9 @@
  * 環境變數：
  *   FOMOSOC_COOKIE      登入 cookie（必填，付費文章用）
  *   OBSIDIAN_VAULT_PATH Obsidian vault 根目錄
- *   OUTPUT_DIR          覆蓋根目錄（預設：vault/Finance Digest/FOMO SOC）
+ *   OUTPUT_DIR          覆蓋根目錄（預設：vault/Finance Digest/FOMO SOC/原文）
  *   SCRAPE_LIMIT        每次 API 呼叫筆數（預設：25）
- *   SCRAPE_MAX_PAGES    最多爬幾頁（預設：無限制）
+ *   SCRAPE_MAX_PAGES    最多爬幾頁（預設：無限制；增量模式下整頁都已存在就提早停止）
  *   SCRAPE_FORCE        設為 "1" 強制重新下載
  *   SCRAPE_NO_MIGRATE   設為 "1" 跳過舊檔搬移
  *
@@ -48,6 +48,7 @@
 
 import { writeFile, mkdir, readdir, readFile, rename } from 'node:fs/promises';
 import { join } from 'node:path';
+import { homedir } from 'node:os';
 import process from 'node:process';
 
 // ============================================================================
@@ -57,8 +58,8 @@ import process from 'node:process';
 const BASE_URL = 'https://www.fomosoc.com';
 const SOURCE_NAME = 'FOMO SOC';
 
-const OBSIDIAN_VAULT = process.env.OBSIDIAN_VAULT_PATH || '/Users/yankesswang/Documents/arthurwang_DB';
-const ROOT_DIR = process.env.OUTPUT_DIR || join(OBSIDIAN_VAULT, 'Finance Digest', 'FOMO SOC');
+const OBSIDIAN_VAULT = process.env.OBSIDIAN_VAULT_PATH || process.env.VAULT_ROOT || join(homedir(), 'Documents', 'arthurwang_DB');
+const ROOT_DIR = process.env.OUTPUT_DIR || join(OBSIDIAN_VAULT, 'Finance Digest', 'FOMO SOC', '原文');
 const PAID_DIR = join(ROOT_DIR, '付費');
 const PAID_COLUMN_DIR = join(PAID_DIR, '商周專欄');
 const PAID_ANALYSIS_DIR = join(PAID_DIR, '深度分析');
@@ -258,7 +259,7 @@ async function fetchPostsPage(offset: number): Promise<FomoPost[]> {
   return [];
 }
 
-async function fetchAllPosts(): Promise<FomoPost[]> {
+async function fetchAllPosts(existing: Set<string>): Promise<FomoPost[]> {
   const all: FomoPost[] = [];
   let offset = 0, page = 0;
   while (page < MAX_PAGES) {
@@ -267,6 +268,11 @@ async function fetchAllPosts(): Promise<FomoPost[]> {
     all.push(...posts);
     console.log(`[scrape] 已取得 ${all.length} 篇（本批 ${posts.length} 篇）`);
     if (posts.length < LIMIT) break;
+    // 增量模式：列表按時間新→舊，整頁都已存在代表更舊的也都抓過了
+    if (!FORCE && posts.every(p => shouldSkip(p, existing))) {
+      console.log('[scrape] 本頁全部已存在，停止往前翻頁');
+      break;
+    }
     offset += LIMIT; page++;
     await new Promise(r => setTimeout(r, 500));
   }
@@ -446,7 +452,7 @@ bun scrape-fomosoc.ts
 
   // 取得文章列表
   console.log('[scrape] 開始取得文章列表...');
-  const allPosts = await fetchAllPosts();
+  const allPosts = await fetchAllPosts(existingTitles);
   if (allPosts.length === 0) {
     console.error('[scrape] ⚠️  沒有取得任何文章。'); process.exit(1);
   }
@@ -463,13 +469,25 @@ bun scrape-fomosoc.ts
       skipped++; continue;
     }
 
+    if (post.audience === 'only_paid' && !FOMOSOC_COOKIE) {
+      // 沒 cookie 只拿得到試閱段落，存了會擋住之後的全文下載
+      console.log(`${idx} 🔒 付費文章，未設定 cookie，略過：${post.title}`);
+      skipped++; continue;
+    }
+
     console.log(`${idx} ⬇  ${post.title}`);
     console.log(`     ${post.canonical_url} [${post.audience}]`);
 
     const content = await fetchPostContent(post);
-    const isEmpty = !content || content.length < 50;
-    if (isEmpty) { console.warn(`${idx} ⚠️  內容為空`); failed++; }
-    else { console.log(`${idx} ✓  ${content.length} 字元`); downloaded++; }
+    if (!content || content.length < 50) {
+      // 不寫檔，下次執行會重試（否則佔位檔會讓這篇永遠被跳過）
+      console.warn(`${idx} ⚠️  內容為空，略過不存檔`);
+      failed++;
+      if (i < allPosts.length - 1) await new Promise(r => setTimeout(r, ARTICLE_DELAY_MS));
+      continue;
+    }
+    console.log(`${idx} ✓  ${content.length} 字元`);
+    downloaded++;
 
     const pubDate = post.post_date
       ? new Date(post.post_date).toISOString().split('T')[0] : 'undated';
@@ -490,6 +508,8 @@ bun scrape-fomosoc.ts
   console.log(`  ⚠️  內容為空：${failed} 篇`);
   console.log(`  📁 ${ROOT_DIR}`);
   console.log('============================================================');
+  // 給 digest_substack_auto.sh 解析用
+  console.log(`FOMOSOC_RESULT downloaded=${downloaded} skipped=${skipped} empty=${failed}`);
 }
 
 main().catch(err => { console.error('[scrape] 嚴重錯誤：', err); process.exit(1); });

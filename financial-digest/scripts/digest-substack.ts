@@ -1,5 +1,6 @@
-import { writeFile, mkdir } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { writeFile, mkdir, readdir, readFile } from 'node:fs/promises';
+import { dirname, join, relative } from 'node:path';
+import { homedir } from 'node:os';
 import process from 'node:process';
 
 // ============================================================================
@@ -15,8 +16,11 @@ const GEMINI_BATCH_SIZE = 5;
 const MAX_CONCURRENT_GEMINI = 1;
 
 // Obsidian vault path — override with OBSIDIAN_VAULT_PATH env var
-const OBSIDIAN_VAULT = process.env.OBSIDIAN_VAULT_PATH || '/Users/yankesswang/Documents/arthurwang_DB';
+const OBSIDIAN_VAULT = process.env.OBSIDIAN_VAULT_PATH || process.env.VAULT_ROOT || join(homedir(), 'Documents', 'arthurwang_DB');
 const OBSIDIAN_DIGEST_FOLDER = 'Finance Digest';
+
+// scrape-fomosoc.ts 的輸出目錄（含付費全文）；digest 直接引用，不另存 RSS 版本
+const FOMOSOC_RAW_DIR = join(OBSIDIAN_VAULT, 'Finance Digest', 'FOMO SOC', '原文');
 
 // Source name → Obsidian folder name mapping
 const SOURCE_FOLDER: Record<string, string> = {
@@ -566,10 +570,63 @@ function formatObsidianNote(article: Article, dateStr: string): string {
   return frontmatter + header + content;
 }
 
+// ============================================================================
+// FOMO SOC：引用 scrape-fomosoc.ts 已存的全文
+// ============================================================================
+
+function substackSlug(link: string): string | null {
+  return link.match(/\/p\/([^/?#]+)/)?.[1] ?? null;
+}
+
+async function loadFomosocIndex(): Promise<Map<string, { notePath: string; body: string }>> {
+  const index = new Map<string, { notePath: string; body: string }>();
+  async function scan(dir: string): Promise<void> {
+    let entries;
+    try { entries = await readdir(dir, { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      const full = join(dir, e.name);
+      if (e.isDirectory()) { await scan(full); continue; }
+      if (!e.name.endsWith('.md')) continue;
+      const text = await readFile(full, 'utf-8').catch(() => '');
+      const slug = text.match(/^slug:\s*(\S+)/m)?.[1];
+      if (!slug) continue;
+      index.set(slug, {
+        notePath: relative(OBSIDIAN_VAULT, full).replace(/\.md$/, ''),
+        body: text.replace(/^---\n[\s\S]*?\n---\n/, '').trim(),
+      });
+    }
+  }
+  await scan(FOMOSOC_RAW_DIR);
+  return index;
+}
+
+async function attachFomosocScraped(articles: Article[]): Promise<Article[]> {
+  if (!articles.some(a => a.sourceName === 'FOMO SOC')) return articles;
+  const index = await loadFomosocIndex();
+  let matched = 0;
+  const results = articles.map(a => {
+    if (a.sourceName !== 'FOMO SOC') return a;
+    const slug = substackSlug(a.link);
+    const hit = slug ? index.get(slug) : undefined;
+    if (!hit) return a;
+    matched++;
+    return { ...a, fullContent: hit.body, obsidianNote: hit.notePath };
+  });
+  const total = articles.filter(a => a.sourceName === 'FOMO SOC').length;
+  console.log(`[digest] FOMO SOC: ${matched}/${total} articles linked to scraped notes in ${FOMOSOC_RAW_DIR}`);
+  return results;
+}
+
 async function saveArticleNotes(articles: Article[], dateStr: string): Promise<Article[]> {
   const results: Article[] = [];
 
   for (const article of articles) {
+    // 已有對應筆記（如 FOMO SOC 爬取的全文）就不重複存檔
+    if (article.obsidianNote) {
+      results.push(article);
+      continue;
+    }
+
     const sourceFolder = SOURCE_FOLDER[article.sourceName] ?? `Finance Digest/${sanitizeFilename(article.sourceName)}`;
     const folderPath = join(OBSIDIAN_VAULT, sourceFolder);
     await mkdir(folderPath, { recursive: true });
@@ -1159,6 +1216,8 @@ async function main(): Promise<void> {
   } else {
     console.log(`[digest] Step 3/6: Skipping scrape (--no-scrape)`);
   }
+
+  recentArticles = await attachFomosocScraped(recentArticles);
 
   // Step 4: Save all articles to Obsidian
   console.log(`[digest] Step 4/6: Saving ${recentArticles.length} articles to Obsidian...`);
