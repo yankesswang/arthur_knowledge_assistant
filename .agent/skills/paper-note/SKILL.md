@@ -1,6 +1,6 @@
 ---
 name: paper-note
-description: Given an arXiv URL or ID, fetch the full paper, download all figures, and generate a complete Obsidian note following Arthur's note-paper.md format.
+description: Given an arXiv URL or ID, fetch the full paper and figures, then generate a decision-first, readable Traditional Chinese Obsidian research note for Arthur. Use when turning an arXiv paper into a new note or rewriting an existing paper note that is too dense, repetitive, or unclear.
 ---
 
 # /paper-note
@@ -43,8 +43,8 @@ Extract a clean arXiv ID from the input:
 ```bash
 ARXIV_ID="<extracted_id>"
 ARXIV_ID_SAFE=$(echo "$ARXIV_ID" | tr './' '__')
-NOTE_DIR="/home/trx50/Documents/arthurwang_DB/AI Knowledge/論文筆記"
-VAULT_ROOT="/home/trx50/Documents/arthurwang_DB"
+NOTE_DIR="/Users/yankesswang/Documents/arthurwang_DB/AI Knowledge/論文筆記"
+VAULT_ROOT="/Users/yankesswang/Documents/arthurwang_DB"
 echo "ID: $ARXIV_ID  |  safe: $ARXIV_ID_SAFE"
 ```
 
@@ -90,7 +90,7 @@ PYEOF
 **If HTML unavailable (PDF fallback)**: Download PDF and extract with pdfplumber:
 
 ```bash
-VENV_PYTHON="/home/trx50/Project/arthur_knowledge_assistant/.venv/bin/python3"
+VENV_PYTHON="/Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/.venv/bin/python3"
 
 # Download PDF
 curl -L -A "Mozilla/5.0" "https://arxiv.org/pdf/$ARXIV_ID" -o /tmp/arxiv_paper.pdf
@@ -130,7 +130,7 @@ import re, sys, os, json, urllib.request, urllib.parse
 
 arxiv_id = os.environ.get("ARXIV_ID", "")
 arxiv_id_safe = os.environ.get("ARXIV_ID_SAFE", "")
-vault_root = "/home/trx50/Documents/arthurwang_DB"
+vault_root = "/Users/yankesswang/Documents/arthurwang_DB"
 
 with open("/tmp/arxiv_paper_raw.html", encoding="utf-8", errors="ignore") as f:
     html = f.read()
@@ -182,7 +182,7 @@ PYEOF
 **Stage B-1: Download TeX source and extract original figure files (highest quality)**
 
 ```bash
-VENV_PYTHON="/home/trx50/Project/arthur_knowledge_assistant/.venv/bin/python3"
+VENV_PYTHON="/Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/.venv/bin/python3"
 
 mkdir -p /tmp/arxiv_src
 curl -L -A "Mozilla/5.0" "https://arxiv.org/src/$ARXIV_ID" -o /tmp/arxiv_src.tar.gz -s
@@ -194,7 +194,9 @@ tar -xf  /tmp/arxiv_src.tar.gz -C /tmp/arxiv_src 2>/dev/null
 find /tmp/arxiv_src -type f | sort
 ```
 
-Then parse the `.tex` file to find `\includegraphics` references and map them to figure numbers:
+Then parse the `.tex` file to find `\includegraphics` references and map them to figure numbers.
+
+**Critical**: Must follow `\input{}`/`\include{}` directives recursively in paper order — do NOT simply concatenate all `.tex` files (that produces wrong figure numbering because: (1) it ignores include order, (2) figures buried in `sections/` and `tables/` subdirectories are missed or mis-ordered, (3) the same image reused in appendix gets double-counted).
 
 ```bash
 $VENV_PYTHON << 'PYEOF'
@@ -202,57 +204,151 @@ import re, os, shutil, json
 import pypdfium2 as pdfium
 
 src_dir = "/tmp/arxiv_src"
-vault_root = "/home/trx50/Documents/arthurwang_DB"
+vault_root = "/Users/yankesswang/Documents/arthurwang_DB"
 arxiv_id_safe = os.environ.get("ARXIV_ID_SAFE", "")
 
-# Read the main .tex file
-tex_files = [f for f in os.listdir(src_dir) if f.endswith(".tex")]
-tex_content = ""
-for tf in tex_files:
-    with open(os.path.join(src_dir, tf), encoding="utf-8", errors="ignore") as f:
-        tex_content += f.read()
+# Step 1: Find the main .tex file (has \documentclass)
+def find_main_tex(src_dir):
+    for root, dirs, files in os.walk(src_dir):
+        for f in files:
+            if not f.endswith(".tex"):
+                continue
+            path = os.path.join(root, f)
+            with open(path, encoding="utf-8", errors="ignore") as fh:
+                content = fh.read()
+            if "\\documentclass" in content:
+                return path
+    # Fallback: pick the largest .tex file at root
+    candidates = [os.path.join(src_dir, f) for f in os.listdir(src_dir) if f.endswith(".tex")]
+    return max(candidates, key=os.path.getsize) if candidates else None
 
-# Find figure environments and their \includegraphics
-# Pattern: \begin{figure}...\includegraphics{file}...\caption{...} or vice versa
+main_tex = find_main_tex(src_dir)
+print(f"  Main tex: {main_tex}", flush=True)
+
+# Step 2: Recursively expand \input{} / \include{} to produce full content in paper order
+visited = set()
+
+def resolve_input(ref, current_dir, src_dir):
+    """Try to find the actual file for a \\input{ref} call."""
+    candidates = [
+        os.path.join(current_dir, ref),
+        os.path.join(current_dir, ref + ".tex"),
+        os.path.join(src_dir, ref),
+        os.path.join(src_dir, ref + ".tex"),
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return None
+
+def flatten_tex(path):
+    """Return full TeX content with \\input/\\include expanded in order."""
+    real_path = os.path.realpath(path)
+    if real_path in visited:
+        return ""
+    visited.add(real_path)
+    with open(path, encoding="utf-8", errors="ignore") as f:
+        content = f.read()
+    current_dir = os.path.dirname(path)
+
+    def replace_input(m):
+        ref = m.group(1).strip()
+        sub = resolve_input(ref, current_dir, src_dir)
+        if sub:
+            return flatten_tex(sub)
+        return ""
+
+    content = re.sub(r'\\input\{([^}]+)\}', replace_input, content)
+    content = re.sub(r'\\include\{([^}]+)\}', replace_input, content)
+    return content
+
+full_tex = flatten_tex(main_tex)
+
+# Step 3: Extract figure environments in paper order; skip decoration (no caption)
 figure_envs = re.findall(
     r'\\begin\{figure[^}]*\}(.*?)\\end\{figure[^}]*\}',
-    tex_content, re.DOTALL
+    full_tex, re.DOTALL
 )
 
-saved = {}
+saved = {}        # fig_counter → {"path": ..., "src": ..., "panel": N_of_M, "caption": ...}
 fig_counter = 0
+seen_src_files = set()   # realpath → fig_counter; deduplicates same image in main text + appendix
+
 for env in figure_envs:
-    fig_counter += 1
-    inc_match = re.search(r'\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}', env)
-    if not inc_match:
+    # Skip figure environments with no caption (decorative/logo figures)
+    if not re.search(r'\\caption', env):
         continue
-    src_file_base = inc_match.group(1).strip()
-    # Try with and without extension
-    found_path = None
-    for ext in ["", ".pdf", ".png", ".jpg", ".eps"]:
-        candidate = os.path.join(src_dir, src_file_base + ext)
-        if os.path.exists(candidate):
-            found_path = candidate
+
+    inc_matches = re.findall(r'\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}', env)
+    if not inc_matches:
+        continue
+
+    # Grab caption once per figure environment (shared across all panels)
+    cap_m = re.search(r'\\caption(?:\[[^\]]*\])?\{([^}]{0,200})', env, re.DOTALL)
+    caption = cap_m.group(1).replace('\n', ' ').strip()[:160] if cap_m else ""
+
+    # Collect unique, resolvable panels for this environment
+    panels = []
+    for src_file_base in inc_matches:
+        src_file_base = src_file_base.strip()
+        found_path = None
+        for ext in ["", ".pdf", ".png", ".jpg", ".eps"]:
+            for base in [
+                os.path.join(src_dir, src_file_base + ext),
+                os.path.join(src_dir, os.path.basename(src_file_base) + ext),
+            ]:
+                if os.path.exists(base):
+                    found_path = base
+                    break
+            if found_path:
+                break
+        if not found_path:
+            continue
+        real_src = os.path.realpath(found_path)
+        if real_src in seen_src_files:
+            print(f"  ⟳ skipping duplicate: {os.path.basename(found_path)}", flush=True)
+            continue
+        panels.append((found_path, real_src))
+
+    if not panels:
+        continue
+
+    n_panels = len(panels)
+    for panel_idx, (found_path, real_src) in enumerate(panels):
+        seen_src_files.add(real_src)
+        fig_counter += 1
+        dest = os.path.join(vault_root, f"{arxiv_id_safe}_fig{fig_counter:02d}.png")
+        ext_lower = os.path.splitext(found_path)[1].lower()
+
+        if ext_lower == ".png":
+            shutil.copy(found_path, dest)
+        elif ext_lower in (".pdf", ".eps"):
+            try:
+                doc = pdfium.PdfDocument(found_path)
+                page = doc[0]
+                bm = page.render(scale=3.0)
+                img = bm.to_pil()
+                img.save(dest)
+            except Exception as e:
+                print(f"  ✗ fig{fig_counter:02d}: {e}", flush=True)
+                continue
+
+        panel_label = f"{panel_idx+1}/{n_panels}" if n_panels > 1 else "1/1"
+        saved[fig_counter] = {
+            "path": dest,
+            "filename": os.path.basename(dest),
+            "src": os.path.basename(found_path),
+            "panel": panel_label,   # "1/2", "2/2", or "1/1" for single-panel figures
+            "caption": caption,
+        }
+        print(f"  ✓ fig{fig_counter:02d} [{panel_label}]: {os.path.basename(found_path)}", flush=True)
+
+        if fig_counter >= 20:
             break
-    if not found_path:
-        continue
+    if fig_counter >= 20:
+        break
 
-    dest = os.path.join(vault_root, f"{arxiv_id_safe}_fig{fig_counter:02d}.png")
-    ext_lower = os.path.splitext(found_path)[1].lower()
-    if ext_lower == ".png":
-        shutil.copy(found_path, dest)
-        saved[fig_counter] = dest
-        print(f"  ✓ fig{fig_counter:02d}: copied {os.path.basename(found_path)}", flush=True)
-    elif ext_lower in (".pdf", ".eps"):
-        doc = pdfium.PdfDocument(found_path)
-        page = doc[0]
-        bm = page.render(scale=3.0)
-        img = bm.to_pil()
-        img.save(dest)
-        saved[fig_counter] = dest
-        print(f"  ✓ fig{fig_counter:02d}: {os.path.basename(found_path)} → {img.size}", flush=True)
-
-print(json.dumps({"saved": list(saved.keys())}))
+print(json.dumps({"saved": list(saved.keys()), "manifest": {str(k): v for k, v in saved.items()}}))
 PYEOF
 ```
 
@@ -267,7 +363,7 @@ from PIL import Image
 
 pdf_path = "/tmp/arxiv_paper.pdf"
 arxiv_id_safe = os.environ.get("ARXIV_ID_SAFE", "")
-vault_root = "/home/trx50/Documents/arthurwang_DB"
+vault_root = "/Users/yankesswang/Documents/arthurwang_DB"
 
 # Read already-saved fig numbers from Stage B-1
 already_saved = set()  # populate from B-1 output if available
@@ -353,8 +449,8 @@ with pdfplumber.open(pdf_path) as pdf:
                         break
                     last_y = float(w["bottom"])
         else:
-            # Figure is ABOVE the caption: crop from prev text end to caption_bot
-            # Find text above the figure
+            # Figure is ABOVE the caption: crop from prev text end to just before caption
+            # crop_bot stops at caption_y_top so the caption text is NOT included in the image
             prev_text = [w for w in words if float(w["bottom"]) < caption_y_top - 10
                          and float(w["top"]) > 30]  # skip header
             # Use vector graphic objects to find figure top
@@ -368,7 +464,7 @@ with pdfplumber.open(pdf_path) as pdf:
                 crop_top_pt = max(0, max(float(w["bottom"]) for w in prev_text) - 4)
             else:
                 crop_top_pt = max(0, caption_y_top - 280)
-            crop_bot_pt = caption_bot + 5
+            crop_bot_pt = caption_y_top - 5  # stop before caption text starts
 
         # Render page at 3× and crop
         px_top = max(0, int(crop_top_pt * scale))
@@ -391,73 +487,88 @@ Collect all saved filenames from both stages — you will use them in Step 5 to 
 
 **Notes on figure quality**:
 - TeX-source figures (PDF/PNG originals): cleanly cropped, highest quality
-- Smart-cropped from PDF: include figure + caption; may include small margins of surrounding text on pages with dense layout
+- Smart-cropped from PDF: figure only, caption excluded; crop stops at `caption_y_top - 5` so no caption text bleeds into the image
 
 ---
 
-### Step 4 — Read format instructions
+### Step 4 — Read vault conventions
 
-Read the note format specification:
+Read the existing note specification for frontmatter, language, filename, and Obsidian conventions:
 
 ```bash
-cat "/home/trx50/Project/arthur_knowledge_assistant/instructions/note-paper.md"
+cat "/Users/yankesswang/Desktop/Projects/Arthur_App/arthur_knowledge_assistant/instructions/note-paper.md"
 ```
 
-Then read the global output rules from CLAUDE.md (language, image placement, speed table).
+Then read the global output rules from CLAUDE.md.
+
+Treat the structure and prioritization rules in Step 5 below as authoritative. If the legacy
+`note-paper.md` asks for an exhaustive fixed chapter list, every figure, or every number, do not
+follow those requirements: they are the failure mode this skill is designed to avoid.
 
 ---
 
-### Step 5 — Generate the complete note
+### Step 5 — Generate a layered, decision-first note
 
-Using the full paper text from Step 2 and the figure manifest from Step 3, generate a complete Obsidian note.
+Using the full paper text from Step 2 and the figure manifest from Step 3, generate a detailed but readable Obsidian note. Use two reading layers: the TL;DR and section openings let a reader grasp the paper quickly; the technical subsections retain enough architecture, objective, training, experiment, and deployment detail to study the work without reopening the PDF.
 
-**Mandatory structure** (from note-paper.md):
+Before writing, identify these five items in scratch reasoning:
+
+1. The paper's one-sentence claim
+2. The 2–4 genuinely new ideas
+3. The strongest quantitative evidence for each major modality or contribution
+4. The most important caveat or counter-result
+5. The concrete situation in which Arthur should or should not use the work
+
+Build the note around those items. Do not organize it by mechanically mirroring the paper.
+
+**Mandatory structure**:
 
 ```
 Frontmatter
-TL;DR [!abstract]
-# 一、核心演算法直覺
-  ## 1.1 白話解釋
-  ## 1.2 演算法流程 (code block)
-  ## 1.3 與舊方法最大的不同 (對比表)
-# 二、主要發現
-  ## 2.1 發現一（以反直覺或最重要的結論命名）
-  ## 2.2 發現二
-  ## 2.3 ...（依論文核心論點數量決定，通常 3–5 個）
-# 三、研究背景與動機
-# 四、方法細節
-  ## 4.1 任務定義
-  ## 4.2 核心指標 / 演算法
-  ## 4.3 實驗設定（如有）
-# 五、實驗結果
-  ## 5.1 第一組實驗名稱
-  ## 5.2 ...（依實驗層次分節）
-# 六、關鍵圖表解讀
-  ### Figure N（頁碼）：圖表標題
-# 七、侷限與風險 [!warning]
-# 八、延伸應用（短期 / 中期 / 長期）
-# 九、落地設計（選填，論文方法可直接落地時才寫）
+TL;DR [!abstract]: 一句結論 + 3 個要點 + 適用/不適用
+# 一、這篇論文解決什麼問題
+# 二、整體架構：先看懂資料怎麼流
+# 三、方法深挖
+  ## 3.1 各模態如何變成 token
+  ## 3.2 Backbone 與核心結構創新
+  ## 3.3 訓練目標、資料與課程
+  ## 3.4 Model merging、MRL 與量化
+# 四、實驗結果
+  ## 4.1 總覽與比較基準
+  ## 4.2 文字與程式碼
+  ## 4.3 圖像、文件與影片
+  ## 4.4 音訊
+  ## 4.5 效率與量化
+# 五、消融實驗與真正值得記住的發現
+# 六、限制與使用判斷
+# 七、對 Arthur 的意義（有明確關聯才寫）
 ## 附：關鍵數據速查
 ```
 
-**章節編號規範**：
-- 主章節：`# 一、` `# 二、` ... `# 九、`（中文數字）
-- 子節：`## 1.1` `## 1.2`（阿拉伯數字，對應主章節編號）
-- 範例：`# 四、方法細節` → `## 4.1 任務定義` → `## 4.2 核心指標`
+Keep the main note around 4,000–7,000 Chinese characters for a normal empirical paper, excluding frontmatter and the final data table. Complex system or multimodal papers may reach 8,500 characters when the additional detail explains distinct mechanisms or evidence. Do not compress away technical content merely to hit a length target.
+
+**Section rules**:
+- Start each section with its conclusion, then explain the evidence. Never make the reader wait until the end for the point.
+- Begin the architecture section with a 5–8 step data-flow overview, then explain each important component in the technical subsections. Cover all mechanisms needed for conceptual reproduction: modality preprocessing, tensor/token flow, backbone changes, pooling/output, objectives, training stages, data recipe, and inference-time controls.
+- Retain 2–6 important equations when they clarify the paper's novelty. Define every symbol used and follow each equation with a plain-language explanation plus why the design exists.
+- Explain training objectives separately rather than collapsing them into one sentence. For each loss or regularizer, state its input, optimization behavior, and intended failure mode.
+- In `四、實驗結果`, give each materially evaluated modality its own subsection. Use compact tables, but include enough comparisons to show both strengths and weaknesses. State what each benchmark measures before citing its score.
+- Preserve important per-dimension, per-modality, and quantization results when they affect deployment decisions. Avoid dumping every task row, but do not omit an entire result family merely because it is not the top headline.
+- In `五、消融實驗與真正值得記住的發現`, keep 3–6 findings supported by ablations or counter-results. Use `發現 → 實驗控制 → 數字 → 為什麼 → 意義`; note when the authors provide only a hypothesis.
+- In `六、限制與使用判斷`, separate `適合`, `不適合`, and `尚未證明`. Include evaluation-scope, reproducibility, data/teacher dependence, context limits, and modality-specific weaknesses when applicable.
+- Write `七、對 Arthur 的意義` only when there is a concrete connection to Arthur's systems or workflow. Give 3–5 actionable design decisions and state the tradeoff behind each one.
+- Use bullets for scannability, but avoid bullets nested deeper than one level.
+- Define an acronym once. Prefer concrete nouns over chains of jargon.
+- Do not repeat the same explanation in multiple sections. A headline result may appear in the TL;DR, its experiment subsection, and the appendix; elsewhere refer back instead of restating it.
+- Explicitly label inference with `我的判斷：`; otherwise attribute claims to the paper.
 
 **Figure embedding rules**:
-- Embed each downloaded figure with `![[{filename}]]` immediately after the paragraph that references it
-- Below the embed, write the original figure caption as plain text in italics
-- In `六、關鍵圖表解讀`, one entry per figure:
-  ```
-  ### Figure N（頁碼）：圖表標題
-  ![[filename]]
-  *Figure N: 原始英文 caption（如有）*
-
-  （一段白話說明：這張圖在比較什麼、最重要的 takeaway、關鍵數字）
-  ```
-- 每個圖用一段自然段落說明，不強制拆成「看什麼 / 關鍵發現 / 數字」三個固定欄位——除非圖表複雜到需要分層解讀
-- Do NOT stack all figures at the end
+- Embed figures that materially explain the mechanism, training design, or a central result, normally 2–6 figures. Downloaded figures may remain unused.
+- Each selected figure file must be embedded **exactly once** in the entire note.
+- Place each selected figure beside the paragraph it supports; do not create a separate figure-gallery chapter.
+- Multi-panel figures (manifest `panel` field = "1/2", "2/2"): embed both panels back-to-back at the same location, they are halves of the same logical figure
+- Below each embed, write 2–4 concise Chinese bullets covering `看什麼`, `關鍵數字`, and `為什麼重要`. Do not paste a long original caption.
+- Do not stack figures at the end or repeat a figure.
 
 **Output language rules** (from CLAUDE.md):
 - All text in 繁體中文
@@ -465,14 +576,26 @@ TL;DR [!abstract]
 - Numbers must include units (%, ×, tokens, seconds, ms)
 
 **TL;DR rules**:
-- Must include: method name + core mechanism + the most important result number + what it beats
+- Open with a one-sentence verdict that includes the method, core mechanism, strongest result, and comparison target.
+- Follow with exactly three bullets: `新意`, `證據`, `代價`.
+- End with one line: `適合：...｜不適合：...`.
 - Bad: "提升了性能" — Good: "Pass@3 從 0.523 → 0.560（+3.7%），以更少 token 擊敗 MAS"
 - If paper has no quantitative result (pure theory), use the alternative format from note-paper.md
 
-**Speed table rules**:
+**Key-data appendix rules**:
 - Always end with `## 附：關鍵數據速查`
-- Include every number mentioned in the paper (accuracy, latency, token counts, dataset sizes, hyperparameters)
+- Include 15–30 decision-relevant values: model size, data scale, main and secondary result families, important ablations, compute/latency/memory when reported, and thresholds needed to reproduce or deploy the method.
+- Group related values in one row. Omit secondary per-task scores that do not change the conclusion.
 - If a value is not mentioned in the paper, write "原文未提" — never invent numbers
+
+**Pre-save quality gate**:
+1. A reader who sees only the TL;DR can answer: what changed, how much it helped, and what it costs.
+2. Every main section has a distinct job; remove any paragraph that merely restates another section.
+3. The main body covers every major result family in the paper, while keeping total benchmark rows around 12–20 across all tables.
+4. Every major method component answers three questions: what it does, why it exists, and what evidence supports it.
+5. Claims distinguish paper evidence from your inference.
+6. The note is easy to scan despite its depth: short paragraphs, informative subheadings, selective callouts, and no wall of equations or unfiltered benchmark dumps.
+7. If rewriting an existing note, preserve valid frontmatter, source URL, and working image links while replacing the body with the clearer structure.
 
 ---
 
@@ -491,6 +614,16 @@ NOTE_PATH="$NOTE_DIR/<sanitized_title>.md"
 # Write note content to $NOTE_PATH
 ```
 
+Then add it to 待閱讀清單 (本週「LLM 技術 / 論文」). The note isn't done until this runs —
+the daily `sync_reading_list.py` safety net only scans `投資/`, so a skipped step is never recovered.
+`--link` is the filename without `.md`; the script dedups, and if the vault is unreadable it
+queues the entry and still exits 0.
+
+```bash
+python3 ~/Projects/Arthur_App/scripts/lib/article_list.py \
+  --section "LLM 技術 / 論文" --link "<sanitized_title>"
+```
+
 ---
 
 ### Step 7 — Report results
@@ -500,6 +633,7 @@ Print a concise summary:
 ```
 ✓ Note saved:    AI Knowledge/論文筆記/{title}.md
 ✓ Figures saved: {N} images → vault root
+✓ Reading list:  added to 待閱讀清單 / LLM 技術 / 論文  (or "already present" / "queued")
 
   fig01: {arxiv_id_safe}_fig01.png  — {caption_preview}
   fig02: {arxiv_id_safe}_fig02.png  — {caption_preview}

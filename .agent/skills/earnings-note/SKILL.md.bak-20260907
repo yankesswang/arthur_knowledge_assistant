@@ -1,0 +1,467 @@
+---
+name: earnings-note
+description: |
+  公司財報公布後產出分析師級財報筆記到 Obsidian（投資/財報筆記/）。
+  定性工作全部走腳本：EDGAR 8-K/新聞稿抓取、IR 官方文件（逐字稿/簡報/報表）探測下載、
+  PDF 轉文字轉圖、stock-radar 估值/DCF/持倉、財報前後股價反應。
+  LLM 只負責：讀逐字稿與簡報、算深度指標、按格式規範寫筆記。
+metadata:
+  trigger: /earnings-note TICKER，或「幫我做 XXX 的財報筆記」
+---
+
+# Earnings Note：財報筆記生成
+
+輸入一個 ticker，產出一份完整財報筆記到 `~/Documents/arthurwang_DB/投資/財報筆記/`。
+範本＝該資料夾的「2026-07-29 META 2026Q2 財報筆記.md」，格式照它，不要自由發揮。
+
+腳本與資料表都住在 stock-radar：`~/Projects/Arthur_App/stock-radar/scripts/earnings/`，
+個股情報登錄在 `stock-radar/data/earnings_registry.db`（companies 表存 CIK/IR 模板/
+fiscal 規則/逐字稿來源/ticker 對映；earnings_events 表存每季文件 URL/報告日/
+股價反應/筆記路徑）。**查過的東西都在表裡，先看表再動手。**
+
+## 流程
+
+### Step 0：先查資料表
+
+```bash
+ER=~/Projects/Arthur_App/stock-radar/scripts/earnings
+python3 $ER/registry.py show TICKER
+```
+
+已知公司會列出 fiscal 規則（該不該傳 --q/--y）、IR 模板、逐字稿來源、
+歷季文件 URL。新公司沒資料就繼續往下，做完把發現 upsert 回去。
+
+### Step 1：跑腳本（定性部分，別自己手動做）
+
+```bash
+# 抓官方文件：EDGAR 最近 N 份財報 8-K 新聞稿（QoQ/多季序列用）、
+# IR 官方 PDF（照 registry 模板探測）、自動轉 txt 和 PNG、自動回寫 registry
+# --workdir 一定要給絕對路徑（bash cwd 不跨呼叫保持）
+python3 $ER/fetch_ir_docs.py TICKER --workdir <scratchpad 絕對路徑>/earnings_TICKER
+
+# stock-radar 數據：估值/DCF/財報前後股價反應，以及最重要的持倉部位脈絡
+# （權重、排名、等權倍數、產業集中度、調整到各目標權重要買賣幾股）
+python3 $ER/stock_context.py TICKER --report-date YYYY-MM-DD
+
+# 技術面＋K 線圖：均線排列、RSI/MACD/KDJ/威廉/OBV、布林、ATR、52 週位置、
+# 支撐壓力表（含強中弱分級）、指標訊號清單、財報跳空缺口回補與否，
+# 並輸出 <workdir>/TICKER_price_chart.png（日 K＋MA＋布林＋支撐壓力＋量＋MACD＋RSI）
+python3 $ER/price_technicals.py TICKER --report-date YYYY-MM-DD \
+  --outdir <workdir 絕對路徑> --label "TICKER 2026Q2"
+# 動能是這季主論點時（超買超賣、KD 交叉、量價背離）多掛一兩個面板：
+#   --panels macd,rsi,kdj    可選 macd / rsi / kdj / willr / obv
+```
+
+指標公式跟 stock-radar 前端價格圖（`backend/app/routers/chart.py`）逐條對齊，
+筆記寫的數字跟 App 上看到的是同一組，兩邊不會打架。
+
+- 財報日期看 fetch 印出的 press release 日期，回填 --report-date
+- fiscal 年公司（AAPL、NVDA，看 registry 的 fiscal_note）要傳 `--q/--y`
+- 新聞稿一定有（EDGAR），不需要 fallback
+- `price_technicals.py` 的財報標記讀 registry 的 earnings_events，所以 Step 6 有
+  回寫的話，下一季的圖會自動帶出歷史財報反應。圖裡若少了某季標記，就是那季沒回寫
+
+### Step 1.5：IR 官網文件搜尋（`ir docs found: NONE` 或想確認沒漏時必做）
+
+公司 IR 官網幾乎一定有東西（NVDA 連官方 FactSet 逐字稿都有），只是常藏在
+JS app 後面。按這個順序找，成功一層就停：
+1. registry 模板探測（fetch 腳本已做）
+2. **WebSearch 搜尋引擎索引，最可靠**：查「"q4cdn" TICKER presentation
+   transcript pdf 年份」之類。搜尋引擎索引得到 JS app 藏起來的直接連結，
+   檔名瞎猜猜不到的路徑它有（NVDA 簡報在 `2027/Q127/` 就是這樣找到的）
+3. WebFetch IR 網站的 financial-reports / quarterly-results 頁
+4. opencli 真瀏覽器開頁抓渲染後連結（extension 掛掉要先手動 reload）
+5. 逐字稿不走上面這個順序，腳本自己有一套且已全自動：先打
+   stockanalysis.com（一種 URL 形狀吃遍所有美股、一定含 Q&A、新 ticker 零設定），
+   沒有才回頭找 registry 裡的官方 transcript 模板，兩邊都沒有才印訊息要人處理。
+   都存成 `transcript.txt`。要手動找時再用 Motley Fool、Six Colors（defuddle 抓）
+- 簡報類文件常在財報後約一週才上 IR，財報當天抓不到屬正常，隔週補跑
+- 找到的東西回寫資料表，下次全自動：
+
+```bash
+python3 $ER/registry.py upsert TICKER ir_base="https://..." \
+  ir_docs='{"presentation": ["{yyyy}q{q}-xxx-slides.pdf"]}' \
+  transcript_source="..." fiscal_note="..."
+python3 $ER/registry.py record TICKER 2026Q3 doc:transcript=https://... reaction_pct=-3.2 \
+  note_path="投資/財報筆記/xxx.md"
+```
+
+### Step 2：讀材料（LLM）
+
+按順序讀 workdir 裡的檔案：
+1. `press_release_*.txt` 兩份（本季數字＋上季數字，算 QoQ 的原料）
+2. `prepared_remarks.txt` 或 `transcript.txt`（管理層敘事＋分部門 color）。
+   逐字稿的 Q&A 段（`question-and-answer` 之後）是格式鐵律第 4 條的唯一原料，
+   逐題讀完再寫；分析師追問的點通常就是股價當天反應的原因，比 prepared
+   remarks 有價值。腳本說逐字稿還沒上架就先寫，隔天補跑 fetch 再補這一塊
+3. `followup.txt`（若有，加場常有主場沒有的細節）
+4. `presentation_slide-*.png` 全部看過，挑出要嵌入筆記的關鍵頁（分部門表、地區別、
+   量價拆解、capex、FCF、用戶指標之類，通常 6 到 9 張）
+
+### Step 3：計算深度指標（LLM，用 python 算，不要心算）
+
+用兩份新聞稿＋簡報九季數據算：
+- 增量營益率：YoY 增量營業利益 ÷ 增量營收，至少三期對比，一次性項目要剔除版
+- 折舊推演：本年 capex ÷ 資產壽命（伺服器約 5.5 年、廠房 20 年）→ 未來兩年 D&A 與營益率壓力
+- FCF 橋接：本年 OCF 與 capex 財測推 FCF，下一年做兩到三個情境
+- 反推 DCF：市值 ×（WACC − 終端成長）→ 現價隱含的穩態 FCF，對照現在的年化 FCF
+- 下一年 EPS 三情境（熊/基準/牛營益率）× 現價 P/E
+- 所有 QoQ 和 YoY 百分比
+
+### Step 3.4：讀技術面與部位（LLM，不要重算，腳本都算好了）
+
+`price_technicals.py` 和 `stock_context.py` 的 JSON 是後面操作結論的骨架，寫筆記前
+先把這幾個數字記下來，它們決定了結論長什麼樣：
+
+技術面（price_technicals）
+- `trend.state` 均線排列＋`vs_sma50_pct`／`vs_sma250_pct`：現在是順勢還是逆勢
+- `range_52w.position_in_range_pct`：在 52 週區間的哪個位置。低於 30 是打底區，
+  高於 80 是追高區，直接影響進場建議的口氣
+- `momentum`：`rsi14`＋`rsi_state`、`macd`／`macd_signal`／`macd_hist`＋`macd_state`、
+  `kdj`（k/d/j 與 state）、`williams_r14`、`obv_20d_net_days`（近 20 日淨買賣
+  相當於幾天均量，正是買盤累積、負是賣壓宣洩）、
+  `td_sequential`（神奇九轉：`count`／9 是目前計數、`last_signal` 是最近一次
+  低9 或高9 與它的 `bars_ago`）。九轉只有兩種寫法有意義——剛成訊（bars_ago 個位數）
+  當成轉折證據，或計數 6 以上寫成「還差幾根」的觀察點；30 根以前的九轉是歷史，不要引用。
+  動能是佐證不是主論點，但四個指標同向時要講，互相矛盾時更要講
+- `bollinger`：`pct_b`（0 貼下軌、100 貼上軌）、`bandwidth_pct`（帶寬，收斂＝變盤前兆）、
+  `state`。判斷「現在這個價位在自己的波動區間裡算高還是低」用這個，不要憑印象
+- `signals`：腳本挑出來的指標事件（超買超賣、KD/MACD 交叉、柱狀體翻正負、
+  觸及布林軌、帶寬收斂、OBV 量價背離），每筆有 indicator/type/side/desc。
+  這是跟 stock-radar 前端 Signal Alerts 同一套規則，照抄進筆記的訊號表
+- `volatility.atr_pct` 與 `stop_1_5atr`／`stop_2atr`：停損價要放在這個寬度之外，
+  否則會被日常波動掃出場。筆記裡的停損價一律引用這個，不要憑感覺寫整數
+- `support`／`resistance`：每個 level 都有 price、dist_pct、kind（前波高低點／
+  均線／52 週極值／財報跳空缺口）、touches、strength（1 到 5）、tier（強／中／弱）。
+  寫成表格時原封不動照抄，不要自己改價位。動作的觸發價優先挑 tier 強的那幾條
+- `post_earnings`：跳空幅度、有沒有回補、財報後累計漲跌、量能倍數。
+  未回補的向上跳空缺口是支撐，未回補的向下跳空缺口是壓力
+- `earnings_reaction_history`：這檔股票歷來對財報怎麼反應，是判斷「這次反應算不算
+  過度」的唯一基準
+
+部位（stock_context.portfolio_context）
+- `held` 決定整份操作結論的分支，見 Step 5 的決策矩陣
+- `position.weight_pct`／`weight_rank`／`equal_weight_multiple`／`sizing_verdict`：
+  部位大小。等權倍數 > 1.5 就是超配，加碼建議要有很強的理由才寫得出口
+- `position.unrealized_pct`：抱著賺還是賠，決定要談的是「獲利了結」還是「停損紀律」
+- `position.industry_weight_pct`／`industry_peers`：同產業已經壓了多少。
+  已經 25% 在半導體時再加碼另一檔半導體，等於加碼整個產業，這件事必須在筆記裡講
+- `position.portfolio_impact_if_down_20pct`：這檔跌 20% 對總資產的傷害
+- `position.weight_scenarios`：調到各目標權重要買賣幾股、要多少現金、現金夠不夠。
+  操作建議的股數直接引用這裡，不要自己算
+- 沒持倉時看 `starter_sizing`：可用現金、等權是多少錢、3% 試單是多少錢
+
+### Step 3.5：公司沒有簡報 deck 時，自己畫圖（NVDA 型公司）
+
+筆記不能沒有圖。公司無官方簡報時（NVDA、AAPL 部分文件），改用官方多季數據自製：
+1. `fetch_ir_docs.py TICKER --num-8k 5` 抓四到五季的官方新聞稿/CFO Commentary
+2. 從各季文件抽營收結構、分部門、FCF 等序列（都是官方數字，不是估的）
+3. 先 invoke `dataviz` skill 再寫 matplotlib，用它的驗證色盤（藍 #2a78d6、
+   橘 #eb6834、綠 #1baf7a，已過 validate_palette）、白底 #fcfcfb、細 bar、
+   段間 2px 白邊、直接標值；中文字型用 PingFang TC
+4. 圖存 vault _attachments，命名同官方截圖慣例；圖說註明「由 EDGAR 官方數據自製」
+5. 產出後用 Read 檢視 PNG，確認 label 沒重疊再嵌入
+
+### Step 4：搬附件（定性）
+
+輸出是層狀結構：`投資/財報筆記/{產業}/{TICKER}/{年度}_{Q}/`，筆記與該季所有
+附件放同一個資料夾（不再用 _attachments/）。
+- 產業資料夾名一律用這個指令取得（含斜線正規化，直接用產業原名會因 `/` 炸掉）：
+  `cd $ER && python3 -c "import registry; print(registry.industry_dirname('TICKER'))"`
+  它會自動查 stock-radar 的 stock_valuation.db 並回填 registry；查無時回 `其他`，
+  此時要提醒使用者補分類
+- 第三層命名：日曆年公司 `2026_Q2`；會計年公司 `FY2026_Q4`
+
+```bash
+DEST=~/Documents/arthurwang_DB/投資/財報筆記/{產業}/{TICKER}/{年度}_{Q}
+mkdir -p "$DEST"
+# 官方 PDF 全搬；挑中的簡報頁另存，命名={TICKER} {QUARTER} {中文描述}.png
+# 逐字稿只有官方 PDF 才搬進 vault；stockanalysis fallback 抓的是第三方 txt，
+# 不搬檔案，改在筆記「資料來源」放它的網址
+cp workdir/transcript.pdf "$DEST/TICKER 2026Q2 Earnings Call Transcript.pdf"
+cp workdir/presentation_slide-04.png "$DEST/TICKER 2026Q2 分部門營收與營益.png"
+# 股價走勢圖一定要搬，技術面段落靠它
+cp workdir/TICKER_price_chart.png "$DEST/TICKER 2026Q2 股價走勢與關鍵價位.png"
+```
+
+### Step 5：寫筆記（LLM）
+
+位置：同 Step 4 的 `$DEST/`。檔名：`{報告日} {TICKER} {QUARTER} 財報筆記.md`
+（例：2026-07-29 META 2026Q2 財報筆記.md）。
+嵌入圖表直接用檔名 `![[TICKER 2026Q2 xxx.png]]`（附件同資料夾，Obsidian 以
+檔名解析），不要寫 `_attachments/` 路徑。headless staging 也照同樣層狀結構
+（`vault-staging/投資/財報筆記/{產業}/{TICKER}/{年度}_{Q}/`）。
+
+結構（由大到小，照 META 範本）：
+1. frontmatter（ticker/quarter/report_date/price_after_earnings/tags/sources）
+2. 30 秒結論 callout：一句話總評、股價反應、估值、深度看點、部位現況
+   （持股佔組合幾 %／未持倉）、操作（一個動作＋一個數字，跟第 9 節一致）
+3. 股價與市場反應（腳本給的 reaction_pct，跌或漲的理由）
+4. 公司整體營運：成績單表（每列 QoQ＋YoY＋一句解讀）、稅務等一次性項目提醒、
+   重點三條、資產負債表與資金策略、下季財測
+5. 分部門：每個部門營收/利益都帶 QoQ＋YoY，地區與量價拆解表，用戶指標
+6. AI 戰略等管理層敘事
+7. 深度分析：Step 3 算的七件套，每個小節先給結論再給算法
+8. 技術面與關鍵價位（見下方「技術面段落」）
+9. 結合 stock-radar 的結論：估值現況、持倉狀態、操作結論（見下方「操作結論」）、
+   組合關聯（該公司對現有持倉是上游還是對手）、
+   論點追蹤表，**表頭固定寫成 `| 指標 | 本季現值 | 多方需要看到 | 空方確認訊號 |`**
+   （`extract_insights.py` 靠它把論點抽進 App 的「論點追蹤」頁並跨季對照；
+   指標名稱要跟上一季用同一個寫法，改名字就接不起來了）
+10. 官方文件連結（vault 內 PDF）
+11. 資料來源
+
+#### 技術面段落（第 8 節，不可省略）
+
+開頭先嵌圖：`![[TICKER 2026Q2 股價走勢與關鍵價位.png]]`，圖前一句話講現在的位置
+（例如「跌破 50 日均之後回到 250 日均上緣，剛好是財報跳空缺口的位置」）。
+圖是日 K 線，含 MA20/50/250、布林通道、支撐壓力線、神奇九轉的低9／高9 標記、
+成交量、MACD 與 RSI 面板，讀圖的時候這些都要看，不要只看價格走向。
+
+接著四塊，全部引用 price_technicals 的數字：
+
+1. 趨勢：均線排列、距 50/250 日均幾 %、最近一次黃金／死亡交叉、52 週區間位置。
+   一句話收斂成「順勢／逆勢／打底」，後面的操作建議必須跟這個判斷一致
+2. 動能指標，照這個欄位寫成表（數值直接抄 JSON）：
+
+   | 指標 | 現值 | 狀態 | 意義 |
+   |---|---|---|---|
+   | RSI (14) | 53.4 | 中性 | 沒超買也沒超賣，追價沒有急迫性 |
+   | MACD (12,26,9) | −1.29 / 訊號 −1.04 | 空方 | 柱狀體還在水面下，反彈沒轉勢 |
+   | KDJ (9,3,3) | K 43 / D 37 | 黃金交叉 | 短線剛翻多，但要 K 站上 50 才算數 |
+   | 布林 %B | 62.9% | 中軌之上 | 價格在自己波動區間偏上緣 |
+   | 神奇九轉 | 6/9（高九） | 賣訊醞釀 | 還差 3 根成訊，追價的最後一段 |
+
+   表下面接一句總結，講四個指標是同向還是打架。打架時要寫清楚哪個先信
+   （趨勢類的均線與 MACD 大於震盪類的 KDJ 與威廉），不要含糊帶過。
+   `signals` 有東西就逐條寫進來，一條一行，格式「指標｜事件｜偏多或偏空｜一句解讀」。
+   量價背離（OBV）出現在財報後特別重要，代表這根跳空沒人接，要當成減碼理由
+3. 支撐壓力表，照這個欄位寫（價位直接抄 JSON，不要四捨五入成整數）：
+
+   | 類型 | 價位 | 距現價 | 強度 | 依據 |
+   |---|---|---|---|---|
+   | 壓力 | 264.74 | +3.3% | 強 | 前波高點（2 次觸及） |
+   | 支撐 | 246.64 | −3.8% | 中 | 250 日均線 |
+
+   表下面要寫「現在夾在哪兩條之間」，以及上下各要跌破／站上哪一條才算變盤。
+   強度弱的那幾條講明只能當參考，不要拿來當停損或進場的觸發價
+4. 財報後的價格行為：跳空幅度、回補了沒、財報後累計漲跌、量能倍數，
+   對照 `earnings_reaction_history` 講這次反應相對歷史算大還是小。
+   `post_earnings.report_timing` 會說這家是盤前還盤後公布、`reaction_date` 是真正
+   反應的那一天，兩個都照抄，不要自己假設「一定是隔天才反應」
+
+最後一段要把三件事接起來：估值算出來的目標價落在哪個壓力位附近、DCF 的保守情境價
+落在哪個支撐位附近、動能指標支不支持現在就動手。三邊對不上時就說對不上，不要硬湊。
+技術面只決定「什麼價位動手」，不決定「要不要買」——後者是基本面的事，別寫反。
+
+#### 操作結論（第 9 節，這是整份筆記的重點）
+
+先寫持倉現況，一行講完：持有幾股、成本、現價、未實現 X%、佔組合 Y%、
+第 N 大持股、等權的 Z 倍、同產業合計壓了 W%。沒持倉就寫「目前沒有部位」，
+接可用現金與等權對應的金額。`held_in` 有多個組合時（Main 是自己的、Mom 是媽媽的），
+每個組合各寫一段，因為同一檔在兩邊的權重和成本不一樣，動作也不會一樣。
+
+再依下面的矩陣挑一個動作。**每份筆記只能有一個主動作**，
+而且必須帶三個數字：目標權重、要買賣幾股（抄 weight_scenarios）、觸發價（抄支撐壓力表）。
+
+未持倉（`held: false`）——只有這三個選項，禁止出現「持有」「續抱」：
+| 情境 | 動作 |
+|---|---|
+| 財報驗證論點＋估值不貴＋技術面沒在追高 | 建立試單，寫幾股、幾 % 權重、進場價區（用支撐位）、停損（用 stop_2atr） |
+| 論點成立但價位在壓力區或 52 週高檔（position_in_range > 80） | 觀望，寫明「跌到 X（支撐位）再進」或「站穩 Y（壓力位）再追」 |
+| 財報破壞論點，或估值已反映 | 不進場，寫清楚要看到什麼才會改變看法 |
+
+已持倉（`held: true`）——動作必須跟權重掛勾，權重是主詞不是註腳：
+| 部位狀態 | 財報後論點 | 動作 |
+|---|---|---|
+| 試單／偏低配（等權 < 0.8 倍） | 財報驗證論點 | 加碼到等權，寫要買幾股、用哪個支撐價分批 |
+| 試單／偏低配 | 論點還沒驗證 | 維持試單不動，寫下一季要看到什麼數字才加 |
+| 核心倉（0.8 到 1.5 倍） | 財報轉強 | 續抱，但要說明「不加碼是因為權重已在等權附近」或給加碼的價位條件 |
+| 核心倉 | 財報轉弱 | 減碼到試單或清倉，寫要賣幾股與觸發價 |
+| 超配／過度集中（> 1.5 倍或 > 10%） | 財報轉強 | 續抱不加碼，明講「權重已 X%，再好也不能加」，並給一個減碼回等權的價位 |
+| 超配／過度集中 | 財報轉弱 | 減碼，寫明目標權重與股數，優先處理，理由是單一部位跌 20% 會讓總資產少 Z% |
+| 任何權重 | 未實現為負 | 先做論點檢查：當初買進的理由這次財報有沒有被推翻。被推翻就停損（價位用 stop_2atr 或最近支撐），沒被推翻才談續抱或攤平，攤平要寫攤平後權重會變多少 |
+| 同產業權重已 > 25% | 想加碼 | 一律不加，改寫「要加碼這個產業就得先減另一檔」，點名要減哪一檔 |
+
+**主動作必須獨立成一行，以「動作：」開頭**，格式：
+
+```
+動作：續抱不加碼，權重已在等權附近；跌破 2 倍 ATR 停損 $181.43 代表論點被推翻。
+```
+
+這一行是給機器讀的：`extract_conclusions.py` 靠它把結論抽進 App 的「財報結論」
+總覽頁（stock-radar 前端 /earnings-conclusions）。抽不到就得回頭叫 LLM 補讀整段，
+慢又花額度。所以「動作：」四個字不能換成「操作結論：」「主要動作：」之類的變體，
+也不能只寫在 30 秒結論的句子中間。多帳戶各有動作時寫成一行、兩邊都講
+（例：`動作：媽媽帳戶加碼 1 股到等權 6.2%；主帳戶維持不進場。`）。
+
+寫完檢查三件事：動作有沒有數字、有沒有跟第 8 節的技術面判斷矛盾、
+有沒有跟部位狀態矛盾（超配卻寫加碼、沒持倉卻寫續抱）。有矛盾就重寫。
+
+### Step 6：回寫資料表＋待閱讀清單（做完才算完）
+
+```bash
+python3 $ER/registry.py record TICKER <季度> reaction_pct=<隔日%> \
+  note_path="投資/財報筆記/<產業>/<TICKER>/<年度_Q>/<筆記檔名>.md"
+
+# 結論抽進 App 的「財報結論」總覽（讀鏡像，所以要排在 mirror_notes.sh 之後；
+# sync_staged.sh 已經自動接上，這裡是互動 session 手動補跑用）
+python3 $ER/extract_conclusions.py --ticker TICKER
+# 論點追蹤表＋成績單數據＋深度分析自算指標 → App 的「論點追蹤」頁
+python3 $ER/extract_insights.py --ticker TICKER --llm-deep
+# 新公司另外 upsert fiscal_note / ir 模板 / transcript_source
+
+# 加進待閱讀清單（互動 session 直接跑；headless 因 TCC 會失敗，
+# 由之後的 sync_staged.sh 自動補上，不必特別處理）
+python3 $ER/add_to_reading_list.py TICKER <季度>
+
+# 更新鏡像，筆記才會出現在 stock-radar 個股頁的「財報筆記」tab
+$ER/mirror_notes.sh
+```
+
+## 格式鐵律（違反任何一條就是沒做完）
+
+1. 條列式、口語化，每個數字帶一句白話解讀
+2. 每個指標同時給 YoY 和 QoQ；一次性項目（稅、法律費、遣散費）干擾可比性時必須標註
+2a. 財務用語一律用英文縮寫，不要寫全中文長譯，也不要中英混用同一個概念。
+   對照表（左邊禁用，右邊是唯一寫法）：
+
+   | 不要寫 | 寫成 |
+   |---|---|
+   | 年增、年增率、較去年同期 | YoY |
+   | 季增、季增率、較上季 | QoQ |
+   | 每股盈餘 | EPS |
+   | 自由現金流 | FCF |
+   | 營運現金流 | OCF |
+   | 本益比 | P/E |
+   | 預估本益比 | 預估 P/E |
+   | 本益成長比 | PEG |
+   | 股價營收比 | P/S |
+   | 市值／自由現金流、市值／營運現金流 | P/FCF、P/OCF |
+   | 企業價值／稅前息前折舊攤銷前獲利 | EV/EBITDA |
+   | 企業價值／營收 | EV/Sales |
+   | 稅前息前折舊攤銷前獲利 | EBITDA |
+   | 資本支出 | capex |
+
+   縮寫第一次出現不用加中文註解，這是給自己看的筆記不是給客戶的簡報。
+   毛利率、營益率、營業利益、淨負債／權益這些本來就短的中文照舊，不要硬翻成
+   GM%、OPM%。公司自己的專有名詞（Data Center、Foundry、AI Cloud）照原文。
+2b. **產業與營運術語一律翻成中文白話**，不要把逐字稿裡的英文直接搬進筆記。
+   全篇的英文只准留三種：
+   (1) 2a 表右欄那組財務縮寫；
+   (2) 公司自己的專有名詞（部門名、產品名、公司名，例如 SemiTest、Compute、
+       Omnyx、Universal Robots、Data Center）；
+   (3) 中文語境裡已經沒人翻譯的硬體縮寫（GPU、CPU、HBM、NAND、DDR、EUV、SoC、
+       AI、ATR、RSI、MACD、KDJ、OBV 這類指標名）。
+   除此之外看到英文就要翻，翻完第一次出現時用括號補一句白話解釋
+   （例：「相關性驗證（新機台測出來的結果要跟客戶既有機台對得上）」）。
+   常見對照（左邊禁用）：
+
+   | 不要寫 | 寫成 |
+   |---|---|
+   | DSO | 應收帳款收現天數（貨賣出去到錢收回來平均幾天）|
+   | book-to-bill、b:b | 訂單出貨比 |
+   | guidance、guide、mid guide | 財測、財測中值 |
+   | TAM | 市場規模／可及市場 |
+   | WFE、WFE capex | 晶圓廠設備投資 |
+   | ATE | 測試設備／自動測試設備 |
+   | ramp、production ramp | 量產、量產爬坡 |
+   | qualification (prior to ramp) | 認證中、還沒進量產 |
+   | correlation | 相關性驗證 |
+   | dual vendor / fast follower / mature vendor | 雙供應商／快速追趕者／成熟供應商 |
+   | phase 3→4、全 phase 5 | 第三階段進到第四階段、都進到第五階段 |
+   | socket | 機種 |
+   | test insertion | 測試插入站 |
+   | target (earnings) model | 目標財務模型 |
+   | prepared remarks、earnings call | 法說會開場說明、法說會 |
+   | booking | 接單 |
+   | share（市占那個） | 份額 |
+   | pricing in | 市場已經把…算進價格 |
+   | re-rating | 估值重評 |
+   | fair value | 合理價 |
+   | dry powder | 手上留的現金 |
+   | capital allocation | 資金配置 |
+   | P&L | 損益表 |
+   | GM、OM、OP margin、OPEX | 毛利率、營益率、營益率、營業費用（率）|
+   | FCF margin | FCF 占營收比 |
+   | 1H／2H、rev、flat、update、timing | 上半年／下半年、營收、持平、更新、時點 |
+   | hyperscaler | 超大型雲端業者 |
+   | chiplet、advanced packaging、latent defect | 小晶片、先進封裝、潛藏瑕疵 |
+   | asset-light、boom-bust | 資產輕、大起大落 |
+   | CAGR | 年複合成長率 |
+   | Thesis Tracker | 論點追蹤表 |
+   | cc、constant currency | 固定匯率 |
+   | ASP | 平均單價 |
+   | mix、mix shift | 產品組合、組合轉移 |
+   | run rate | 年化規模 |
+   | fall-through、drop-through | 落地率（增量營收有多少變成營業利益）|
+   | incremental | 增量 |
+   | color（管理層不給 color 那個）| 補充說明 |
+   | attach rate | 搭載率 |
+   | optionality | 選擇權價值 |
+   | balance sheet、Net Income | 資產負債表、稅後淨利 |
+   | Bear／Base／Bull、Optimistic／Moderate／Pessimistic | 熊／基準／牛、樂觀／中性／悲觀 |
+   | price in、priced in | 反映在價格裡／已經算進價格 |
+   | beat、overvalued、undervalued | 超標、高估、低估 |
+   | yield（半導體那個）| 良率 |
+   | leverage、balance sheet | 槓桿、資產負債表 |
+
+   四種例外不要動：frontmatter 的 tags 與 sources、官方文件名（Prepared Remarks
+   PDF、Q2 Update Deck）、公司自己定義的指標名（Roblox 的 bookings、IBM 的
+   program-to-program、AMKR 的 Advanced Mix，第一次出現用括號補中文即可）、
+   以及專門解釋名詞的段落（那裡英文原文就是重點）。
+
+   附件檔名同一條規則：`{TICKER} {QUARTER} {中文描述}.png`，不要留
+   `Dual Vendor Lifecycle`、`WFE Capex 展望` 這種英文檔名。
+3. 圖表內嵌在講同一件事的段落旁，圖前加一句解讀，禁止集中放文末
+4. 電話會議 Q&A 逐題呈現，依附在對應主題段落下（capex 問答放財測段、推薦系統問答放
+   廣告段），格式＝blockquote「Q：／CEO 或 CFO：／解讀：」，不寫任何人名
+5. 深度分析必須自己算，禁止只整理公司給的數字
+6. 結論必須落到操作，並連結 vault 內相關筆記（[[wikilink]]）
+6a. 操作結論一律走 Step 5 的決策矩陣。沒持倉不准出現「持有」「續抱」；
+   有持倉時第一句就要出現權重數字，動作要帶目標權重＋股數＋觸發價。
+   「維持觀察」「持續關注」「續抱」單獨出現而沒有數字，等於沒寫
+6b. 技術面段落與 K 線圖是必要項，缺一就是沒做完。段落裡動能指標表、支撐壓力表
+   （含強度欄）、`signals` 訊號三樣都要有，只寫「技術面偏多」而沒有指標數值等於沒寫。
+   支撐壓力價位一律抄 price_technicals 的輸出，停損價一律引用 ATR 算出來的那兩個數字
+6c. 加碼建議必須先過產業集中度那關：industry_weight_pct 已經高的時候，
+   要嘛不加，要嘛講清楚拿哪一檔來換
+7. 去 AI 味（Humanizer-zh）：內文不用粗體、不用 emoji、不用長破折號——、
+   不用「不是…而是…」排比、不堆金句、句長長短交錯、條列開頭直接寫句子不用「標籤：」
+8. 寫完自檢：
+   - `grep -c '——\|💡\|\*\*' 筆記.md` 內文應為 0（表格語法除外）
+   - 操作結論段落要能 grep 到權重百分比與股數；沒持倉的筆記 grep `續抱\|持有` 應為 0
+   - 術語自檢（2b），命中要為 0，只有 `![[...]]` 圖檔名、PDF 檔名與網址可以有英文：
+
+     ```bash
+     grep -nEi 'DSO|book-to-bill|b:b|guidance|\bguide\b|\bTAM\b|\bWFE\b|\bATE\b|ramp|correlat|dual vendor|fast follower|qualification|phase ?[0-9]|target model|target earnings|prepared remarks|hyperscaler|pricing in|price in|re-rating|fair value|dry powder|capital allocation|\bOPEX\b|FCF margin|P&L|chiplet|latent defect|boom-bust|asset-light|Thesis Tracker|\bflat\b|\btiming\b|\b1H\b|\b2H\b|\bASP\b|\bcc\b|\bmix\b|\bcolor\b|run rate|fall-through|incremental|\bBear\b|\bBase\b|\bBull\b|Optimistic|overvalued' 筆記.md
+     ```
+   - 人名自檢：Q&A 與內文都不寫 CEO／CFO／分析師的名字（鐵律第 4 條），
+     引用管理層原話寫「CEO 原話」不寫「Greg 原話」
+
+## 自動化（已上線）
+
+launchd job `com.arthur.earnings-notes` 每日 10:30 跑 `earnings_cron.sh`：
+行事曆更新（yfinance）→ EDGAR 8-K 確認公布 → 公布 2 到 6 天內未生成筆記的
+ticker 逐一 `claude -p /earnings-note`。headless 時筆記寫
+`~/.arthur-digest/earnings_notes/vault-staging/`（launchd 進不了 ~/Documents），
+互動 session 看到 staging 有東西就跑 `sync_staged.sh` 搬進 vault。
+加監控：`python3 $ER/earnings_calendar.py watch TICKER`。
+
+## 已知地雷
+
+- launchd 自動化跑這個 skill 時寫不進 ~/Documents（TCC），要先寫 ~/.arthur-digest 再同步；
+  互動 session 直接寫沒問題
+- SEC 請求必須帶 User-Agent（腳本已內建）
+- 盤前公布的公司（VRT、TSM、MA、V、ABBV 這類），股價反應落在報告日當天而不是
+  隔天。腳本用「成交量爆量的是哪一天」判斷，不要自己按日曆推。手動核對時記得
+  registry 存的 reaction_pct 是對的那個數字
+- yfinance 連續抓幾十檔會被限流（YFRateLimitError）。`price_technicals.py` 會把
+  日線快取到 `~/.arthur-digest/price_cache/{TICKER}_{今天}.csv`，同一天重跑不會
+  再打 Yahoo；批次補跑整個筆記庫時先讓快取暖起來再跑
+- 逐字稿在財報後 1 到 48 小時才出現，公布當天跑可能只有新聞稿，隔天再補跑一次。
+  腳本抓不到會印 `transcript: ...` 說明原因；看到它就代表這次筆記缺 Q&A，
+  隔天補跑 fetch 後要回頭補寫（VRT 2026Q2 就是這樣漏掉 14 位分析師的問答）
+- ADR／外國發行人（TSM 之類）stockanalysis 沒有 transcripts 專頁，只能走官方 IR
+- stockanalysis 的逐字稿偶有斷字（VRT 那份 14 萬字裡 58 處，像「c ontinuing」），
+  讀沒問題，但要逐字引用英文原文時去官方新聞稿或 IR 逐字稿核對
