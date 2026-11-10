@@ -243,7 +243,16 @@ done
    - 現行腳本已改用 `cp -f` + 5 次重試規避；舊的 `shutil`/`rsync` 版會 `sync 失敗`。
    - 若日後改寫同步邏輯，避免在 launchd context 用 Python/Node 直接寫 `~/Documents`。
 
-5. **Obsidian 目的地已遷移**
+5. **`📊 今日市場報告.md` 自 2026-08-18 起沒再產出過 ⚠️ 未修**
+   - `data/summaries/` 原始輸出與 Obsidian 兩邊都只剩 `📊 Portfolio.md` + `📋 個股與產業.md`。
+   - `orchestrator.py:251` 的 `if market_report:` 沒過 → 檔案沒寫。`generate_market_report`
+     外面沒有 try/except，所以是它回了空字串；它唯一的空返回是 `summarizer.py:432` 的
+     `if not items and not category_reports`。要查的是 `save_category_folder` 的回傳值
+     （檔案有寫出來，不代表 dict 有回內容）。
+   - 連帶影響：Telegram 推播的「今日一句話 / Macro / 財報摘要 / 行動清單」全是從這份報告
+     萃取的，等於已經空了兩週。
+
+6. **Obsidian 目的地已遷移**
    - 新：`~/Documents/arthurwang_DB/Digest/stock/<日期>/`（最新持續更新）
    - 舊：`~/Documents/arthurwang_DB/投資/Stock Digest/<日期>/`（停在 2026-06-10，過時腳本殘留）
 

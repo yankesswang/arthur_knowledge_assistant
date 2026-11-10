@@ -86,6 +86,7 @@ extract_section() {
 # 會抓到前一天的持倉。這裡先觸發 stock-radar 每日報告並等它寫完當天快照。
 SR_HEALTH="http://127.0.0.1:6000/api/health"
 SR_REPORT="http://127.0.0.1:6000/api/scheduler/report/run"
+SR_MIMI_SYNC="http://127.0.0.1:6000/api/mimi/sync"
 SR_DB="/Users/yankesswang/Desktop/Projects/Arthur_App/stock-radar/backend/stock_valuation.db"
 
 ensure_stockradar_snapshot() {
@@ -94,6 +95,16 @@ ensure_stockradar_snapshot() {
     if ! curl -sf -o /dev/null --max-time 5 "$SR_HEALTH" 2>/dev/null; then
         log "⚠️  stock-radar backend 未啟動（:6000），跳過快照刷新，digest 使用既有最新快照"
         return 0
+    fi
+
+    # ── 同步 mimi 操作建議總表 → DB（重跑 parser、含新格式報酬率/燈號）──
+    log "🔄 同步 mimi 操作建議總表 → stock-radar DB…"
+    local sync_resp
+    sync_resp=$(curl -sf -X POST --max-time 90 "$SR_MIMI_SYNC" 2>/dev/null || echo "")
+    if [ -n "$sync_resp" ]; then
+        log "✅ mimi sync 完成：$sync_resp"
+    else
+        log "⚠️  mimi sync 失敗或逾時（不阻斷 digest）"
     fi
 
     local cur
@@ -143,14 +154,19 @@ STOCK_HORIZON_SUMMARIES="/Users/yankesswang/Desktop/Projects/Arthur_App/arthur_k
 HORIZON_DATE=$(ls -t "$STOCK_HORIZON_SUMMARIES/" 2>/dev/null | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' | head -1 || echo "$TODAY")
 SRC="$STOCK_HORIZON_SUMMARIES/$HORIZON_DATE/"
 DST="/Users/yankesswang/Documents/arthurwang_DB/Digest/stock/$HORIZON_DATE/"
+# 非保護鏡像：stock-radar 後端讀這裡，而非 ~/Documents。launchd 啟動的服務
+# 無法讀 ~/Documents（macOS TCC，表現為 OSError Errno 11 EDEADLK），故另存一份。
+MIRROR="$HOME/.arthur-digest/stock/$HORIZON_DATE/"
 
 if [ -d "$SRC" ]; then
-    mkdir -p "$DST"
+    mkdir -p "$DST" "$MIRROR"
     # 用 cp + 重試（Python/Node 寫 ~/Documents 在 launchd 下會機率性 EDEADLK；cp 較穩，重試保底）
     sync_ok=1
     for f in "$SRC"*; do
         [ -f "$f" ] || continue
         base=$(basename "$f")
+        # 鏡像：來源/目的都在非保護區，直接複製即可
+        cp -f "$f" "$MIRROR$base" 2>>"$LOG" || log "WARNING: 鏡像複製失敗 $base"
         copied=0
         for attempt in 1 2 3 4 5; do
             if cp -f "$f" "$DST$base" 2>>"$LOG"; then copied=1; break; fi
@@ -159,6 +175,7 @@ if [ -d "$SRC" ]; then
         [ "$copied" = 1 ] || { sync_ok=0; log "WARNING: 複製失敗 $base"; }
     done
     [ "$sync_ok" = 1 ] && log "✅ Synced to Digest/stock/$HORIZON_DATE" || log "WARNING: sync 部分失敗"
+    log "✅ Mirrored to ~/.arthur-digest/stock/$HORIZON_DATE"
 fi
 
 # ── 從報告萃取重點 ──
