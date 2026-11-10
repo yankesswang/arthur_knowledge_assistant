@@ -111,34 +111,49 @@ Arthur 的 Obsidian 知識管理 + 投資筆記 + 內容創作 AI 助理。
 
 1. 在 `🆕 本週新增` 區塊下，找到對應的**主題子分區**（AI Agent 工程 / LLM 技術 / 投資…）
 2. 在子分區頂端新增一行：`- [ ] [[筆記標題]]`
-   - **投資子分區必須標記來源**，格式見下方「投資子分區來源標籤」
+   - **投資子分區依作者分小區**，格式見下方「投資子分區作者分區」
 3. 若清單中已有相同條目，**跳過**，不重複新增
 4. 若對應子分區不存在，在 `🆕 本週新增` 下新建一個 `### 子分區名稱`
 
-#### 投資子分區來源標籤（僅 `### 投資` 適用）
+#### 投資子分區作者分區（僅 `### 投資` 適用）
 
-投資條目一律在 checkbox 後、wikilink 前加上反引號包住的來源標籤：
+投資條目依作者放進 `### 投資` 底下的 `#### 作者` 小區，新條目放在該小區最上面：
 
 ```markdown
-- [ ] `FOMO SOC` [[2026-09-16 UBER：Cybercab與Waymo的去中介化威脅]]
-- [ ] `M報` [[2026-09-15 蘋果摺疊機首發、AI Agent雲端化競賽]]
-- [ ] `mimi` [[2026-09-11 10年美債逼近5%空頭終局]]
-- [ ] [[2026-09-09 解構中國權力變現機制]]          ← 自己整理的，不加標籤
+### 投資
+
+#### FOMO SOC
+
+- [ ] [[2026-09-16 UBER：Cybercab與Waymo的去中介化威脅]]
+
+#### mimi
+
+- [ ] [[2026-09-11 10年美債逼近5%空頭終局]]
+
+#### M報
+
+- [ ] [[2026-09-15 蘋果摺疊機首發、AI Agent雲端化競賽]]
+
+#### 其他
+
+- [ ] [[2026-09-09 解構中國權力變現機制]]
 ```
 
-**來源判斷**：讀筆記 frontmatter 的 `url` 或 `source` 欄位，對照下表；若 frontmatter 沒有，則看筆記所在資料夾路徑。
+**作者判斷**：讀筆記 frontmatter 的 `source` 與 `url`（不分大小寫），對照下表：
 
-| frontmatter `url` / `source` 含 | 標籤 |
+| frontmatter `source` / `url` 含 | 小區 |
 |--------------------------------|------|
 | `fomosoc.com`、`FOMO SOC` | `FOMO SOC` |
-| `mviewpoint.substack.com` | `M報` |
-| `mimi`、`mimivsjames` | `mimi` |
-| `vincentcwyu.substack.com` | `Vincent Yu` |
-| `vickyho.substack.com` | `Vicky Ho` |
+| `mimivsjames`、`mimi` | `mimi` |
+| `mviewpoint.substack.com`、`Market Viewpoint` | `M報` |
+| `vincentcwyu.substack.com`、`Vincent Yu` | `Vincent Yu` |
+| `vickyho.substack.com`、`Vicky Ho` | `Vicky Ho` |
+| 筆記在 `投資/財報筆記/` 底下 | `財報筆記` |
 
-- 上表沒有的訂閱來源：用該來源的慣用簡稱，維持反引號格式
-- **自己整理、非訂閱來源的筆記不加標籤** —— 留白本身就是區分
-- 標籤只加在 `### 投資` 子分區，其他子分區維持原格式
+- 小區順序：FOMO SOC → mimi → M報 → Vincent Yu → Vicky Ho → 財報筆記 → 其他新來源 → 其他
+- 上表沒有的訂閱來源：小區名用 frontmatter `source` 原值
+- 沒有 `source` 也對不上 `url` 的（自己整理、podcast 等）放 `#### 其他`
+- 程式寫入走 Mac 上的 `Arthur_App/scripts/lib/article_list.py`，會自動判斷作者；手動加時照本規則即可
 
 **主題子分區對應規則**：
 

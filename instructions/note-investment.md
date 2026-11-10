@@ -40,6 +40,7 @@ ARM架構分析.md                            ← 沒有日期
 ---
 title: 中文標題（與檔名標題一致）
 date: YYYY-MM-DD（原文發布日期，取自 Clipping 的 published 欄位）
+source: 來源名稱（電子報／Podcast／頻道／公司財報名，如 FOMO SOC、MimiVsJames）
 sector: 投資板塊（中文）
 tags:
   - 核心主題1
@@ -51,9 +52,31 @@ url: 原始連結
 ---
 ```
 
+`source` 與 `url` 為**必填**：任何一則筆記都要能一眼看出「這是誰講的、原文在哪」。
+
 ---
 
-## 2. TL;DR（必須放在 frontmatter 正下方）
+## 3. 來源標示（正文第一行，必填）
+
+frontmatter 正下方、`## TL;DR` 之前，**必須先放一行來源引用**，讓人打開筆記第一眼就看到出處：
+
+```markdown
+> 📖 來源：{來源名稱}（{原文發布日期 YYYY-MM-DD}）｜[原文]({url})
+```
+
+**範例**：
+
+```markdown
+> 📖 來源：FOMO SOC（2026-08-26）｜[原文](https://www.fomosoc.com/p/clarity-61)
+```
+
+- 來源名稱用 frontmatter 的 `source`，日期用 `date`，連結用 `url`
+- 缺連結時寫「原文連結未提供」，不要臆造 URL
+- 這一行**不算**章節，後面才接 `## TL;DR`
+
+---
+
+## 3b. TL;DR（緊接在來源標示之後）
 
 列點式，包含以下列點：
 
@@ -254,8 +277,8 @@ Code block 不只用來放計算，這兩篇最有效的用法是**結構化的�
 
 | 條件 | 寫入目標 |
 |------|---------|
-| 筆記 `url` 包含 `mimi`、`mimivsjames`，或來源明確標示為 MimiVsJames | `/home/trx50/Documents/arthurwang_DB/投資/mimi操作建議總表.md` |
-| 其他所有來源（podcast、財報、訪談、其他 Substack、Uncle Stock、宏觀策略等） | `/home/trx50/Documents/arthurwang_DB/投資/投資操作建議總表.md` |
+| 筆記 `url` 包含 `mimi`、`mimivsjames`，或來源明確標示為 MimiVsJames | `/Users/yankesswang/Documents/arthurwang_DB/投資/mimi操作建議總表.md` |
+| 其他所有來源（podcast、財報、訪談、其他 Substack、Uncle Stock、宏觀策略等） | `/Users/yankesswang/Documents/arthurwang_DB/投資/投資操作建議總表.md` |
 
 > 如有疑慮，**預設寫入一般總表**（`投資操作建議總表.md`），不猜測。
 
