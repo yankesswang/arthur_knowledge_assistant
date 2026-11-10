@@ -550,7 +550,9 @@ Keep the main note around 4,000–7,000 Chinese characters for a normal empirica
 **Section rules**:
 - Start each section with its conclusion, then explain the evidence. Never make the reader wait until the end for the point.
 - Begin the architecture section with a 5–8 step data-flow overview, then explain each important component in the technical subsections. Cover all mechanisms needed for conceptual reproduction: modality preprocessing, tensor/token flow, backbone changes, pooling/output, objectives, training stages, data recipe, and inference-time controls.
-- Retain 2–6 important equations when they clarify the paper's novelty. Define every symbol used and follow each equation with a plain-language explanation plus why the design exists.
+- Prefer plain-language mechanisms, numbered steps, and small input/output examples over equations. Keep at most 0–2 equations in the entire note, and only when the equation itself is a central contribution that cannot be explained accurately in prose.
+- Never make the reader decode single-letter symbols. Do not write unexplained variables such as `s`, `q`, `p_i`, `H_l`, or `Z`. Replace them with semantic Chinese phrases such as「背景資料」「查詢內容」「第 i 個選項的機率」「這一層的輸出」. If an equation must remain, introduce every quantity in Chinese before the equation, annotate it with meaningful names, and immediately give a concrete example.
+- Do not introduce notation that appears only once. Convert secondary formulas into: `輸入是什麼 → 怎麼計算 → 輸出是什麼 → 為什麼需要`.
 - Explain training objectives separately rather than collapsing them into one sentence. For each loss or regularizer, state its input, optimization behavior, and intended failure mode.
 - In `四、實驗結果`, give each materially evaluated modality its own subsection. Use compact tables, but include enough comparisons to show both strengths and weaknesses. State what each benchmark measures before citing its score.
 - Preserve important per-dimension, per-modality, and quantization results when they affect deployment decisions. Avoid dumping every task row, but do not omit an entire result family merely because it is not the top headline.
@@ -572,7 +574,11 @@ Keep the main note around 4,000–7,000 Chinese characters for a normal empirica
 
 **Output language rules** (from CLAUDE.md):
 - All text in 繁體中文
-- Keep in English: arXiv IDs, model names (LLM, Gemini, GPT), technical acronyms (KV cache, RLHF, MAS, SAS), person names, company names
+- Use Chinese-first terminology. On first occurrence, write `好懂的中文名稱（official English term）`; afterward use only the Chinese name. Examples: `背景資料（state）`, `查詢內容（query）`, `目標內容（target）`, `損失函數（loss）`, `獎勵（reward）`, `模型嘗試軌跡（rollout）`, `文字單元（token）`, `近似最近鄰搜尋（ANN）`.
+- Keep English only for proper names that should not be translated: arXiv IDs, model/product names, benchmark names, people, companies, code/API identifiers, and an official algorithm name whose Chinese translation would be ambiguous. Even then, explain its role in Chinese on first use.
+- Avoid decorative or unnecessary English in headings and prose. Prefer「主幹模型」over `backbone`,「讀出頭」over `readout head`,「檢查器」over `verifier`,「檢查點」over `checkpoint`,「前向計算」over `forward pass`, and「評測集」over `benchmark` when referring to the generic concept.
+- Acronyms may remain only when they recur or are standard names. Define them once in Chinese, then use the acronym. Do not make the reader remember an acronym used only once.
+- In prose, never use a bare mathematical letter as a noun. Say「背景資料」instead of `s`,「選項機率」instead of `p`, and「第 3 個候選答案」instead of `o_3`.
 - Numbers must include units (%, ×, tokens, seconds, ms)
 
 **TL;DR rules**:
@@ -596,6 +602,8 @@ Keep the main note around 4,000–7,000 Chinese characters for a normal empirica
 5. Claims distinguish paper evidence from your inference.
 6. The note is easy to scan despite its depth: short paragraphs, informative subheadings, selective callouts, and no wall of equations or unfiltered benchmark dumps.
 7. If rewriting an existing note, preserve valid frontmatter, source URL, and working image links while replacing the body with the clearer structure.
+8. Search the draft for single-letter variables, unexplained acronyms, and avoidable English. Rewrite them into semantic Chinese; no reader should need to look backward to remember what a symbol means.
+9. Verify that removing an equation did not remove the mechanism: its prose replacement must still explain the input, operation, output, purpose, and one concrete consequence.
 
 ---
 
